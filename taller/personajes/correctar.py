@@ -14,7 +14,7 @@ generado con taller/pixelar.py); el kanji de la espalda sale nitido de una fuent
 mechones que sigue de una caja a la otra sin cortarse.
 
 Capas, de adentro hacia afuera:
-  BASE: cara (la de 24 x 24 al doble, ojos amarillos cansados de anime); torso de piel con abdominales, el engranaje
+  BASE: cara del boceto 6 (24 x 24 al doble, ojos amarillos cansados de anime); torso de piel con abdominales, el engranaje
     tatuado, unas ramas de tinta y el cordon del collar; hombros desnudos con el engranaje tatuado
   PELO simple: casco ajustado y flequillo con los mechones dibujados, terminados en puntas; unos pocos cubitos que lo
     despeinan (arriba, costados, nuca); un mechon blanco y la cinta roja a la izquierda
@@ -47,7 +47,7 @@ ROJO = tonos("#C0262A")
 ORO = tonos("#C9A14A")
 D = 6                                   # texeles por px en todo el modelo (textura grande, mas detalle)
 
-# ---------------------------------------------------------------- cara (24 x 24, densidad 3)
+# ---------------------------------------------------------------- cara (24 x 24, al doble)
 
 def escalar_dibujo(filas, k):
     """Agranda un dibujo k veces (vecino mas cercano), para usarlo a la densidad nueva."""
@@ -84,56 +84,10 @@ CARA_BASE = dibujo("""
 """)
 
 
-def cara_dibujo():
-    """La cara de antes (24 x 24) agrandada al doble (48 x 48, densidad 6) y repasada como pixel art: iris con
-    degradado y brillo, pupila rasgada, pestanas con punta hacia afuera, ojeras suaves, sombra de la frente bajo el
-    flequillo, nariz con sombra y brillo, labio, mejillas y mandibula con volumen."""
-    g = [list(f) for f in escalar_dibujo(CARA_BASE, 2)]
-    W = len(g)
-
-    def pon(r, c, ch):
-        if 0 <= r < W and 0 <= c < W:
-            g[r][c] = ch
-    for r in range(4):                                            # sombra del flequillo en la frente
-        for c in range(W):
-            g[r][c] = "s" if r < 2 else "q"
-    for r in range(18, 46):                                       # costados de la cara mas oscuros (volumen)
-        for c in (0, 1, W - 2, W - 1):
-            g[r][c] = "q"
-    for lado in (1, -1):
-        def c(x):
-            return x if lado > 0 else W - 1 - x
-        pon(21, c(3), "k"), pon(21, c(4), "k"), pon(20, c(2), "k")          # punta de las pestanas hacia afuera
-        pon(23, c(18), "p"), pon(23, c(19), "p")                            # la pestana se afina adentro
-        for x in range(10, 18):                                             # iris: arriba mas claro
-            if g[24][c(x)] == "Y":
-                pon(24, c(x), "y")
-        pon(24, c(12), "H")                                                 # brillo
-        for r in (24, 25, 26, 27):                                          # pupila rasgada mas fina
-            if g[r][c(15)] == "o":
-                pon(r, c(15), "O")
-        pon(28, c(6), "k")                                                  # pestana de abajo
-        for x in range(8, 18):                                              # ojera mas suave abajo
-            if g[31][c(x)] == "b":
-                pon(31, c(x), "q")
-    for c in (23, 24):                                            # nariz: brillo arriba, sombra abajo
-        pon(30, c, "l"), pon(31, c, "l")
-    for c in range(22, 26):
-        pon(33, c, "s")
-    pon(34, 22, "q"), pon(34, 25, "q")
-    for c in range(20, 28):                                       # boca y labio
-        pon(37, c, "p")
-        pon(38, c, "m" if 21 <= c <= 26 else "s")
-        pon(39, c, "n" if 22 <= c <= 25 else "p")
-    for c in list(range(0, 7)) + list(range(W - 7, W)):           # curva de la mandibula
-        pon(45, c, "s")
-    return ["".join(f) for f in g]
-
-
-CARA = cara_dibujo()
-PAL_CARA = {"p": PIEL["b"], "s": PIEL["s"], "q": "#B98864", "l": PIEL["l"], "k": "#1E1416", "W": "#EDE6DC",
-            "Y": "#F0C81E", "y": "#FADF5A", "G": "#B88A12", "L": "#FFF0A0", "H": "#FFFFFF", "o": "#3A2808",
-            "O": "#5A4012", "b": PIEL["s2"], "m": "#8A5A44", "n": "#B07A60"}
+# la cara del boceto 6 tal cual (la que le gusta al usuario), agrandada al doble para la densidad 6 sin retocarla
+CARA = escalar_dibujo(CARA_BASE, 2)
+PAL_CARA = {"p": PIEL["b"], "s": PIEL["s"], "k": "#1E1416", "W": "#EDE6DC", "Y": "#F0C81E", "G": "#B88A12",
+            "L": "#FFF0A0", "o": "#3A2808", "b": PIEL["s2"], "m": "#8A5A44"}
 
 
 TATUAJE = dibujo("""
