@@ -1,28 +1,32 @@
 """
-Correcthar, el semidios que corrige todo a su forma anterior (原状回復: volver al estado original). Hecho a mano con el
-kit segun referencias/personajes/correctar_semidios.png. Estilo: serio, tranquilo, disciplinado, analitico, solitario.
+Anteros, dios de Aseris: disciplina, estrategia y equilibrio ("el orden tambien es una forma de amor"). Hermano de
+Meron. Hecho a mano con el kit segun referencias/personajes/anteros_semidios.png. Estilo: serio, tranquilo,
+disciplinado, analitico, solitario.
+
+Colores (lore/personajes/anteros.json, con la piel que pidio el usuario): piel blanca, ojos verdes, pelo negro,
+ropa negra, capa verde oscuro.
 
 Medidas: 2.5 bloques (40 px). Cabeza de 8, torso de 10 (7 de ancho), piernas de 22, brazos finos.
 Pintura a densidad 8: cada px del modelo son 8 x 8 texeles (la cara es un pixel art de 64 x 64). Paleta cerrada de
 rampas con hue shifting y sin ruido; el volumen lo termina la luz horneada del motor (taller/luz.py).
 
 Capas, de adentro hacia afuera:
-  BASE: cara serena de ojos grises; kimono negro cruzado en V con el cuello blanco, el pecho a la vista con el
-    tatuaje del circulo y el collar de jade; manos con un anillo de plata
+  BASE: cara serena de ojos verdes; kimono negro cruzado en V con el cuello blanco, el pecho a la vista con el
+    tatuaje del circulo (el equilibrio) y el collar de jade; manos con un anillo de plata
   PELO negro ordenado: casco, flequillo que cae sobre el ojo derecho, mechones que enmarcan la cara, un pelito
     parado arriba; todo con el mismo campo de mechones (continuo de una caja a otra) y puntas abajo
-  ARETES en las dos orejas: argolla de plata, etiqueta blanca y borla azul hasta el hombro
-  HAORI BLANCO largo hasta la canilla, abierto adelante con las bandas negras del cuello, el simbolo del circulo
-    (aro con una gota y una cuerda) grande en la espalda y chico en cada manga, mangas de kimono con forro azul
-  OBI azul con el cordon blanco y su nudo, cordones con borlas y la etiqueta 原状回復 colgando adelante y atras
+  ARETES en las dos orejas: argolla de plata, etiqueta blanca y borla verde hasta el hombro
+  HAORI VERDE largo hasta la canilla, abierto adelante con las bandas negras del cuello, el simbolo del circulo
+    (aro con una gota y una cuerda) grande en la espalda y chico en cada manga, mangas de kimono con forro negro
+  OBI negro con el cordon verde y su nudo, cordones con borlas y la etiqueta 秩序均衡 (orden y equilibrio)
+    colgando adelante y atras
   HAKAMA negro ancho con pliegues hasta el tobillo; calcetas a rayas; BOTAS gruesas negras y blancas
-  KATANA a la izquierda, metida en el obi: mango con trenzado, tsuba y punta de oro, vaina negra hacia atras
 """
 
 import math
 
 from .. import malla as geo
-from . import correctar_pixelart as PX
+from . import anteros_pixelart as PX
 from ..kit import Personaje, sprite, tonos
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 
@@ -30,14 +34,14 @@ D = 8                                                   # texeles por px: la car
 DENS_LETRAS = 12                                        # las etiquetas: 1.5 px de ancho = letra de 16 + borde
 
 # PALETA CERRADA: cada material usa solo su rampa (oscuro -> claro); las sombras van al frio, las luces al calido
-PIEL = tonos("#ECCDB2")
-TELA_B = ("#9C9AAA", "#BEBCC8", "#DAD8DE", "#EFEDE9", "#FFFDF8")    # haori blanco
+PIEL = tonos("#ECCDB2")                                             # piel blanca
+PIEL_BORDE = "#DDB79A"                                              # entre la base y la sombra
+TELA_B = ("#9C9AAA", "#BEBCC8", "#DAD8DE", "#EFEDE9", "#FFFDF8")    # papel de las etiquetas, cuello, botas
+VERDE = ("#0E2216", "#183A22", "#24502C", "#33683C", "#4A8452")     # haori (la capa verde del lore), cordon
 TELA_N = ("#0A0A12", "#141420", "#1E1C26", "#2C2832", "#3E3840")    # kimono y hakama negros
-AZUL = ("#151B2E", "#222C46", "#33405E", "#4A5B7E", "#687CA0")      # obi, forro, borlas
 PELO = ("#050508", "#0B0C11", "#12141B", "#1E2230", "#343B50")      # negro con reflejo frio
 PLATA = tonos("#B9BEC9")
 JADE = tonos("#4F8C70")
-ORO = tonos("#C9A14A")
 TINTA = "#15151C"
 NEGRO, NEGRO2 = TELA_N[1], TELA_N[2]
 BLANCO = TELA_B[3]
@@ -76,7 +80,7 @@ class Hoja:
 
 
 def cara_dibujo():
-    """Cara serena de 64 x 64: ojos grises en almendra con el parpado caido (mirada fria y tranquila), raya gruesa de
+    """Cara serena de 64 x 64: ojos verdes en almendra con el parpado caido (mirada fria y tranquila), raya gruesa de
     pestanas con la punta hacia afuera, iris con sombra del parpado arriba y luz abajo, brillo chico; cejas finas y
     rectas, nariz de una sombra, boca de una linea. Sin ojeras ni colores en las mejillas."""
     h = Hoja(64, 64, "p")
@@ -131,9 +135,9 @@ def cara_dibujo():
 
 
 CARA = cara_dibujo()
-PAL_CARA = {"p": PIEL["b"], "q": "#DDB79A", "s": PIEL["s"], "l": PIEL["l"], "k": "#1A1820", "W": "#F4F2EE",
-            "w": "#C9C8D2", "Y": "#4E5870", "y": "#7D89A3", "I": "#A9B5CB", "o": "#22263A", "H": "#FFFFFF",
-            "L": "#DDE6F2", "m": "#B07C6C", "n": "#8E5E54"}
+PAL_CARA = {"p": PIEL["b"], "q": PIEL_BORDE, "s": PIEL["s"], "l": PIEL["l"], "k": "#120C0E", "W": "#F2F0EC",
+            "w": "#C6C8C4", "Y": "#2A6A3C", "y": "#3E9A55", "I": "#7CC890", "o": "#0C2414", "H": "#FFFFFF",
+            "L": "#CFF2D8", "m": "#B07C6C", "n": "#8E5E54"}
 
 
 def piel(t):
@@ -143,7 +147,7 @@ def piel(t):
     if t.cara == "down":
         return hex_(PIEL["s"])
     if t.i < 2 or t.i >= t.tw - 2:
-        return hex_("#DDB79A")
+        return hex_(PIEL_BORDE)
     return hex_(PIEL["b"])
 
 
@@ -207,17 +211,17 @@ OBI_CORDON = 25.5
 
 
 def obi(t):
-    """Obi azul con dos lineas finas de luz (la tela doblada) y el cordon blanco pintado alrededor."""
+    """Obi negro con dos lineas finas de luz (la tela doblada) y el cordon verde pintado alrededor."""
     if t.cara in ("up", "down"):
-        return hex_(AZUL[1])
+        return hex_(TELA_N[1])
     y = t.y
     if abs(y - OBI_CORDON) < 0.16:
-        return hex_(BLANCO)
+        return hex_(VERDE[3])
     if abs(y - OBI_CORDON) < 0.26:
-        return hex_(TELA_B[1])
+        return hex_(VERDE[1])
     if abs(y - (OBI_ABAJO + 0.5)) < 0.07 or abs(y - (OBI_ARRIBA - 0.45)) < 0.07:
-        return hex_(AZUL[3])
-    return hex_(AZUL[2])
+        return hex_(TELA_N[3])
+    return hex_(TELA_N[2])
 
 
 def pantalon(t):
@@ -243,7 +247,7 @@ def pierna(t):
 
 
 def etiqueta(letras=True, borde=TELA_B[1]):
-    """Etiqueta de papel (ofuda) blanca con borde gris y 原状回復 escrito hacia abajo en pixel art de 16 x 16."""
+    """Etiqueta de papel (ofuda) blanca con borde gris y 秩序均衡 escrito hacia abajo en pixel art de 16 x 16."""
     glifos = (PX.LETRA_0, PX.LETRA_1, PX.LETRA_2, PX.LETRA_3)
 
     def p(t):
@@ -256,10 +260,6 @@ def etiqueta(letras=True, borde=TELA_B[1]):
                 return hex_(TINTA)
         return hex_(BLANCO)
     return p
-
-
-def oro(t):
-    return hex_(ORO["l"] if t.cara == "up" else ORO["b"])
 
 
 def plata(t):
@@ -342,7 +342,7 @@ def _pincelada(x, y):
 
 
 def haori_tela(espalda=False, delantero=0):
-    """Tela blanca del haori. espalda: el simbolo grande con su cuerda y la banda negra del cuello. delantero (1
+    """Tela verde del haori. espalda: el simbolo grande con su cuerda y la banda negra del cuello. delantero (1
     derecho, -1 izquierdo): la banda negra a lo largo de la abertura y, en el izquierdo, una pincelada abajo."""
     def p(t):
         x, y = t.x, t.y
@@ -360,13 +360,13 @@ def haori_tela(espalda=False, delantero=0):
                 return hex_(NEGRO)                         # banda negra del cuello, hasta abajo
             if delantero < 0 and _pincelada(-x, y):
                 return hex_(TINTA)
-        return hex_(BLANCO)
+        return hex_(VERDE[3] if t.cara == "up" else VERDE[2])
     return p
 
 
 def haori():
     """Cuerpo del haori: espalda, costados y dos delanteros que bajan casi rectos hasta la canilla, abierto adelante.
-    Cada panel con forro azul corrido hacia adentro. Devuelve (malla, pintores)."""
+    Cada panel con forro negro corrido hacia adentro. Devuelve (malla, pintores)."""
     m = geo.Armador()
     pint = []
 
@@ -379,7 +379,7 @@ def haori():
         largo = max(0.01, math.hypot(cx, cz))
         adentro = [(q[0] - 0.12 * cx / largo, q[1], q[2] - 0.12 * cz / largo) for q in pts]
         m.cara(tuple(m.v(q) for q in adentro), (-cx, 0, -cz), "forro")
-        pint.append(color(AZUL[1]))
+        pint.append(color(TELA_N[0]))
     C, A = CUELLO, HAORI_ABAJO
     zt_f, zt_b, zb_f, zb_b = -2.15, 2.2, -3.4, 3.5
     xt, xb = 3.85, 5.6
@@ -406,7 +406,7 @@ def manga_kimono(arriba):
 
 
 def manga_tela(s, arriba):
-    """Manga blanca: el simbolo chico en la cara de afuera, arriba, y una banda negra fina en la boca de la manga."""
+    """Manga verde: el simbolo chico en la cara de afuera, arriba, y una banda negra fina en la boca de la manga."""
     def p(t):
         k = (t.z - MANGA_Z_FRENTE) / (MANGA_Z_ATRAS - MANGA_Z_FRENTE)
         fin = PUNO + (BOLSA - PUNO) * max(0.0, min(1.0, k))
@@ -414,7 +414,7 @@ def manga_tela(s, arriba):
             return hex_(NEGRO)
         if abs(t.n[0]) > 0.7 and t.n[0] * s > 0 and simbolo(t.z - 0.3, t.y - (arriba - 3.2), 1.05):
             return hex_(TINTA)
-        return hex_(BLANCO)
+        return hex_(VERDE[3] if t.cara == "up" else VERDE[2])
     return p
 
 
@@ -471,35 +471,10 @@ def bota(p, g, x, s):
     cubo("lengueta", 1.1, 2.6, 3.5, 4.4, -2.15, -1.9, negro)
 
 
-# ---------------------------------------------------------------- katana
-
-def katana(p):
-    """Katana metida en el obi del lado izquierdo: el mango adelante y arriba, la vaina hacia atras y abajo."""
-    g = "Body/katana"
-    giro = dict(rot=(24.0, 0, 0), piv=(-5.05, 25.4, -1.0))
-
-    def trenzado(t):
-        if t.cara in ("north", "south"):
-            return hex_(NEGRO)
-        return hex_(BLANCO if (t.i + t.j) % 6 in (0, 1) and (t.i - t.j) % 6 in (0, 1) else NEGRO)
-
-    def vaina(t):
-        if t.cara == "up" and t.i in (1, 2):
-            return hex_(TELA_N[3])                         # brillo de la laca
-        return hex_(NEGRO2 if t.cara == "up" else NEGRO)
-    x1, x2 = -5.35, -4.75
-    p.caja(g, "mango", (x1 + 0.02, 25.1, -5.4), (x2 - 0.02, 25.7, -2.1), trenzado, dens=D, **giro)
-    p.caja(g, "kashira", (x1, 25.05, -5.6), (x2, 25.75, -5.4), oro, dens=D, **giro)
-    p.caja(g, "tsuba", (x1 - 0.3, 24.75, -2.1), (x2 + 0.3, 26.05, -1.85), oro, dens=D, **giro)
-    p.caja(g, "vaina", (x1 + 0.03, 25.05, -1.85), (x2 - 0.03, 25.75, 8.4), vaina, dens=D, **giro)
-    p.caja(g, "sageo", (x1 - 0.04, 25.0, -1.2), (x2 + 0.04, 25.8, -0.7), color(AZUL[2]), dens=D, **giro)
-    p.caja(g, "kojiri", (x1, 25.03, 8.4), (x2, 25.77, 8.8), oro, dens=D, **giro)
-
-
 # ---------------------------------------------------------------- construccion
 
 def construir():
-    p = Personaje("correctar", altura=40, cabeza=8, torso=(7, 10, 3.5), brazo=(2.8, 2.8), pierna=(3.5, 3.5))
+    p = Personaje("anteros", altura=40, cabeza=8, torso=(7, 10, 3.5), brazo=(2.8, 2.8), pierna=(3.5, 3.5))
     C, T, L = p.cuello, p.tope, p.lh
     assert (C, T, L) == (CUELLO, TOPE, CADERA)
 
@@ -532,7 +507,7 @@ def construir():
         p.caja(g, f"argolla{s}", (x1, C + 2.35, -0.25), (x2, C + 2.85, 0.25), plata, dens=D)
         p.caja(g, f"cadena{s}", (xm - 0.06, C + 1.95, -0.06), (xm + 0.06, C + 2.35, 0.06), plata, dens=D)
         p.plano(g, f"etiqueta{s}", (xm, C + 1.0, -0.35), (xm, C + 1.95, 0.35), etiqueta(letras=False), dens=D)
-        p.caja(g, f"borla{s}", (xm - 0.16, C + 0.4, -0.16), (xm + 0.16, C + 1.0, 0.16), color(AZUL[3]), dens=D)
+        p.caja(g, f"borla{s}", (xm - 0.16, C + 0.4, -0.16), (xm + 0.16, C + 1.0, 0.16), color(VERDE[3]), dens=D)
 
     # ================================================================ TORSO: kimono negro cruzado en V, collar de jade
     p.caja("Body/torso", "kosode", (-3.5, L, -1.75), (3.5, C, 1.75), kosode, dens=D)
@@ -540,26 +515,26 @@ def construir():
            sprite({"todas": [".pppp.", "pjjjjp", "pjkkjp", "pjkkjp", "pjjjjp", ".pppp."]},
                   {"p": PLATA["b"], "j": JADE["b"], "k": JADE["s"]}), dens=D)
 
-    # ================================================================ OBI azul con cordon, nudo, borlas y etiqueta
+    # ================================================================ OBI negro con cordon, nudo, borlas y etiqueta
     g = "Body/obi"
     p.caja(g, "obi", (-3.95, OBI_ABAJO, -2.2), (3.95, OBI_ARRIBA, 2.2), obi, dens=D)
-    p.caja(g, "nudo", (-1.9, OBI_CORDON - 0.45, -2.55), (-0.9, OBI_CORDON + 0.45, -2.2), color(BLANCO), dens=D)
+    p.caja(g, "nudo", (-1.9, OBI_CORDON - 0.45, -2.55), (-0.9, OBI_CORDON + 0.45, -2.2), color(VERDE[3]), dens=D)
     for k, (x, largo) in enumerate(((-1.75, 4.6), (-1.15, 3.6))):
         p.caja(g, f"cordon{k}", (x - 0.08, OBI_CORDON - largo, -2.5), (x + 0.08, OBI_CORDON - 0.4, -2.36),
-               color(BLANCO), dens=D)
+               color(VERDE[3]), dens=D)
         p.caja(g, f"borla{k}", (x - 0.22, OBI_CORDON - largo - 1.3, -2.58), (x + 0.22, OBI_CORDON - largo, -2.28),
-               color(AZUL[3]), dens=D)
+               color(VERDE[2]), dens=D)
     p.plano(g, "etiqueta", (-3.4, OBI_ABAJO - 6.2, -2.95), (-1.9, OBI_ABAJO + 0.1, -2.95), etiqueta(),
             dens=DENS_LETRAS)
 
-    # ================================================================ HAORI blanco largo
+    # ================================================================ HAORI verde largo
     malla, pintores = haori()
     p.malla("Body/haori", "haori", malla, pintores, dens=D)
     z_atras = 2.2 + 1.3 * (C + 0.4 - 18.0) / (C + 0.4 - HAORI_ABAJO) + 0.08
     p.plano("Body/haori", "etiqueta_espalda", (-0.75, 15.3, z_atras), (0.75, 21.6, z_atras), etiqueta(),
             rot=(-2.8, 0, 0), piv=(0, 21.6, z_atras), dens=DENS_LETRAS)
 
-    # ================================================================ BRAZOS con manga de kimono blanca
+    # ================================================================ BRAZOS con manga de kimono verde
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
         x1, x2 = sorted((s * 3.5, s * 6.3))
@@ -569,11 +544,8 @@ def construir():
         malla, n_fuera = manga_kimono(arriba)
         if s < 0:
             malla = geo.espejo_x(malla)
-        pint = [manga_tela(s, arriba)] * n_fuera + [color(AZUL[1])] * (len(malla[1]) - n_fuera)
+        pint = [manga_tela(s, arriba)] * n_fuera + [color(TELA_N[0])] * (len(malla[1]) - n_fuera)
         p.malla(f"{hueso}/manga", "manga", malla, pint, dens=D)
-
-    # ================================================================ KATANA a la izquierda
-    katana(p)
 
     # ================================================================ HAKAMA ancho, calcetas y BOTAS
     for s in (1, -1):
