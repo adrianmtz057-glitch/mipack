@@ -33,47 +33,95 @@ BLANCO, GRIS = "#E9E5DF", "#B8B2AC"
 AMARILLO = tonos("#E2B42A")
 ROJO = tonos("#C0262A")
 ORO = tonos("#C9A14A")
-D = 4                                   # texeles por px en todo el modelo (textura grande, mas detalle)
+D = 6                                   # texeles por px en todo el modelo (textura grande, mas detalle)
 
 # ---------------------------------------------------------------- cara (24 x 24, densidad 3)
-
-def cara_dibujo():
-    """Cara a densidad 4 (32 x 32): ojos amarillos cansados de anime (parpado grueso que se estira hacia afuera,
-    pupila rasgada, brillo, iris mas oscuro abajo, ojeras), nariz con una sombra chiquita y boca fina."""
-    W = 32
-    g = [["p"] * W for _ in range(W)]
-
-    def ojo(cols, filas):
-        for r, fila in zip(range(14, 14 + len(filas)), filas):
-            for c, ch in zip(cols, fila):
-                if ch != ".":
-                    g[r][c] = ch
-    izq = ("kkkkkkkkk",           # parpado (se estira una columna hacia afuera)
-           ".kWYLoYYW",
-           "..WYYoGYW",
-           "...GGoGb.",
-           "...bbbbbb")
-    ojo(range(3, 12), izq)
-    ojo(range(28, 19, -1), izq)                                  # el derecho es el espejo
-    g[21][15] = g[21][16] = g[22][15] = "s"                       # nariz
-    for c in range(13, 19):                                       # boca
-        g[25][c] = "m"
-    g[26][14] = g[26][17] = "n"
-    for c in range(W):                                            # sombra de la mandibula
-        g[31][c] = "s"
-    return ["".join(f) for f in g]
-
-
-CARA = cara_dibujo()
-PAL_CARA = {"p": PIEL["b"], "s": PIEL["s"], "k": "#1E1416", "W": "#EDE6DC", "Y": "#F0C81E", "G": "#B88A12",
-            "L": "#FFF0A0", "o": "#3A2808", "b": PIEL["s2"], "m": "#8A5A44", "n": PIEL["s"]}
-
 
 def escalar_dibujo(filas, k):
     """Agranda un dibujo k veces (vecino mas cercano), para usarlo a la densidad nueva."""
     h, w = len(filas), len(filas[0])
     H, W = round(h * k), round(w * k)
     return ["".join(filas[min(h - 1, int(r / k))][min(w - 1, int(c / k))] for c in range(W)) for r in range(H)]
+
+
+CARA_BASE = dibujo("""
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    ppkkkkkkkkppppkkkkkkkkpp
+    pppkWYLoYWppppWYoLYWkppp
+    ppppWYYoGWppppWGoYYWpppp
+    pppppGGGbppppppbGGGppppp
+    ppppbbbbbppppppbbbbbpppp
+    pppppppppppssppppppppppp
+    pppppppppppppppppppppppp
+    ppppppppppmmmmpppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    pppppppppppppppppppppppp
+    ssssssssssssssssssssssss
+""")
+
+
+def cara_dibujo():
+    """La cara de antes (24 x 24) agrandada al doble (48 x 48, densidad 6) y repasada como pixel art: iris con
+    degradado y brillo, pupila rasgada, pestanas con punta hacia afuera, ojeras suaves, sombra de la frente bajo el
+    flequillo, nariz con sombra y brillo, labio, mejillas y mandibula con volumen."""
+    g = [list(f) for f in escalar_dibujo(CARA_BASE, 2)]
+    W = len(g)
+
+    def pon(r, c, ch):
+        if 0 <= r < W and 0 <= c < W:
+            g[r][c] = ch
+    for r in range(4):                                            # sombra del flequillo en la frente
+        for c in range(W):
+            g[r][c] = "s" if r < 2 else "q"
+    for r in range(18, 46):                                       # costados de la cara mas oscuros (volumen)
+        for c in (0, 1, W - 2, W - 1):
+            g[r][c] = "q"
+    for lado in (1, -1):
+        def c(x):
+            return x if lado > 0 else W - 1 - x
+        pon(21, c(3), "k"), pon(21, c(4), "k"), pon(20, c(2), "k")          # punta de las pestanas hacia afuera
+        pon(23, c(18), "p"), pon(23, c(19), "p")                            # la pestana se afina adentro
+        for x in range(10, 18):                                             # iris: arriba mas claro
+            if g[24][c(x)] == "Y":
+                pon(24, c(x), "y")
+        pon(24, c(12), "H")                                                 # brillo
+        for r in (24, 25, 26, 27):                                          # pupila rasgada mas fina
+            if g[r][c(15)] == "o":
+                pon(r, c(15), "O")
+        pon(28, c(6), "k")                                                  # pestana de abajo
+        for x in range(8, 18):                                              # ojera mas suave abajo
+            if g[31][c(x)] == "b":
+                pon(31, c(x), "q")
+    for c in (23, 24):                                            # nariz: brillo arriba, sombra abajo
+        pon(30, c, "l"), pon(31, c, "l")
+    for c in range(22, 26):
+        pon(33, c, "s")
+    pon(34, 22, "q"), pon(34, 25, "q")
+    for c in range(20, 28):                                       # boca y labio
+        pon(37, c, "p")
+        pon(38, c, "m" if 21 <= c <= 26 else "s")
+        pon(39, c, "n" if 22 <= c <= 25 else "p")
+    for c in list(range(0, 7)) + list(range(W - 7, W)):           # curva de la mandibula
+        pon(45, c, "s")
+    return ["".join(f) for f in g]
+
+
+CARA = cara_dibujo()
+PAL_CARA = {"p": PIEL["b"], "s": PIEL["s"], "q": "#B98864", "l": PIEL["l"], "k": "#1E1416", "W": "#EDE6DC",
+            "Y": "#F0C81E", "y": "#FADF5A", "G": "#B88A12", "L": "#FFF0A0", "H": "#FFFFFF", "o": "#3A2808",
+            "O": "#5A4012", "b": PIEL["s2"], "m": "#8A5A44", "n": "#B07A60"}
 
 
 TATUAJE = dibujo("""
@@ -166,6 +214,14 @@ def torso_dibujo(W, H, k=1.0):
         pon(2 + (r - fila(0.5)) // 6, r, "s")
         pon(W - 3 - (r - fila(0.5)) // 6, r, "s")
     pon(m, fila(0.84), "d")                                     # ombligo
+    for f in (0.36, 0.5, 0.63, 0.76):                           # brillo arriba de cada linea
+        for c in range(2, W - 2):
+            if g[fila(f)][c] == "s" and g[fila(f) - 1][c] == "p":
+                g[fila(f) - 1][c] = "l"
+    for r in range(round(4 * k), H):                            # costados del torso mas oscuros
+        for c in (0, 1, W - 2, W - 1):
+            if g[r][c] == "p":
+                g[r][c] = "q"
     engranaje = ("...kkkk...", "..k.kk.k..", ".k.k..k.k.", "kk.k..k.kk", "k.kk..kk.k", "k.kk..kk.k",
                  "kk.k..k.kk", ".k.k..k.k.", "..k.kk.k..", "...kkkk...")
     for r, fil in enumerate(engranaje):
@@ -211,19 +267,28 @@ def manchas(blanco_abajo=None, base=NEGRO, deshilachado=None, kanji=None, sesgo=
         if borde is not None and t.cara != "up":
             tope = borde(t) + 2.8 + 0.55 * math.sin(x * 1.4 + z * 1.1) + 0.3 * math.sin(x * 3.1 - z * 2.3)
             if y < tope:
-                n = _h(x * 2 // 1, y * 2 // 1, z * 2 // 1)
-                return hex_(NEGRO if n > 0.93 else (GRIS if n > 0.82 else BLANCO))
+                n = _h(x * 3 // 1, y * 3 // 1, z * 3 // 1)
+                if y > tope - 0.18:
+                    return hex_("#D4CFC9")                     # canto de la pincelada
+                if y < borde(t) + 0.35:
+                    return hex_("#CFC9C2")                     # sombra del dobladillo
+                return hex_(NEGRO if n > 0.95 else (GRIS if n > 0.86 else BLANCO))
         if kanji is not None and t.cara in ("north", "south") and y > kanji:
             return hex_(NEGRO2 if _h(t.i // 3, t.j // 3) < 0.15 else NEGRO)
         f = (0.5 + 0.5 * math.sin(x * 0.9 + y * 0.35 + z * 0.3)) * (0.5 + 0.5 * math.cos(z * 0.8 - y * 0.45 + x * 0.2))
         f += 0.35 * _h(x // 1, y // 1, z // 1) - 0.1 + sesgo
         if blanco_abajo is not None and y < blanco_abajo:
             f += 0.35
-        if f > 0.62:
+        if f > 0.64:
             return hex_(BLANCO)
-        if f > 0.52:
+        if f > 0.6:
+            return hex_("#D4CFC9")                             # borde suave del manchon
+        if f > 0.54:
             return hex_(GRIS)
-        return hex_(NEGRO2 if _h(x * 2 // 1, y * 2 // 1, z * 2 // 1) < 0.2 else base)
+        u = x if abs(t.n[2]) > 0.5 else z
+        if (u * 1.3 + 0.15 * math.sin(y * 1.7)) % 1.0 < 0.07:
+            return hex_(NEGRO2)                                # pliegue de la tela
+        return hex_(NEGRO2 if _h(x * 3 // 1, y * 3 // 1, z * 3 // 1) < 0.08 else base)
     return p
 
 
@@ -237,7 +302,9 @@ def pantalon(t):
         return hex_(NEGRO2)
     pliegue = (abs(x) if abs(t.n[2]) > 0.5 else abs(z)) * 1.6
     if pliegue % 2 < 0.28:
-        return hex_("#0C0A0B")
+        return hex_("#0C0A0B")                                 # fondo del pliegue
+    if pliegue % 2 < 0.42:
+        return hex_("#2A2628")                                 # brillo del canto
     if y < Y_MANCHAS_PANTALON:
         f = 0.6 * (0.5 + 0.5 * math.sin(x * 1.7 + y * 1.1)) * (0.5 + 0.5 * math.cos(z * 1.3 - y * 0.9)) \
             + 0.4 * _h(x * 1.5 // 1, y * 1.5 // 1, z * 1.5 // 1)
@@ -261,14 +328,25 @@ def encima(base, capas):
 
 
 def piel(t):
-    return hex_(PIEL["l"] if t.cara == "up" else PIEL["b"])
+    """Piel con volumen: arriba con luz, bordes de cada cara un poco mas oscuros."""
+    if t.cara == "up":
+        return hex_(PIEL["l"])
+    if t.cara == "down":
+        return hex_(PIEL["s"])
+    if t.i < 2 or t.i >= t.tw - 2:
+        return hex_("#B98864")
+    return hex_(PIEL["b"])
 
 
 def cinta(c, marcas="#5A1010"):
+    """Cinta de tela: borde mas oscuro, brillo en el medio y escritura vertical."""
     def p(t):
-        if t.i % 3 == 1 and t.j % 4 in (1, 2) and _h(t.j // 4, len(t.nombre)) < 0.6:
+        if t.i == 0 or t.i == t.tw - 1:
+            return hex_(c["s"])
+        if t.tw > 4 and t.tw // 2 - 1 <= t.i <= t.tw // 2 and t.j % 8 in (1, 2, 3, 5, 6) \
+                and _h(t.j // 8, len(t.nombre)) < 0.7:
             return hex_(marcas)
-        return hex_(c["b"])
+        return hex_(c["l"] if t.i == 1 else c["b"])
     return p
 
 
@@ -279,14 +357,20 @@ def oro(t):
 # ---------------------------------------------------------------- piezas de malla
 
 def pelo_textura(t):
-    """Pelo dibujado: mechones finos con brillo cafe y separaciones oscuras (ondulan un poco)."""
+    """Pelo dibujado: mechones que ondulan, con separacion oscura, cuerpo, reflejo cafe y una franja de brillo de
+    anime a la altura de la coronilla. Por posicion, asi no cambia con la densidad de la textura."""
     if t.cara == "down":
         return hex_(PELO["d"])
-    if t.cara == "up":
-        k = t.i % 5
-        return hex_(PELO["h"] if k == 0 else (PELO["d"] if k == 3 else PELO["k"]))
-    k = (t.i + (t.j // 3) % 2) % 5
-    return hex_(PELO["h"] if k == 0 else (PELO["d"] if k == 3 else PELO["k"]))
+    u = t.x if (t.cara == "up" or abs(t.n[2]) > 0.5) else t.z
+    v = t.z if t.cara == "up" else t.y
+    k = (u * 1.5 + 0.22 * math.sin(v * 2.2)) % 1.0
+    if k < 0.14:
+        return hex_(PELO["d"])
+    if t.cara != "up" and 37.9 < t.y < 38.7 and 0.3 < k < 0.8:
+        return hex_("#5A463C")                                 # brillo
+    if 0.42 < k < 0.6:
+        return hex_(PELO["h"])
+    return hex_(PELO["k"])
 
 
 def flequillo(t):
@@ -294,11 +378,11 @@ def flequillo(t):
     if t.cara == "down":
         return TRANSPARENTE
     if t.cara == "north":
-        c = t.i
-        largo = 5 + abs((c % 7) - 3) * 1.6
-        if c in (9, 10, 24, 25):
-            largo = t.th
-        if t.j > largo:
+        c = t.x + 4.35                                        # px desde el borde
+        largo = 1.25 + abs((c % 1.75) - 0.875) * 1.6          # zigzag de puntas
+        if 2.2 < c < 2.75 or 5.95 < c < 6.5:
+            largo = 9.0                                        # los dos mechones largos
+        if t.y < 39.4 - largo:
             return TRANSPARENTE
     return pelo_textura(t)
 
@@ -391,8 +475,14 @@ def suela_manchada(t):
     """Plataforma blanca con manchas negras irregulares (como la referencia)."""
     if t.cara == "down":
         return hex_(GRIS)
+    if t.cara == "up":
+        return hex_("#F4F1EC")
+    if t.fila_abajo < 2:
+        return hex_(GRIS)                                      # sombra contra el piso
+    if t.j < 1:
+        return hex_("#F7F4EF")                                 # canto de arriba con luz
     f = _h(t.x * 1.4 // 1, t.y * 1.4 // 1, t.z * 1.4 // 1) * 0.6 + 0.4 * (0.5 + 0.5 * math.sin(t.z * 1.3 + t.x * 0.7))
-    return hex_(NEGRO if f > 0.68 and t.cara != "up" else (BLANCO if t.cara != "up" else "#F4F1EC"))
+    return hex_(NEGRO if f > 0.68 else BLANCO)
 
 
 def capellada(t):
@@ -491,7 +581,7 @@ def construir():
 
     # ================================================================ TORSO delgado
     torso = torso_dibujo(7 * D, 10 * D, D / 3)
-    pal_torso = {"p": PIEL["b"], "s": PIEL["s"], "k": "#181214", "d": PIEL["s2"]}
+    pal_torso = {"p": PIEL["b"], "s": PIEL["s"], "k": "#181214", "d": PIEL["s2"], "l": PIEL["l"], "q": "#B98864"}
     p.caja("Body/torso", "torso", (-3.5, L, -1.75), (3.5, C, 1.75), sprite({"north": torso}, pal_torso, base=piel), dens=D)
     p.caja("Body/collar", "moneda", (-0.75, C - 4.3, -2.05), (0.75, C - 2.8, -1.75), oro, rot=(0, 0, 45),
            piv=(0, C - 3.55, -1.9), dens=D)
@@ -508,7 +598,7 @@ def construir():
         return y
     tela = manchas(deshilachado=(1.0, 3), borde=final)
     espalda = encima(manchas(deshilachado=(1.0, 5), kanji=C - 8.5, borde=final),
-                     [("south", 8, 6, escalar_dibujo(KANJI, 1.5), {"W": BLANCO})])
+                     [("south", 12, 8, escalar_dibujo(KANJI, 2), {"W": BLANCO, "w": GRIS})])
     malla, pintores = haori(C, abajo, tela, espalda)
     p.malla(g, "haori", malla, pintores, dens=D)
 
@@ -519,7 +609,7 @@ def construir():
         x1, x2 = sorted((s * 3.5, s * 6.3))
         cara_fuera = "east" if s > 0 else "west"
         p.caja(f"{hueso}/brazo", "brazo", (x1, mano, -1.4), (x2, C, 1.4),
-               encima(piel, [(cara_fuera, 1, 4, escalar_dibujo(TATUAJE, 1.5), {"k": "#181214"})]), dens=D)
+               encima(piel, [(cara_fuera, 2, 6, escalar_dibujo(TATUAJE, 2), {"k": "#181214"})]), dens=D)
         p.caja(f"{hueso}/anillo", "anillo", (x1 - 0.12, mano + 1.2, -1.52), (x2 + 0.12, mano + 1.6, 1.52),
                lambda t: hex_(ORO["b"] if t.i % 4 == 1 else NEGRO), dens=D)
         fin_manga = final_manga(mano)                           # el final de la manga queda blanco
