@@ -1,17 +1,22 @@
 {
   "nombre": "Anteros",
   "titulo": "Dios de Aseris",
-  "descripcion": "Disciplina, estrategia y equilibrio. El orden tambien es una forma de amor. Reservado, observador, leal; hermano de Meron.",
-  "piel": "#D5A27A",
+  "descripcion": "Disciplina, estrategia y equilibrio. El orden tambien es una forma de amor. Hermano de Meron.",
+  "proporciones": {
+    "altura": 38,
+    "cabeza": 1.05,
+    "complexion": "normal"
+  },
+  "piel": "#DDA77C",
   "cara": {
-    "ojos": "#3E7A4A",
+    "ojos": "#3E8A55",
     "expresion": "serena",
     "rubor": false
   },
   "pelo": {
     "estilo": "rizos",
-    "color": "#14100E",
-    "brillo": "#2A221C",
+    "color": "#17110D",
+    "brillo": "#2E241C",
     "volumen": 2
   },
   "ropa": {
@@ -19,65 +24,68 @@
       "color": "#1E1B1A"
     },
     "pantalon": {
-      "color": "#1A1716"
+      "color": "#1C1A18"
     },
     "botas": {
-      "color": "#221C18",
-      "ribete": "#CFCBB8",
-      "alto": 5
+      "color": "#1F2E22",
+      "ribete": "#E3B04B",
+      "alto": 5,
+      "hebillas": "#E3B04B"
     },
     "tunica": {
-      "largo": "media",
+      "largo": "larga",
       "abierta": true,
       "colores": [
-        "#1E1B1A",
-        "#274B2E",
-        "#1E1B1A",
-        "#E6E1D0"
+        "#1E3A24",
+        "#16291A",
+        "#2E5532",
+        "#141210"
       ],
-      "patron": "paneles",
-      "ribete": "#CFCBB8"
+      "patron": "camuflaje",
+      "ribete": "#EDE6D2",
+      "borde": "tiras",
+      "panel": "#EDE6D2"
     },
     "mangas": {
-      "color": "#274B2E",
-      "color2": "#1E3A24",
+      "color": "#24452B",
+      "color2": "#1B3320",
       "forma": "ajustadas",
-      "patron": "hojas"
+      "patron": "camuflaje"
     },
     "bufanda": {
-      "color": "#E6E1D0",
-      "color2": "#CFCBB8",
-      "tamano": "pequena",
-      "colas": true
-    },
-    "capa": {
-      "color": "#274B2E",
-      "color2": "#3E6B3A",
-      "largo": "larga",
-      "capucha": true,
-      "patron": "hojas"
+      "color": "#3C7A3E",
+      "color2": "#2C5E30",
+      "tamano": "grande",
+      "colas": true,
+      "largo": "largo"
     },
     "cinturon": {
       "color": "#3B2A1E",
-      "hebilla": "#CFCBB8"
+      "hebilla": "#E3B04B"
+    },
+    "correas": {
+      "color": "#3B2A1E",
+      "detalle": "#E3B04B"
     },
     "guantes": {
-      "color": "#3B2A1E",
-      "detalle": "#CFCBB8"
+      "color": "#1C1A18",
+      "detalle": "#3E6B3A",
+      "sin_dedos": true
     }
   },
   "cabeza": [
     {
       "tipo": "laurel",
-      "color": "#3E7A3A"
+      "color": "#4E8A44"
     }
   ],
   "extras": [
     {
       "tipo": "emblema",
       "forma": "hoja",
-      "color": "#5FA05A",
-      "color2": "#1E1B1A"
+      "color": "#E3B04B",
+      "color2": "#1B3320"
     }
-  ]
+  ],
+  "accesorios": []
 }

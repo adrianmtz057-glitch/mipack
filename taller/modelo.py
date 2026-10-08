@@ -96,11 +96,14 @@ class Modelo:
     def __init__(self, nombre: str):
         self.nombre = nombre
         self.cubos: list[Cubo] = []
+        self.pivotes = dict(HUESOS)
 
     # ------------------------------------------------------------------ construccion
     def cubo(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1):
         if any(hasta[i] - desde[i] <= 0 for i in range(3)):
             return None
+        if origen is None and not rot:
+            origen = self.pivotes.get(hueso.split("/")[0], (0, 0, 0))
         c = Cubo(nombre, hueso, desde, hasta, pintor, rot, origen, uv, caras, lado)
         self.cubos.append(c)
         return c
@@ -128,20 +131,24 @@ class Modelo:
                 w, h = tam_cara(c.desde, c.hasta, cara)
                 piezas.append((max(1, math.ceil(h - 1e-6)), max(1, math.ceil(w - 1e-6)), c, cara))
         piezas.sort(key=lambda p: (-p[0], -p[1]))
-        x, y, alto_fila, asign = 64, 0, 0, {}
+        skin = 64 if any(c.uv for c in self.cubos) else 0      # rincon reservado a la skin
+
+        def x_ini(y):
+            return skin if y < skin else 0
+        x, y, alto_fila, asign = x_ini(0), 0, 0, {}
         for th, tw, c, cara in piezas:
-            x0 = 64 if y < 64 else 0
+            x0 = x_ini(y)
             if x + tw > ancho:
                 y += alto_fila
-                x, alto_fila = (64 if y < 64 else 0), 0
-            if tw > ancho - (64 if y < 64 else 0):
+                x, alto_fila = x_ini(y), 0
+            if tw > ancho - x_ini(y):
                 return None
             if alto_fila == 0:
                 alto_fila = th
                 x = max(x, x0)
             asign[(id(c), cara)] = (x, y, tw, th)
             x += tw
-        return max(64, y + alto_fila), asign
+        return max(skin, y + alto_fila), asign
 
     def pintar(self):
         """Pinta todas las caras. Devuelve (lienzo, uv por cubo)."""
@@ -198,14 +205,14 @@ class Modelo:
                 return grupos[ruta]
             partes = ruta.split("/")
             hueso = partes[0]
-            g = {"name": partes[-1], "origin": list(HUESOS.get(hueso, (0, 0, 0))), "color": 0,
+            g = {"name": partes[-1], "origin": list(self.pivotes.get(hueso, (0, 0, 0))), "color": 0,
                  "uuid": str(uuid.uuid4()), "export": True, "mirror_uv": False, "isOpen": len(partes) == 1,
                  "locked": False, "visibility": True, "autouv": 0, "children": []}
             (raiz if len(partes) == 1 else grupo("/".join(partes[:-1]))["children"]).append(g)
             grupos[ruta] = g
             return g
 
-        for h in HUESOS:                                   # orden fijo de los huesos en el outliner
+        for h in self.pivotes:                             # orden fijo de los huesos en el outliner
             if any(c.hueso.split("/")[0] == h for c in self.cubos):
                 grupo(h)
 

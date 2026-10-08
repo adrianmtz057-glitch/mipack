@@ -1,60 +1,77 @@
 {
   "nombre": "Meron",
   "titulo": "Dios de Velkia",
-  "descripcion": "Alegria, libertad y caos controlado. La vida es corta, por eso hay que reirla el doble. Ama el sol, la musica, el desierto y los atardeceres.",
-  "piel": "#D9A27A",
+  "descripcion": "Alegria, libertad y caos controlado. La vida es corta, por eso hay que reirla el doble.",
+  "proporciones": {
+    "altura": 38,
+    "cabeza": 1.05,
+    "complexion": "normal"
+  },
+  "piel": "#E2AE84",
   "cara": {
-    "ojos": "#8A5A2B",
+    "ojos": "#C98A2E",
     "expresion": "alegre",
     "rubor": true
   },
   "pelo": {
     "estilo": "rizos",
-    "color": "#1E1612",
-    "brillo": "#3A2A20",
+    "color": "#2A1C14",
+    "brillo": "#4A3426",
     "volumen": 2
   },
   "ropa": {
     "camisa": {
-      "color": "#1F1712"
+      "color": "#2B1D15",
+      "patron": "manchas"
     },
     "pantalon": {
-      "color": "#1F1712"
+      "color": "#2A1C14"
     },
     "botas": {
-      "color": "#2A1E16",
-      "ribete": "#F1E2C6",
-      "alto": 4
+      "color": "#2E2018",
+      "ribete": "#E3B04B",
+      "alto": 5,
+      "hebillas": "#E3B04B"
     },
     "tunica": {
-      "largo": "media",
+      "largo": "larga",
       "abierta": true,
       "colores": [
-        "#F1E2C6",
-        "#E3B04B",
-        "#F7EEDA",
-        "#D9A441"
+        "#F1E4CC",
+        "#E6D3B0",
+        "#E3A93C",
+        "#5A3A22"
       ],
       "patron": "manchas",
-      "ribete": "#E3B04B"
+      "ribete": "#E6D3B0",
+      "borde": "tiras"
     },
     "mangas": {
-      "color": "#F1E2C6",
-      "color2": "#E3B04B",
-      "forma": "anchas",
+      "color": "#F1E4CC",
+      "color2": "#E6D3B0",
+      "forma": "capas",
       "patron": "manchas"
     },
     "bufanda": {
-      "color": "#F1E2C6",
-      "color2": "#E8C98A",
+      "color": "#F1E4CC",
+      "color2": "#E3B04B",
       "tamano": "grande",
-      "colas": true
+      "colas": true,
+      "largo": "corto"
     },
     "cinturon": {
-      "color": "#3B2A1E",
+      "color": "#3B2618",
       "hebilla": "#E3B04B"
     },
-    "brazaletes": "#E3B04B"
+    "correas": {
+      "color": "#3B2618",
+      "detalle": "#E3B04B"
+    },
+    "guantes": {
+      "color": "#2E2018",
+      "detalle": "#E3B04B",
+      "sin_dedos": true
+    }
   },
   "cabeza": [
     {
@@ -62,16 +79,6 @@
       "color": "#E3B04B"
     }
   ],
-  "extras": [
-    {
-      "tipo": "cintas",
-      "color": "#F1E2C6"
-    },
-    {
-      "tipo": "emblema",
-      "forma": "sol",
-      "color": "#E3B04B",
-      "color2": "#3B2A1E"
-    }
-  ]
+  "extras": [],
+  "accesorios": []
 }

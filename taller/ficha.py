@@ -14,9 +14,11 @@ from .textura import es_hex
 ESTILOS_PELO = ("rizos", "puntas", "lado", "revuelto", "largo", "corto", "ninguno")
 EXPRESIONES = ("alegre", "serena", "seria", "traviesa")
 LARGOS = ("corta", "media", "larga")
-PATRONES = ("liso", "manchas", "paneles", "estrellas", "hojas", "rayas", "cuadros")
+PATRONES = ("liso", "manchas", "tiras", "camuflaje", "paneles", "estrellas", "hojas", "rayas", "cuadros")
 ACCESORIOS_CABEZA = ("laurel", "corona", "tiara", "gafas", "plumas", "etiquetas", "flor", "cuernos", "orejas")
-EXTRAS = ("libro", "amuletos", "cintas", "emblema", "bolsa", "espada", "baston")
+EXTRAS = ("amuletos", "cintas", "emblema", "bolsa")
+ACCESORIOS = ("cetro", "libro", "mochila", "brujula", "medallon", "espada", "baston", "farol")
+BORDES = ("tiras", "picos", "recto")
 FORMAS_EMBLEMA = ("sol", "luna", "estrella", "hoja", "diamante", "ojo")
 MATERIALES = ("tela", "metal", "pelo", "piel", "cuero", "gema", "madera", "hueso")
 HUESOS_VALIDOS = ("Head", "Body", "RightArm", "LeftArm", "RightLeg", "LeftLeg")
@@ -26,6 +28,7 @@ BASE = {
     "titulo": "",
     "descripcion": "",
     "brazos": "normal",
+    "proporciones": {"altura": 32, "cabeza": 1.0, "complexion": "normal"},
     "piel": "#C99B7A",
     "cara": {"ojos": "#4A3020", "expresion": "alegre", "rubor": False, "mascara": None},
     "pelo": {"estilo": "corto", "color": "#2A1D14", "brillo": None, "mechas": None, "volumen": 2},
@@ -41,10 +44,12 @@ BASE = {
         "banda": None,
         "hombreras": None,
         "guantes": None,
+        "correas": None,
         "brazaletes": None,
     },
     "cabeza": [],
     "extras": [],
+    "accesorios": [],
     "piezas_libres": [],
 }
 
@@ -54,6 +59,8 @@ Devuelve SOLO un objeto JSON con esta forma (todas las claves en minusculas, col
 {
   "nombre": "Nombre", "titulo": "rol corto", "descripcion": "1-2 frases",
   "brazos": "normal" | "finos",                       // finos = brazos de 3 px (estilo Alex)
+  "proporciones": {"altura": 20..44, "cabeza": 0.8..1.3, "complexion": "delgada|normal|robusta"},
+                    // altura en px sin el pelo (32 = humano normal, 22 = bajito, 40 = gigante)
   "piel": "#RRGGBB",
   "cara": {"ojos": "#RRGGBB", "expresion": "alegre|serena|seria|traviesa", "rubor": true|false,
            "mascara": null | "#RRGGBB"},              // mascara = rostro cubierto de ese color (solo se ven los ojos)
@@ -62,36 +69,43 @@ Devuelve SOLO un objeto JSON con esta forma (todas las claves en minusculas, col
   "ropa": {
     "camisa":   {"color": "#RRGGBB"},                 // ropa interior pegada al cuerpo
     "pantalon": {"color": "#RRGGBB"},
-    "botas":    {"color": "#RRGGBB", "ribete": "#RRGGBB"|null, "alto": 3..7},
+    "botas":    {"color": "#RRGGBB", "ribete": "#RRGGBB"|null, "alto": 3..7, "hebillas": "#RRGGBB"|null},
     "tunica":   null | {"largo": "corta|media|larga", "abierta": true|false,
                         "colores": ["#principal", "#secundario", "#terciario"], "patron": PATRON,
-                        "ribete": "#RRGGBB"|null},   // tunica/abrigo/vestido/casaca encima de la camisa
-    "mangas":   null | {"color": "#RRGGBB", "color2": "#RRGGBB", "forma": "ajustadas|anchas", "patron": PATRON},
-    "bufanda":  null | {"color": "#RRGGBB", "color2": "#RRGGBB", "tamano": "pequena|grande", "colas": true|false},
+                        "ribete": "#RRGGBB"|null, "borde": "tiras|picos|recto",
+                        "panel": "#RRGGBB"|null},    // tunica/abrigo/vestido encima de la camisa; panel = tela que cuelga en la abertura
+    "mangas":   null | {"color": "#RRGGBB", "color2": "#RRGGBB", "forma": "ajustadas|anchas|capas", "patron": PATRON},
+    "bufanda":  null | {"color": "#RRGGBB", "color2": "#RRGGBB", "tamano": "pequena|grande", "colas": true|false,
+                        "largo": "corto|largo"},
     "capa":     null | {"color": "#RRGGBB", "color2": "#RRGGBB", "largo": "corta|media|larga",
                         "capucha": true|false, "patron": PATRON},
     "cinturon": null | {"color": "#RRGGBB", "hebilla": "#RRGGBB"},
     "banda":    null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},   // banda cruzada en diagonal al pecho
     "hombreras":null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},
-    "guantes":  null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},
+    "guantes":  null | {"color": "#RRGGBB", "detalle": "#RRGGBB", "sin_dedos": true|false},
+    "correas":  null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},   // correas cruzadas en X sobre el pecho
     "brazaletes": null | "#RRGGBB"
   },
   "cabeza": [ {"tipo": "laurel|corona|tiara|gafas|plumas|etiquetas|flor|cuernos|orejas",
                "color": "#RRGGBB", "color2": "#RRGGBB", "colores": ["#..", "#.."]} ],
-  "extras": [ {"tipo": "libro|amuletos|cintas|emblema|bolsa|espada|baston", "color": "#RRGGBB",
+  "extras": [ {"tipo": "amuletos|cintas|emblema|bolsa", "color": "#RRGGBB",
                "color2": "#RRGGBB", "colores": ["#..."], "forma": "sol|luna|estrella|hoja|diamante|ojo"} ],
+  "accesorios": [ {"tipo": "cetro|libro|mochila|brujula|medallon|espada|baston|farol", "color": "#RRGGBB",
+                   "color2": "#RRGGBB", "colores": ["#..."], "forma": "sol|luna|estrella|hoja|diamante|ojo"} ],
+                   // objetos que se generan como modelos APARTE (para la mano, la espalda, etc.)
   "piezas_libres": [ {"hueso": "Head|Body|RightArm|LeftArm|RightLeg|LeftLeg", "nombre": "texto",
                       "desde": [x,y,z], "hasta": [x,y,z], "color": "#RRGGBB",
                       "material": "tela|metal|pelo|piel|cuero|gema|madera|hueso", "simetrica": true|false} ]
 }
-PATRON = "liso|manchas|paneles|estrellas|hojas|rayas|cuadros".
+PATRON = "liso|manchas|tiras|camuflaje|paneles|estrellas|hojas|rayas|cuadros"
+  (manchas = parches de varios colores; tiras = franjas verticales de tela; camuflaje = manchas grandes de bosque).
 """
 
 REFERENCIA_CUERPO = """
-Cuerpo base (px de Blockbench, 16 px = 1 bloque, pies en y=0, el frente mira a -Z, la DERECHA del personaje es +X):
-  cabeza  x -4..4,  y 24..32, z -4..4      torso x -4..4, y 12..24, z -2..2
-  brazo derecho x 4..8 (finos 4..7), y 12..24, z -2..2   brazo izquierdo = espejo en -X
-  pierna derecha x 0..4, y 0..12, z -2..2   pierna izquierda = espejo en -X
+Cuerpo base con altura 32 (px de Blockbench, 16 px = 1 bloque, pies en y=0, frente = -Z, DERECHA del personaje = +X):
+  cabeza  x -5..5, y 23..32, z -5..4       torso x -5..5, y 12..23, z -3..3
+  brazo derecho x 5..9, y 10..23, z -2..2  brazo izquierdo = espejo en -X
+  pierna derecha x 0..4, y 0..12, z -3..2  pierna izquierda = espejo en -X
 'piezas_libres' son cubos extra para lo que no exista en la lista (cuernos raros, alas pequenas, cola, joyas...).
 Usa pocas (0 a 8), del tamano del cuerpo (1 a 8 px), pegadas a su hueso. Con "simetrica": true se copia al otro lado
 (escribe la del lado derecho, +X). Prefiere SIEMPRE las piezas con nombre de la lista antes que piezas_libres.
@@ -138,6 +152,10 @@ def normalizar(ficha_in: dict) -> dict:
         if isinstance(src.get(k), str) and src[k].strip():
             f[k] = src[k].strip()[:300]
     f["brazos"] = _opcion(src.get("brazos"), ("normal", "finos"), "normal")
+    pr = src.get("proporciones") or {}
+    f["proporciones"] = {"altura": int(_num(pr.get("altura"), 18, 48, 32)),
+                         "cabeza": _num(pr.get("cabeza"), 0.7, 1.4, 1.0),
+                         "complexion": _opcion(pr.get("complexion"), ("delgada", "normal", "robusta"), "normal")}
     f["piel"] = _color(src.get("piel"), f["piel"])
 
     cara = src.get("cara") or {}
@@ -155,31 +173,33 @@ def normalizar(ficha_in: dict) -> dict:
 
     ropa_in = src.get("ropa") or {}
     r = f["ropa"]
-    r["camisa"] = {"color": _color((ropa_in.get("camisa") or {}).get("color"), r["camisa"]["color"])}
+    cam = ropa_in.get("camisa") or {}
+    r["camisa"] = {"color": _color(cam.get("color"), r["camisa"]["color"]), "patron": _opcion(cam.get("patron"), PATRONES, "liso")}
     r["pantalon"] = {"color": _color((ropa_in.get("pantalon") or {}).get("color"), r["pantalon"]["color"])}
     b = ropa_in.get("botas") or {}
     r["botas"] = {"color": _color(b.get("color"), "#3A2A1E"), "ribete": _color(b.get("ribete"), None),
-                  "alto": int(_num(b.get("alto"), 2, 8, 4))}
+                  "alto": int(_num(b.get("alto"), 2, 8, 4)), "hebillas": _color(b.get("hebillas"), None)}
 
     t = ropa_in.get("tunica")
     if isinstance(t, dict):
         cols = _colores(t.get("colores") or t.get("color"), ["#8A6A4A"])
         r["tunica"] = {"largo": _opcion(t.get("largo"), LARGOS, "media"), "abierta": bool(t.get("abierta", False)),
                        "colores": cols, "patron": _opcion(t.get("patron"), PATRONES, "liso"),
-                       "ribete": _color(t.get("ribete"), None)}
+                       "ribete": _color(t.get("ribete"), None), "borde": _opcion(t.get("borde"), BORDES, "tiras"),
+                       "panel": _color(t.get("panel"), None)}
     m = ropa_in.get("mangas")
     if isinstance(m, dict):
         base = r["tunica"]["colores"][0] if r["tunica"] else r["camisa"]["color"]
         c1 = _color(m.get("color"), base)
         r["mangas"] = {"color": c1, "color2": _color(m.get("color2"), c1),
-                       "forma": _opcion(m.get("forma"), ("ajustadas", "anchas"), "ajustadas"),
+                       "forma": _opcion(m.get("forma"), ("ajustadas", "anchas", "capas"), "ajustadas"),
                        "patron": _opcion(m.get("patron"), PATRONES, r["tunica"]["patron"] if r["tunica"] else "liso")}
     bu = ropa_in.get("bufanda")
     if isinstance(bu, dict):
         c1 = _color(bu.get("color"), "#C0392B")
         r["bufanda"] = {"color": c1, "color2": _color(bu.get("color2"), c1),
                         "tamano": _opcion(bu.get("tamano"), ("pequena", "grande"), "pequena"),
-                        "colas": bool(bu.get("colas", True))}
+                        "colas": bool(bu.get("colas", True)), "largo": _opcion(bu.get("largo"), ("corto", "largo"), "corto")}
     ca = ropa_in.get("capa")
     if isinstance(ca, dict):
         c1 = _color(ca.get("color"), "#6B2A2A")
@@ -189,10 +209,13 @@ def normalizar(ficha_in: dict) -> dict:
     for clave, d1, d2, k2 in (("cinturon", "#4A3220", "#E3B04B", "hebilla"),
                               ("banda", "#8A2A2A", "#E3B04B", "detalle"),
                               ("hombreras", "#6B4A2A", "#E3B04B", "detalle"),
-                              ("guantes", "#5A3A22", "#E3B04B", "detalle")):
+                              ("guantes", "#5A3A22", "#E3B04B", "detalle"),
+                              ("correas", "#3B2A1E", "#E3B04B", "detalle")):
         v = ropa_in.get(clave)
         if isinstance(v, dict):
             r[clave] = {"color": _color(v.get("color"), d1), k2: _color(v.get(k2), d2)}
+    if r["guantes"]:
+        r["guantes"]["sin_dedos"] = bool((ropa_in.get("guantes") or {}).get("sin_dedos", True))
     r["brazaletes"] = _color(ropa_in.get("brazaletes"), None)
 
     def piezas(lista, validos):
@@ -212,6 +235,7 @@ def normalizar(ficha_in: dict) -> dict:
 
     f["cabeza"] = piezas(src.get("cabeza"), ACCESORIOS_CABEZA)
     f["extras"] = piezas(src.get("extras"), EXTRAS)
+    f["accesorios"] = piezas(src.get("accesorios"), ACCESORIOS)
 
     libres = []
     for p in (src.get("piezas_libres") or [])[:12]:
