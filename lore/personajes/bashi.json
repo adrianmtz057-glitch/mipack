@@ -2,29 +2,35 @@
   "nombre": "Bashi",
   "titulo": "Semidios del conocimiento - Sabiduria",
   "descripcion": "Su mente esta nublada por exceso de conocimiento. Vive encerrado en una habitacion mecanica y guia a los jugadores.",
-  "piel": "#E3AE88",
+  "proporciones": {
+    "altura": 34,
+    "cabeza": 1.0,
+    "complexion": "normal"
+  },
+  "piel": "#E8B892",
   "cara": {
-    "ojos": "#6A8CC0",
-    "expresion": "serena",
+    "ojos": "#5A86C8",
+    "expresion": "seria",
     "rubor": false
   },
   "pelo": {
     "estilo": "revuelto",
     "color": "#17151F",
-    "brillo": "#2F4A8A",
+    "brillo": "#2F3A6A",
     "volumen": 2
   },
   "ropa": {
     "camisa": {
-      "color": "#EDE3D0"
+      "color": "#1F2447"
     },
     "pantalon": {
-      "color": "#16182E"
+      "color": "#1A1D36"
     },
     "botas": {
-      "color": "#16182E",
+      "color": "#1A1D36",
       "ribete": "#E3B04B",
-      "alto": 4
+      "alto": 5,
+      "hebillas": "#E3B04B"
     },
     "tunica": {
       "largo": "larga",
@@ -32,49 +38,60 @@
       "colores": [
         "#1F2447",
         "#EDE3D0",
-        "#2B3466"
+        "#2B3466",
+        "#E3B04B"
       ],
       "patron": "paneles",
-      "ribete": "#E3B04B"
+      "ribete": "#E3B04B",
+      "borde": "tiras",
+      "panel": "#1F2447"
     },
     "mangas": {
       "color": "#1F2447",
       "color2": "#EDE3D0",
-      "forma": "anchas",
-      "patron": "liso"
+      "forma": "capas",
+      "patron": "manchas"
     },
     "bufanda": {
-      "color": "#3D9EA0",
-      "color2": "#2E7F81",
+      "color": "#1F2447",
+      "color2": "#E3B04B",
       "tamano": "pequena",
       "colas": false
+    },
+    "hombreras": {
+      "color": "#EDE3D0",
+      "detalle": "#E3B04B"
     },
     "cinturon": {
       "color": "#3B2A1E",
       "hebilla": "#E3B04B"
     },
-    "banda": {
-      "color": "#3D9EA0",
-      "detalle": "#E3B04B"
-    },
-    "brazaletes": "#3D9EA0"
+    "guantes": {
+      "color": "#1A1D36",
+      "detalle": "#E3B04B",
+      "sin_dedos": true
+    }
   },
   "cabeza": [
     {
       "tipo": "gafas",
       "color": "#E3B04B"
-    },
-    {
-      "tipo": "etiquetas",
-      "color": "#E3B04B",
-      "color2": "#1F2447"
     }
   ],
   "extras": [
     {
+      "tipo": "emblema",
+      "forma": "ojo",
+      "color": "#E3B04B",
+      "color2": "#1F2447"
+    }
+  ],
+  "accesorios": [
+    {
       "tipo": "libro",
-      "color": "#2B3466",
-      "color2": "#EDE3D0"
+      "color": "#1F2447",
+      "color2": "#E3B04B",
+      "forma": "diamante"
     }
   ]
 }

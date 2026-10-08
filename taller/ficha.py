@@ -103,9 +103,9 @@ PATRON = "liso|manchas|tiras|camuflaje|paneles|estrellas|hojas|rayas|cuadros"
 
 REFERENCIA_CUERPO = """
 Cuerpo base con altura 32 (px de Blockbench, 16 px = 1 bloque, pies en y=0, frente = -Z, DERECHA del personaje = +X):
-  cabeza  x -5..5, y 23..32, z -5..4       torso x -5..5, y 12..23, z -3..3
-  brazo derecho x 5..9, y 10..23, z -2..2  brazo izquierdo = espejo en -X
-  pierna derecha x 0..4, y 0..12, z -3..2  pierna izquierda = espejo en -X
+  cabeza  x -5..5, y 23..32, z -4.5..4.5   torso x -4..4, y 12..23, z -2.25..2.25
+  brazo derecho x 4..7.5, y 10.5..23       brazo izquierdo = espejo en -X
+  pierna derecha x 0..3.5, y 0..12         pierna izquierda = espejo en -X
 'piezas_libres' son cubos extra para lo que no exista en la lista (cuernos raros, alas pequenas, cola, joyas...).
 Usa pocas (0 a 8), del tamano del cuerpo (1 a 8 px), pegadas a su hueso. Con "simetrica": true se copia al otro lado
 (escribe la del lado derecho, +X). Prefiere SIEMPRE las piezas con nombre de la lista antes que piezas_libres.

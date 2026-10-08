@@ -2,69 +2,75 @@
   "nombre": "Pibble",
   "titulo": "Semidios errante - Diversion",
   "descripcion": "Organiza eventos y reparte totems y nueces de revivir. Su origen es desconocido.",
+  "proporciones": {
+    "altura": 22,
+    "cabeza": 1.0,
+    "complexion": "normal"
+  },
   "piel": "#D9A06B",
   "cara": {
     "ojos": "#F28A2E",
     "expresion": "alegre",
     "rubor": false,
-    "mascara": "#141012"
+    "mascara": "#1A1414"
   },
   "pelo": {
     "estilo": "ninguno",
-    "color": "#141012",
+    "color": "#1A1414",
     "volumen": 1
   },
   "ropa": {
     "camisa": {
-      "color": "#F1E2C6"
+      "color": "#C2402E"
     },
     "pantalon": {
-      "color": "#5A3520"
+      "color": "#3A2A20"
     },
     "botas": {
-      "color": "#E3B04B",
-      "ribete": "#3FA7A6",
-      "alto": 5
+      "color": "#2E9C9A",
+      "ribete": "#E3B04B",
+      "alto": 4,
+      "hebillas": "#E3B04B"
     },
     "tunica": {
-      "largo": "corta",
-      "abierta": false,
+      "largo": "media",
+      "abierta": true,
       "colores": [
         "#C2402E",
-        "#F1E2C6",
         "#3FA7A6",
+        "#F1E2C6",
         "#E3B04B"
       ],
       "patron": "manchas",
-      "ribete": "#3FA7A6"
+      "ribete": "#3FA7A6",
+      "borde": "tiras"
     },
     "mangas": {
       "color": "#C2402E",
-      "color2": "#E3B04B",
-      "forma": "ajustadas",
-      "patron": "rayas"
+      "color2": "#3FA7A6",
+      "forma": "capas",
+      "patron": "manchas"
     },
     "bufanda": {
-      "color": "#E3B04B",
-      "color2": "#C2402E",
+      "color": "#C2402E",
+      "color2": "#E3B04B",
       "tamano": "grande",
-      "colas": false
-    },
-    "hombreras": {
-      "color": "#3FA7A6",
-      "detalle": "#E3B04B"
+      "colas": true
     },
     "cinturon": {
       "color": "#5A3520",
       "hebilla": "#E3B04B"
     },
-    "brazaletes": "#3FA7A6"
+    "guantes": {
+      "color": "#C2402E",
+      "detalle": "#3FA7A6",
+      "sin_dedos": false
+    }
   },
   "cabeza": [
     {
       "tipo": "plumas",
       "color": "#E3B04B",
-      "color2": "#C2402E",
       "colores": [
         "#C2402E",
         "#3FA7A6",
@@ -79,6 +85,17 @@
       "colores": [
         "#3FA7A6",
         "#C2402E",
+        "#E3B04B",
+        "#F1E2C6"
+      ]
+    }
+  ],
+  "accesorios": [
+    {
+      "tipo": "mochila",
+      "color": "#C2402E",
+      "color2": "#3FA7A6",
+      "colores": [
         "#E3B04B",
         "#F1E2C6"
       ]

@@ -2,53 +2,67 @@
   "nombre": "Khaset",
   "titulo": "Rey de Thza - Protector",
   "descripcion": "El ultimo rey de Thza, un gobernante que realmente cuidaba a su gente. Guerrero por tradicion, pero cercano a su pueblo.",
+  "proporciones": {
+    "altura": 35,
+    "cabeza": 1.0,
+    "complexion": "robusta"
+  },
   "piel": "#C98E5E",
   "cara": {
     "ojos": "#4A2E1A",
-    "expresion": "alegre",
+    "expresion": "serena",
     "rubor": false
   },
   "pelo": {
-    "estilo": "corto",
+    "estilo": "revuelto",
     "color": "#3A2415",
     "brillo": "#5A3A22",
     "volumen": 2
   },
   "ropa": {
     "camisa": {
-      "color": "#7A4A2A"
-    },
-    "pantalon": {
       "color": "#5A3520"
     },
+    "pantalon": {
+      "color": "#4A2C1A"
+    },
     "botas": {
-      "color": "#5A3520",
-      "ribete": "#E3B04B",
-      "alto": 5
+      "color": "#4A2C1A",
+      "ribete": "#F1E4CC",
+      "alto": 6,
+      "hebillas": "#E3B04B"
     },
     "tunica": {
       "largo": "larga",
       "abierta": true,
       "colores": [
         "#F1E4CC",
-        "#E8D9BC",
+        "#7A4A2A",
+        "#E3B04B",
         "#D9C49E"
       ],
       "patron": "manchas",
-      "ribete": "#E3B04B"
+      "ribete": "#E3B04B",
+      "borde": "tiras"
     },
     "mangas": {
       "color": "#F1E4CC",
       "color2": "#D9C49E",
       "forma": "ajustadas",
-      "patron": "liso"
+      "patron": "manchas"
     },
     "capa": {
       "color": "#F1E4CC",
       "color2": "#D9C49E",
       "largo": "larga",
       "capucha": false,
-      "patron": "liso"
+      "patron": "manchas"
+    },
+    "bufanda": {
+      "color": "#8A3A22",
+      "color2": "#B05A30",
+      "tamano": "pequena",
+      "colas": true
     },
     "hombreras": {
       "color": "#7A4A2A",
@@ -58,13 +72,14 @@
       "color": "#5A3520",
       "hebilla": "#E3B04B"
     },
-    "guantes": {
-      "color": "#6B3F26",
+    "correas": {
+      "color": "#5A3520",
       "detalle": "#E3B04B"
     },
-    "banda": {
-      "color": "#8A5A32",
-      "detalle": "#E3B04B"
+    "guantes": {
+      "color": "#5A3520",
+      "detalle": "#E3B04B",
+      "sin_dedos": false
     }
   },
   "cabeza": [
@@ -80,6 +95,14 @@
       "forma": "sol",
       "color": "#E3B04B",
       "color2": "#7A4A2A"
+    }
+  ],
+  "accesorios": [
+    {
+      "tipo": "cetro",
+      "color": "#E3B04B",
+      "color2": "#2E8A6E",
+      "forma": "sol"
     }
   ]
 }

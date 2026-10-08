@@ -13,6 +13,7 @@ Uso:
 Salida (carpeta 'salida'):
     <nombre>.bbmodel        -> abrir en Blockbench (Archivo > Abrir). Textura ya aplicada.
     <nombre>_vista.png      -> vista previa (necesita: pip install numpy pillow)
+    accesorios/             -> los objetos del personaje como modelos aparte (cetro, libro, mochila...)
     figura/<nombre>/        -> avatar listo para el mod Figura (copiar a .minecraft/figura/avatars)
 
 Clave de Groq: variable de entorno GROQ_API_KEY o un archivo groq_key.txt al lado de este script.
@@ -34,7 +35,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 
 from taller import ficha as fichas          # noqa: E402
-from taller import ia, personaje, vista     # noqa: E402
+from taller import ia, objetos, sastre, vista     # noqa: E402
 
 LORE = os.path.join(AQUI, "lore")
 PERSONAJES = os.path.join(LORE, "personajes")
@@ -108,13 +109,23 @@ def generar(ficha_cruda, guardar_ficha=None):
         with open(guardar_ficha, "w", encoding="utf-8") as fh:
             json.dump(sin_id, fh, ensure_ascii=False, indent=2)
         print(f"  Ficha guardada: {guardar_ficha}  (podes editarla y volver a generar con --ficha)")
-    modelo = personaje.construir(f)
+    modelo = sastre.construir(f)
     ruta = os.path.join(SALIDA, f"{nombre}.bbmodel")
     lienzo, uvs, _ = modelo.guardar(ruta)
     print(f"  Modelo: {ruta}  ({len(modelo.cubos)} cubos, textura {lienzo.ancho}x{lienzo.alto})")
     png = vista.guardar_vista(modelo, lienzo, uvs, os.path.join(SALIDA, f"{nombre}_vista.png"))
     print(f"  Vista previa: {png}" if png else "  (Sin vista previa: pip install numpy pillow)")
     exportar_figura(f, ruta, os.path.join(SALIDA, "figura", nombre))
+    for acc in f["accesorios"]:
+        obj = objetos.construir(acc, f"{nombre}_{acc['tipo']}")
+        if not obj:
+            continue
+        carpeta = os.path.join(SALIDA, "accesorios")
+        os.makedirs(carpeta, exist_ok=True)
+        r_obj = os.path.join(carpeta, f"{nombre}_{acc['tipo']}.bbmodel")
+        lz, uv, _ = obj.guardar(r_obj)
+        vista.guardar_vista(obj, lz, uv, r_obj[:-8] + "_vista.png", alto_px=360)
+        print(f"  Accesorio: {r_obj}")
     return ruta
 
 

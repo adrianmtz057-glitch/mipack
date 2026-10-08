@@ -3,16 +3,21 @@
   "titulo": "Reina de Thza - Exploradora",
   "descripcion": "Princesa curiosa y escandalosa, aprendio a leer las estrellas y se reia fuerte.",
   "brazos": "finos",
-  "piel": "#D9A57A",
+  "proporciones": {
+    "altura": 33,
+    "cabeza": 1.0,
+    "complexion": "delgada"
+  },
+  "piel": "#DDAA80",
   "cara": {
-    "ojos": "#8A5A2A",
+    "ojos": "#5A86C8",
     "expresion": "alegre",
     "rubor": true
   },
   "pelo": {
     "estilo": "largo",
     "color": "#1A1620",
-    "brillo": "#2E2838",
+    "brillo": "#3A3448",
     "volumen": 2
   },
   "ropa": {
@@ -24,19 +29,23 @@
     },
     "botas": {
       "color": "#1B2040",
-      "ribete": "#E3B04B",
-      "alto": 5
+      "ribete": "#F2E8D3",
+      "alto": 6,
+      "hebillas": "#E3B04B"
     },
     "tunica": {
-      "largo": "media",
+      "largo": "larga",
       "abierta": true,
       "colores": [
         "#F2E8D3",
+        "#232B5E",
         "#E9DDC2",
-        "#DCCFAE"
+        "#E3B04B"
       ],
-      "patron": "liso",
-      "ribete": "#E3B04B"
+      "patron": "manchas",
+      "ribete": "#E3B04B",
+      "borde": "tiras",
+      "panel": "#232B5E"
     },
     "mangas": {
       "color": "#232B5E",
@@ -51,15 +60,21 @@
       "capucha": false,
       "patron": "estrellas"
     },
+    "bufanda": {
+      "color": "#232B5E",
+      "color2": "#2B3470",
+      "tamano": "pequena",
+      "colas": false
+    },
     "cinturon": {
       "color": "#8A5A2A",
       "hebilla": "#E3B04B"
     },
-    "banda": {
-      "color": "#E3B04B",
-      "detalle": "#232B5E"
-    },
-    "brazaletes": "#E3B04B"
+    "guantes": {
+      "color": "#1B2040",
+      "detalle": "#E3B04B",
+      "sin_dedos": true
+    }
   },
   "cabeza": [
     {
@@ -68,5 +83,12 @@
       "color2": "#3A7BD5"
     }
   ],
-  "extras": []
+  "extras": [],
+  "accesorios": [
+    {
+      "tipo": "brujula",
+      "color": "#E3B04B",
+      "color2": "#232B5E"
+    }
+  ]
 }

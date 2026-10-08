@@ -2,70 +2,81 @@
   "nombre": "Correcthar",
   "titulo": "Semidios de la redencion - Orden",
   "descripcion": "Devuelve las cosas a su estado anterior. Sereno, paciente, preciso, pero no aburrido.",
-  "piel": "#E7B48F",
+  "proporciones": {
+    "altura": 34,
+    "cabeza": 1.0,
+    "complexion": "normal"
+  },
+  "piel": "#EBC09C",
   "cara": {
-    "ojos": "#3C5BA0",
+    "ojos": "#4A78C8",
     "expresion": "serena",
     "rubor": false
   },
   "pelo": {
     "estilo": "lado",
-    "color": "#1F2447",
-    "brillo": "#8FA3C9",
+    "color": "#1F2650",
+    "brillo": "#7F9BD0",
     "volumen": 2
   },
   "ropa": {
     "camisa": {
-      "color": "#EDE3D0"
+      "color": "#1B2142"
     },
     "pantalon": {
-      "color": "#1B2040"
+      "color": "#1B2142"
     },
     "botas": {
-      "color": "#1B2040",
-      "ribete": "#7FA7C4",
-      "alto": 4
+      "color": "#1B2142",
+      "ribete": "#D9DEE8",
+      "alto": 5,
+      "hebillas": "#C9CED8"
     },
     "tunica": {
       "largo": "larga",
       "abierta": true,
       "colores": [
         "#232B52",
-        "#7FA7C4",
-        "#EDE3D0"
+        "#2E3A6E",
+        "#E8E4D8",
+        "#8FB0D8"
       ],
-      "patron": "paneles",
-      "ribete": "#4FA3A5"
+      "patron": "manchas",
+      "ribete": "#E8E4D8",
+      "borde": "tiras",
+      "panel": "#E8E4D8"
     },
     "mangas": {
       "color": "#232B52",
-      "color2": "#7FA7C4",
-      "forma": "anchas",
-      "patron": "paneles"
+      "color2": "#8FB0D8",
+      "forma": "ajustadas",
+      "patron": "manchas"
     },
     "bufanda": {
-      "color": "#8FB4D4",
-      "color2": "#EDE3D0",
-      "tamano": "pequena",
-      "colas": true
+      "color": "#E8E4D8",
+      "color2": "#8FB0D8",
+      "tamano": "grande",
+      "colas": true,
+      "largo": "largo"
     },
     "cinturon": {
       "color": "#2B2F55",
-      "hebilla": "#4FA3A5"
+      "hebilla": "#C9CED8"
     },
-    "banda": {
-      "color": "#4FA3A5",
-      "detalle": "#EDE3D0"
-    },
-    "brazaletes": "#4FA3A5"
+    "guantes": {
+      "color": "#1B2142",
+      "detalle": "#8FB0D8",
+      "sin_dedos": true
+    }
   },
   "cabeza": [],
-  "extras": [
+  "extras": [],
+  "accesorios": [
     {
-      "tipo": "emblema",
-      "forma": "diamante",
-      "color": "#7FD0D2",
-      "color2": "#232B52"
+      "tipo": "libro",
+      "color": "#232B52",
+      "color2": "#C9CED8",
+      "forma": "diamante"
     }
   ]
 }
