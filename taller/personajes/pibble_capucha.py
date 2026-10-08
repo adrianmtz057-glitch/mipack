@@ -2,11 +2,12 @@
 Capucha de Pibble sola (para trabajarla aparte antes de ponerla en el personaje).
 
 Piezas low-poly independientes, con las mismas reglas:
-  - ovalo: un ovalo COMPLETO acostado (mas ancho que alto), armado panel a panel: paneles chicos donde hay
-    curva (alrededor de la cara y en el contorno) y paneles grandes atras. Es una cascara con grosor: afuera
-    crema, adentro negra. En el medio del frente, el agujero ovalado de la cara con filete dorado.
+  - ovalo: un ovalo acostado (mas ancho que alto), armado panel a panel: paneles chicos donde hay curva
+    (alrededor de la cara y en el contorno) y paneles grandes atras. Es una cascara con grosor: afuera crema,
+    adentro negra. En el medio del frente, el agujero ovalado de la cara con filete dorado. Abajo queda
+    abierta, a la altura del cuello, para conectarse con el cuerpo.
   - cabeza: un cubo de vacio adentro de la capucha, con los dos ojos; se ve por el agujero.
-  - dos orejas de gato: conos de base redonda en las esquinas de arriba del ovalo, inclinados hacia afuera y atras.
+  - dos orejas de gato: conos de base redonda arriba de la cabeza, abiertos un poco hacia los costados.
 """
 
 import math
@@ -21,7 +22,7 @@ RX, RY, RZ = 8.5, 7.0, 7.0          # semiejes: ancho, alto, fondo
 GROSOR = 0.8                        # grosor de la tela de la capucha
 # columnas (grados desde el frente hacia +X) y filas (grados de altura): mas juntas cerca de la cara
 ALFAS = (0, 27, 72, 126, 180, 234, 288, 333)
-BETAS = (-66, -32, 0, 32, 60, 80)
+BETAS = (-48, -32, 0, 32, 60, 80)   # abajo queda abierta (ahi se conecta el cuerpo)
 # borde del agujero de la cara: 8 vertices del ovalo (columna, fila)
 BORDE = ((333, -32), (0, -32), (27, -32), (27, 0), (27, 32), (0, 32), (333, 32), (333, 0))
 ESQUINAS = {(333, -32), (27, -32), (27, 32), (333, 32)}
@@ -82,9 +83,12 @@ def ovalo():
             a2 = ALFAS[(k + 1) % len(ALFAS)]
             m.cara((V[a, b], V[a2, b], V[a2, b2], V[a, b2]), lambda c: geo._sub(c, centro), "fuera")
             m.cara((W[a, b], W[a2, b], W[a2, b2], W[a, b2]), lambda c: geo._sub(centro, c), "forro")
-    for b, arriba in ((BETAS[-1], 1), (BETAS[0], -1)):                       # techo chico y abajo
-        m.cara(tuple(V[a, b] for a in ALFAS), (0, arriba, 0), "fuera")
-        m.cara(tuple(W[a, b] for a in ALFAS), (0, -arriba, 0), "forro")
+    m.cara(tuple(V[a, BETAS[-1]] for a in ALFAS), (0, 1, 0), "fuera")         # techo chico
+    m.cara(tuple(W[a, BETAS[-1]] for a in ALFAS), (0, -1, 0), "forro")
+    b = BETAS[0]                                                             # abajo abierta: solo el canto
+    for k, a in enumerate(ALFAS):
+        a2 = ALFAS[(k + 1) % len(ALFAS)]
+        m.cara((V[a, b], V[a2, b], W[a2, b], W[a, b]), (0, -1, 0), "forro")
     for k in range(len(BORDE)):                                              # canto del agujero (el grosor)
         q, q2 = BORDE[k], BORDE[(k + 1) % len(BORDE)]
         m.cara((V[q], V[q2], W[q2], W[q]), lambda c: (CX - c[0], CY - c[1], 0), "forro")
@@ -94,8 +98,8 @@ def ovalo():
 def oreja():
     """Oreja de gato (derecha, +X): un cono de base redonda (10 lados), con la base hundida en el ovalo."""
     cono = geo.piramide(geo.anillo(0, 0, 0, 2.4, 2.4, 10), (0, 6.8, 0))
-    cono = geo.girar(cono, (10, 0, -18))                           # hacia atras y hacia afuera
-    pie = punto(48, 52)                                            # esquina de arriba del ovalo
+    cono = geo.girar(cono, (0, 0, -22))                            # abierta hacia el costado, sin ir hacia atras
+    pie = punto(85, 60)                                            # arriba y mas atras, sobre la cabeza
     return geo.mover(cono, (pie[0], pie[1] - 0.9, pie[2] + 0.4))
 
 
