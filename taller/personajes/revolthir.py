@@ -1,13 +1,16 @@
 """
 Revolthir, NSWY de la negacion: chibi de caos y colores calidos. Hecho a mano con el kit segun la imagen que paso el
-usuario (referencias/personajes/revolthir_bufon.jpg, un bufon voxel). Reglas: no es humano (cabeza-cubo naranja, sin piel), chibi de la misma altura que Pibble
-(nada mas que la altura), estilo propio: carnaval caotico, ni desertico, ni japones, ni de bosque.
+usuario (referencias/personajes/revolthir_bufon.jpg) y las formas que marco encima con rayas blancas
+(revolthir_bufon_rayas.jpg). Reglas: no es humano (cabeza-cubo naranja, sin piel), chibi de la misma altura que
+Pibble (nada mas que la altura), estilo propio: carnaval caotico, ni desertico, ni japones, ni de bosque.
 
-Piezas (todo cubos, como un voxel; picos y estrella en low-poly):
+Formas (todo en bloques, como la referencia; picos, cascabeles y estrella en low-poly):
   CABEZA-CUBO naranja con ojos grandes blancos que miran de reojo y una boquita en zigzag
-  CORONA DE BUFON magenta con rombos, picos de colores para todos lados y una punta caida con cascabel
-  TORSO rojo con cuello de volados amarillo; FALDON magenta con el borde en picos
-  MANGAS amarillas, GUANTES cafe, PIERNAS verdes, BOTAS cafe
+  CORONA DE BUFON: una caja grande magenta, mas ancha que la cabeza, con rombos y picos de colores en el borde de
+    arriba; a los costados, dos puntas con cascabeles facetados (uno grande azul, uno chico rosa)
+  TORSO rojo y ancho con un cuello amarillo en punta debajo de la cara; FALDON magenta que se abre hacia abajo y
+    termina en picos
+  MANGAS amarillas con PUNOS grandes; PIERNAS verdes gruesas; BOTAS en bloque
   VARITA en la mano izquierda: baston con bandas y una estrella morada
 Paleta calida y saltona, cada color con su rampa (hue shifting) y sin ruido; el volumen lo pone la luz horneada.
 """
@@ -23,18 +26,19 @@ D = 4                                   # texeles por px
 NARANJA = tonos("#E8762C")              # la cabeza
 MAGENTA = tonos("#C42A86")              # corona y faldon
 ROJO = tonos("#D23A30")                 # torso
-AMARILLO = tonos("#F2C232")             # mangas y cuello
+AMARILLO = tonos("#F2C232")             # mangas, cuello y picos
 VERDE = tonos("#6CC23C")                # piernas y picos
-CAFE = tonos("#4A2E24")                 # guantes y botas
+GUANTE = tonos("#7A6470")               # punos
+BOTA = tonos("#4A2E2C")                 # botas
 MORADO = tonos("#8A4AE0")               # la estrella
-ROSA = tonos("#E85AA8")                 # picos
-AZUL = tonos("#4A9AE8")                 # picos
-CIAN = tonos("#4AD8E0")                 # cascabel
+ROSA = tonos("#E85AA8")                 # picos y cascabel chico
+AZUL = tonos("#4A9AE8")                 # picos y cascabel grande
 GRIS = tonos("#6E6A78")                 # baston
 OJO, PUPILA = "#FFF8EE", "#1A1218"
 
-TOPE = 27.0
-CABEZA_Y = 17.0                         # la cabeza va de 17 a 27: la altura de Pibble
+TOPE = 27.0                             # la cabeza va de 17 a 27: la altura de Pibble
+CABEZA_Y = 17.0
+PIERNAS = 9.0                           # la cadera
 
 
 def voxel(rampa):
@@ -71,7 +75,7 @@ def cara(t):
             return hex_(OJO)
     puntos = [(-1.3, 2.1), (-0.65, 1.7), (0.0, 2.1), (0.65, 1.7), (1.3, 2.1)]
     if any(_trazo(u, v, puntos[k], puntos[k + 1], 0.3) for k in range(len(puntos) - 1)):
-        return hex_(CAFE["s"])
+        return hex_(BOTA["s"])
     return voxel(NARANJA)(t)
 
 
@@ -79,26 +83,32 @@ def cabeza(t):
     return cara(t) if t.cara == "north" else voxel(NARANJA)(t)
 
 
+CORONA_Y = (TOPE - 0.8, TOPE + 3.4)     # la caja de la corona
+
+
 def corona(t):
-    """Banda magenta con una fila de rombos claros."""
-    if t.cara in ("up", "down"):
+    """Caja magenta: banda oscura abajo, una fila de rombos claros al medio y el canto de arriba con luz."""
+    if t.cara == "up":
+        return hex_(MAGENTA["l"])
+    if t.cara == "down":
         return hex_(MAGENTA["s"])
     u = t.x if t.cara in ("north", "south") else t.z
-    v = t.y - (TOPE - 0.5)
-    if abs((u % 1.6) - 0.8) + abs(v) * 1.1 < 0.5:
+    y0, y1 = CORONA_Y
+    v = t.y - (y0 + y1) / 2
+    if abs((u % 1.8) - 0.9) + abs(v) * 1.1 < 0.62:
         return hex_(ROSA["l"])
-    if abs(v) > 0.72:
+    if t.y < y0 + 0.6:
         return hex_(MAGENTA["s"])
-    return hex_(MAGENTA["b"])
+    return voxel(MAGENTA)(t)
 
 
 def con_picos(base, y_abajo, alto=0.9, ancho=1.0):
-    """Recorta el borde de abajo de una caja en picos (volados de bufon)."""
+    """Recorta el borde de abajo de una pieza en picos (volados de bufon)."""
     def p(t):
         if t.cara == "down":
             return TRANSPARENTE
         if t.cara != "up":
-            u = t.x if t.cara in ("north", "south") else t.z
+            u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
             f = abs(((u / ancho) % 1.0) - 0.5) * 2              # 0 en la punta, 1 entre puntas
             if t.y - y_abajo < alto * f:
                 return TRANSPARENTE
@@ -106,15 +116,22 @@ def con_picos(base, y_abajo, alto=0.9, ancho=1.0):
     return p
 
 
+def babero(t):
+    """Cuello amarillo en punta: el borde de abajo baja en V hasta el centro."""
+    if t.y < CABEZA_Y - 2.9 + abs(t.x) * 0.9:
+        return TRANSPARENTE
+    return voxel(AMARILLO)(t)
+
+
 def bota(t):
-    if t.y < 0.5:
-        return hex_(CAFE["l"] if t.cara != "down" else CAFE["s"])
-    return voxel(CAFE)(t)
+    if t.y < 0.55:
+        return hex_(BOTA["l"] if t.cara != "down" else BOTA["s"])
+    return voxel(BOTA)(t)
 
 
 def baston(t):
     """Baston gris con dos bandas doradas."""
-    if 16.2 < t.y < 16.7 or 10.6 < t.y < 11.1:
+    if PIERNAS + 2.5 < t.y < PIERNAS + 3.0 or PIERNAS + 8.3 < t.y < PIERNAS + 8.8:
         return hex_(AMARILLO["b"])
     return hex_(GRIS["l"] if t.cara == "up" else GRIS["b"])
 
@@ -137,61 +154,76 @@ def pintor_estrella(cx, cy):
     return p
 
 
+def cascabel(c, lado):
+    """Cascabel facetado: un octaedro (dos piramides) de lado 'lado', como una gema."""
+    return geo.bipiramide(c, lado * 0.62, lado * 0.62, lado * 0.62, lados=4, giro=45)
+
+
+def punta(base, largo, giro):
+    """Punta de bufon: cono de 6 lados que sale de 'base' girado 'giro' grados (rz)."""
+    m = geo.loft([(0.0, 0, 0, 1.2, 1.2), (largo * 0.55, 0, 0, 0.85, 0.85), (largo, 0, 0, 0.25, 0.25)], 6, 30)
+    m = geo.girar(m, (0, 0, giro))
+    a = math.radians(giro)
+    tip = (base[0] - largo * math.sin(a), base[1] + largo * math.cos(a), base[2])
+    return geo.mover(m, base), tip
+
+
 def construir():
-    p = Personaje("revolthir", altura=27, cabeza=10, torso=(7.5, 8, 4.5), brazo=(2.6, 2.6), pierna=(3.2, 3.2))
+    p = Personaje("revolthir", altura=27, cabeza=10, torso=(9.5, 8, 5.5), brazo=(3, 3), pierna=(4.5, 4.5))
     C, T, L = p.cuello, p.tope, p.lh                           # 17, 27, 9
-    assert (C, T) == (CABEZA_Y, TOPE)
+    assert (C, T, L) == (CABEZA_Y, TOPE, PIERNAS)
 
     # ================================================================ CABEZA-CUBO y CORONA DE BUFON
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D)
-    p.caja("Head/corona", "banda", (-5.4, T - 1.5, -5.4), (5.4, T + 0.4, 5.4), corona, dens=D)
-    picos = [((-3.5, -2.9), VERDE, 3.4, (12, 0, 22)), ((-0.9, -3.3), ROSA, 4.0, (14, 0, 4)),
-             ((2.1, -2.9), VERDE, 3.2, (10, 0, -16)), ((4.0, -0.3), ROSA, 2.8, (0, 0, -32)),
-             ((0.7, 1.8), AZUL, 3.6, (-16, 0, -6)), ((-3.6, 2.2), VERDE, 3.0, (-14, 0, 24)),
-             ((3.1, 3.2), AZUL, 2.6, (-20, 0, -18))]
-    for k, ((x, z), col, alto, giro) in enumerate(picos):
-        base = geo.anillo(x, T + 0.3, z, 1.1, 1.1, 4, 45)
-        pico = geo.girar(geo.piramide(base, (x, T + 0.3 + alto, z)), giro, (x, T + 0.3, z))
-        p.malla("Head/corona", f"pico{k}", pico, voxel(col), dens=D)
-    # punta caida de bufon hacia la izquierda, con el cascabel colgando de la punta
-    largo, giro_punta = 3.8, 105.0
-    punta = geo.loft([(0.0, 0, 0, 1.3, 1.3), (2.2, 0, 0, 0.9, 0.9), (largo, 0, 0, 0.25, 0.25)], 6, 30)
-    punta = geo.girar(punta, (0, 0, giro_punta))               # acostada hacia -X y caida
-    base = (-5.1, T - 0.2, 0.4)
-    p.malla("Head/corona", "punta", geo.mover(punta, base), voxel(MAGENTA), dens=D)
-    a = math.radians(giro_punta)
-    tx, ty = base[0] - largo * math.sin(a), base[1] + largo * math.cos(a)
-    p.caja("Head/corona", "cascabel", (tx - 0.55, ty - 1.25, base[2] - 0.55), (tx + 0.55, ty - 0.15, base[2] + 0.55),
-           voxel(CIAN), dens=D)
+    y0, y1 = CORONA_Y
+    p.caja("Head/corona", "corona", (-6.2, y0, -6.2), (6.2, y1, 6.2), corona, dens=D)
+    colores = (VERDE, ROSA, AMARILLO, AZUL, VERDE, ROSA, AMARILLO, AZUL, ROSA, VERDE)
+    picos = [((-4.6, -5.3), 3.2, (-14, 0, 6)), ((-1.6, -5.3), 3.8, (-16, 0, 0)), ((1.5, -5.3), 3.0, (-14, 0, 0)),
+             ((4.5, -5.3), 3.5, (-14, 0, -6)), ((5.3, -1.6), 2.8, (0, 0, -16)), ((5.3, 2.0), 3.2, (6, 0, -16)),
+             ((3.0, 5.3), 3.0, (14, 0, -4)), ((0.0, 5.3), 3.6, (16, 0, 0)), ((-3.0, 5.3), 2.8, (14, 0, 4)),
+             ((-5.3, 0.2), 3.3, (0, 0, 16))]
+    for k, ((x, z), alto, giro) in enumerate(picos):
+        base = geo.anillo(x, y1, z, 1.05, 1.05, 4, 45)
+        pico = geo.girar(geo.piramide(base, (x, y1 + alto, z)), giro, (x, y1, z))
+        p.malla("Head/corona", f"pico{k}", pico, voxel(colores[k]), dens=D)
+    # puntas de bufon a los costados con sus cascabeles: el grande cae a la derecha del personaje, el chico a la otra
+    malla, tip = punta((6.0, y0 + 1.2, -0.5), 3.6, -112)
+    p.malla("Head/corona", "punta_der", malla, voxel(VERDE), dens=D)
+    p.malla("Head/corona", "cascabel_der", cascabel((tip[0] + 0.3, tip[1] - 1.1, tip[2]), 2.3), voxel(AZUL), dens=D)
+    malla, tip = punta((-6.0, y0 + 0.9, 0.6), 2.4, 118)
+    p.malla("Head/corona", "punta_izq", malla, voxel(ROSA), dens=D)
+    p.malla("Head/corona", "cascabel_izq", cascabel((tip[0] - 0.2, tip[1] - 0.8, tip[2]), 1.7), voxel(ROSA), dens=D)
 
-    # ================================================================ TORSO, CUELLO de volados y FALDON
-    p.caja("Body/torso", "torso", (-3.75, L, -2.25), (3.75, C, 2.25), voxel(ROJO), dens=D)
-    p.caja("Body/torso", "cuello", (-4.4, C - 1.6, -2.9), (4.4, C + 0.2, 2.9),
-           con_picos(voxel(AMARILLO), C - 1.6, 0.8, 1.05), dens=D)
-    p.caja("Body/faldon", "faldon", (-4.4, L - 2.6, -2.8), (4.4, L + 1.4, 2.8),
-           con_picos(voxel(MAGENTA), L - 2.6, 1.3, 1.4), dens=D)
+    # ================================================================ TORSO ancho, CUELLO en punta y FALDON abierto
+    p.caja("Body/torso", "torso", (-4.75, L, -2.75), (4.75, C, 2.75), voxel(ROJO), dens=D)
+    p.caja("Body/torso", "cuello", (-4.95, C - 0.6, -2.95), (4.95, C + 0.05, 2.95), voxel(AMARILLO), dens=D)
+    p.caja("Body/torso", "babero", (-2.3, C - 2.9, -3.0), (2.3, C - 0.55, -2.8), babero, dens=D)
+    falda = geo.loft([(L - 2.4, 0, 0, 6.3 / 0.7071, 4.0 / 0.7071), (L + 1.4, 0, 0, 5.05 / 0.7071, 3.05 / 0.7071)],
+                     4, 45, tapa_abajo=False, tapa_arriba=False)
+    p.malla("Body/faldon", "faldon", falda, con_picos(voxel(MAGENTA), L - 2.4, 1.3, 1.5), dens=D)
 
-    # ================================================================ BRAZOS amarillos con guantes
+    # ================================================================ BRAZOS: mangas amarillas y punos grandes
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        x1, x2 = sorted((s * 3.75, s * 6.35))
-        g1, g2 = sorted((s * 3.65, s * 6.45))
-        p.caja(f"{hueso}/brazo", "manga", (x1, L + 2.2, -1.25), (x2, C, 1.25), voxel(AMARILLO), dens=D)
-        p.caja(f"{hueso}/brazo", "guante", (g1, L + 0.2, -1.4), (g2, L + 2.4, 1.4), voxel(CAFE), dens=D)
+        x1, x2 = sorted((s * 4.75, s * 7.75))
+        g1, g2 = sorted((s * 4.45, s * 8.05))
+        p.caja(f"{hueso}/brazo", "manga", (x1, L + 2.9, -1.5), (x2, C, 1.5), voxel(AMARILLO), dens=D)
+        p.caja(f"{hueso}/brazo", "puno", (g1, L - 0.5, -1.8), (g2, L + 3.1, 1.8), voxel(GUANTE), dens=D)
 
     # ================================================================ VARITA de estrella en la mano izquierda
     g = "LeftArm/varita"
-    giro = dict(rot=(0, 0, 12), piv=(-5.05, L + 1.3, -1.9))
-    p.caja(g, "baston", (-5.3, L - 1.0, -2.15), (-4.8, L + 9.5, -1.65), baston, dens=D, **giro)
-    cx, cy = -5.05, L + 11.3
-    malla = geo.extruir(estrella(cx, cy, 2.0, 0.9), -2.3, -1.5)
-    p.malla(g, "estrella", geo.girar(malla, (0, 0, 12), (-5.05, L + 1.3, -1.9)), pintor_estrella(cx, cy), dens=D)
+    piv = (-6.25, L + 1.4, -2.3)
+    giro = dict(rot=(0, 0, 12), piv=piv)
+    p.caja(g, "baston", (-6.5, L - 1.4, -2.55), (-6.0, L + 10.5, -2.05), baston, dens=D, **giro)
+    cx, cy = -6.25, L + 12.3
+    malla = geo.extruir(estrella(cx, cy, 2.1, 0.95), -2.7, -1.9)
+    p.malla(g, "estrella", geo.girar(malla, (0, 0, 12), piv), pintor_estrella(cx, cy), dens=D)
 
-    # ================================================================ PIERNAS verdes y BOTAS cafe
+    # ================================================================ PIERNAS verdes gruesas y BOTAS en bloque
     for s in (1, -1):
         hueso = "RightLeg" if s > 0 else "LeftLeg"
-        x1, x2 = sorted((s * 0.2, s * 3.4))
-        b1, b2 = sorted((s * 0.0, s * 3.6))
-        p.caja(f"{hueso}/pierna", "pierna", (x1, 2.6, -1.5), (x2, L, 1.5), voxel(VERDE), dens=D)
-        p.caja(f"{hueso}/bota", "bota", (b1, 0.0, -2.0), (b2, 2.8, 1.7), bota, dens=D)
+        x1, x2 = sorted((s * 0.15, s * 4.5))
+        b1, b2 = sorted((s * 0.0, s * 4.75))
+        p.caja(f"{hueso}/pierna", "pierna", (x1, 2.6, -2.2), (x2, L, 2.2), voxel(VERDE), dens=D)
+        p.caja(f"{hueso}/bota", "bota", (b1, 0.0, -2.9), (b2, 2.8, 2.4), bota, dens=D)
     return p
