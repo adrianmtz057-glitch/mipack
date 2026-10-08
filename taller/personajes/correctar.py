@@ -284,22 +284,23 @@ def manchas(blanco_abajo=None, base=NEGRO, deshilachado=None, kanji=None, sesgo=
     return p
 
 
-Y_MANCHAS_PANTALON = 10.0
+Y_MANCHAS_PANTALON = 11.0
 
 
 def pantalon(t):
+    """Hakama negro liso con pliegues verticales y pocas salpicaduras blancas abajo (distinto del haori)."""
     x, y, z = t.x, t.y, t.z
-    if t.cara == "down":
+    if t.cara in ("down", "up"):
         return hex_(NEGRO2)
-    if t.cara in ("north", "south") and (abs(x) * 2) % 3 < 0.45:
-        return hex_(NEGRO2)                                    # pliegues
-    if t.cara in ("east", "west") and (abs(z) * 2) % 3 < 0.45:
-        return hex_(NEGRO2)
+    pliegue = (abs(x) if abs(t.n[2]) > 0.5 else abs(z)) * 1.6
+    if pliegue % 2 < 0.28:
+        return hex_("#0C0A0B")
     if y < Y_MANCHAS_PANTALON:
-        f = _h(x // 1, y // 1, z // 1)
-        if (x > 0 and f > 0.8) or (x < 0 and f > 0.9):
-            return hex_(BLANCO if f > 0.88 else GRIS)
-    return hex_(NEGRO if _h(x * 2 // 1, y * 2 // 1, z * 2 // 1) > 0.15 else NEGRO2)
+        f = 0.6 * (0.5 + 0.5 * math.sin(x * 1.7 + y * 1.1)) * (0.5 + 0.5 * math.cos(z * 1.3 - y * 0.9)) \
+            + 0.4 * _h(x * 1.5 // 1, y * 1.5 // 1, z * 1.5 // 1)
+        if f > (0.66 if x > 0 else 0.76):
+            return hex_(BLANCO if f > 0.74 else GRIS)
+    return hex_(NEGRO)
 
 
 def encima(base, capas):
@@ -348,6 +349,48 @@ def tubo_hueco(abajo, arriba, grosor=0.15, tapa=True):
         return out
     vs, cs = geo.tronco(encoger(abajo), encoger(arriba), tapa_abajo=False, tapa_arriba=False)
     return geo.unir(afuera, (vs, [tuple(reversed(c)) for c in cs])), len(afuera[1])
+
+
+def haori(C, abajo, tela, espalda):
+    """Cuerpo del haori como chaqueta aparte: espalda, costados y dos delanteros que se ABREN hacia la cadera (pasan
+    por encima del pantalon y marcan el dobladillo). Abierto adelante; derecha puesta en el hombro, izquierda caida.
+    Cada panel tiene forro corrido hacia adentro. Devuelve (malla, pintores)."""
+    m = geo.Armador()
+    pint = []
+    afuera_de = (0.0, 0.0, 0.0)
+
+    def panel(pts, pintor, solo_afuera=False):
+        idx = [m.v(q) for q in pts]
+        cx = sum(q[0] for q in pts) / 4
+        cz = sum(q[2] for q in pts) / 4
+        m.cara(tuple(idx), (cx - afuera_de[0], 0, cz - afuera_de[2]), "fuera")
+        pint.append(pintor)
+        if solo_afuera:
+            return
+        hacia = [(q[0] - 0.12 * (cx - afuera_de[0]) / max(0.01, math.hypot(cx, cz)), q[1],
+                  q[2] - 0.12 * (cz - afuera_de[2]) / max(0.01, math.hypot(cx, cz))) for q in pts]
+        idx2 = [m.v(q) for q in hacia]
+        m.cara(tuple(idx2), (-(cx - afuera_de[0]), 0, -(cz - afuera_de[2])), "forro")
+        pint.append(color(NEGRO2))
+    zt_f, zt_b, zb_f, zb_b = -2.15, 2.2, -3.05, 3.1               # arriba ajustado, abajo abierto
+    xt, xb = 3.85, 4.95
+    sup_d, sup_i = C - 0.2, C - 3.5                               # delantero derecho puesto, izquierdo caido
+    lado_d, lado_i = C - 0.2, C - 5.0
+    panel([(-3.8, C + 0.4, zt_b), (3.8, C + 0.4, zt_b), (xb, abajo, zb_b), (-xb, abajo, zb_b)], espalda)
+    panel([(xt, lado_d, zt_b), (xt, lado_d, zt_f), (xb, abajo, zb_f), (xb, abajo, zb_b)], tela)
+    panel([(-xt, lado_i, zt_f), (-xt, lado_i, zt_b), (-xb, abajo, zb_b), (-xb, abajo, zb_f)], tela)
+    panel([(1.9, sup_d, zt_f), (xt, sup_d, zt_f), (xb, abajo, zb_f), (2.4, abajo, zb_f)], tela)
+    panel([(-xt, sup_i, zt_f), (-1.9, sup_i, zt_f), (-2.4, abajo, zb_f), (-xb, abajo, zb_f)], tela)
+    # solapas negras a lo largo de la abertura (un poco adelante del delantero)
+    for s, sup in ((1, sup_d), (-1, sup_i)):
+        pts = [(s * 1.65, sup + 0.3, zt_f - 0.1), (s * 2.35, sup + 0.3, zt_f - 0.1),
+               (s * 2.85, abajo + 0.3, zb_f - 0.1), (s * 2.15, abajo + 0.3, zb_f - 0.1)]
+        if s < 0:
+            pts = [pts[1], pts[0], pts[3], pts[2]]
+        idx = [m.v((q[0], q[1], q[2])) for q in pts]
+        m.cara(tuple(idx), (0, 0, -1), "solapa")
+        pint.append(color(NEGRO))
+    return (m.vs, m.caras), pint
 
 
 def manga_kimono(arriba, mano):
@@ -509,21 +552,14 @@ def construir():
     p.caja("Body/faja", "faja", (-3.9, L - 1.0, -2.15), (3.9, L + 1.2, 2.15), color(NEGRO2), dens=2)
     p.caja("Body/faja", "nudo", (-0.2, L - 1.3, -2.75), (1.8, L + 1.0, -2.15), color(NEGRO), dens=2)
 
-    # ================================================================ HAORI de paneles 2D (abierto, caido de los hombros)
+    # ================================================================ HAORI: chaqueta aparte que se abre en la cadera
     g = "Body/haori"
-    abajo = L - 5.2                                             # el haori llega a la cadera
+    abajo = L - 5.4                                             # el haori llega a la cadera
     tela = manchas(blanco_abajo=L - 2, deshilachado=(1.0, 3))
     espalda = encima(manchas(blanco_abajo=L - 2, deshilachado=(1.0, 5), kanji=C - 8.5),
                      [("south", 3, 6, KANJI, {"W": BLANCO})])
-    p.plano(g, "espalda", (-3.9, abajo, 2.25), (3.9, C + 0.4, 2.25), espalda, dens=3)
-    for s in (1, -1):
-        puesta = s > 0                                          # derecha puesta en el hombro, izquierda caida
-        x1, x2 = sorted((s * 1.9, s * 3.9))
-        p.plano(g, f"frente{s}", (x1, abajo, -2.25), (x2, C - 0.2 if puesta else C - 3.5, -2.25), tela, dens=3)
-        x1, x2 = sorted((s * 1.7, s * 2.3))
-        p.caja(g, f"solapa{s}", (x1, abajo + 0.4, -2.45), (x2, C if puesta else C - 3.1, -2.2), color(NEGRO), dens=2)
-        x = s * 3.95
-        p.plano(g, f"costado{s}", (x, abajo, -2.25), (x, C - 0.2 if puesta else C - 5.0, 2.25), tela, dens=3)
+    malla, pintores = haori(C, abajo, tela, espalda)
+    p.malla(g, "haori", malla, pintores, dens=3)
 
     # ================================================================ BRAZOS finos, hombros desnudos, MANGAS de paneles
     mano = C - 15.0                                             # punta de los dedos: a la altura de la entrepierna
@@ -551,12 +587,15 @@ def construir():
     g = "Body/cintas"
     p.plano(g, "roja_frente", (0.1, L - 8.0, -2.8), (1.6, L - 0.6, -2.8), cinta(ROJO), rot=(0, 0, -3),
             piv=(0.85, L - 0.6, -2.8), dens=3)
-    p.plano(g, "roja_espalda", (0.6, abajo + 0.5, 2.45), (2.0, C - 6.6, 2.45), cinta(ROJO), dens=3)
-    x = -4.5
-    p.plano(g, "amarilla_lado", (x, L - 8.5, -1.4), (x, L - 1.0, -0.1), cinta(AMARILLO, "#6A4A08"),
-            rot=(0, 0, -4), piv=(x, L - 1.0, -0.75), dens=3)
-    p.plano(g, "talisman_lado", (x, L - 11.5, -1.3), (x, L - 8.3, -0.2), sprite({"todas": TALISMAN}, PAL_TALISMAN),
-            rot=(0, 0, -4), piv=(x, L - 1.0, -0.75), dens=3)
+    y_arriba = C - 6.6
+    z_arriba = 2.2 + 0.9 * (C + 0.4 - y_arriba) / (C + 0.4 - abajo) + 0.14
+    p.plano(g, "roja_espalda", (0.6, abajo + 0.5, z_arriba), (2.0, y_arriba, z_arriba), cinta(ROJO),
+            rot=(-3.3, 0, 0), piv=(1.3, y_arriba, z_arriba), dens=3)
+    x = -5.25
+    p.plano(g, "amarilla_lado", (x, abajo - 7.5, -1.4), (x, abajo + 0.2, -0.1), cinta(AMARILLO, "#6A4A08"),
+            rot=(0, 0, -4), piv=(x, abajo + 0.2, -0.75), dens=3)
+    p.plano(g, "talisman_lado", (x, abajo - 10.6, -1.3), (x, abajo - 7.3, -0.2), sprite({"todas": TALISMAN}, PAL_TALISMAN),
+            rot=(0, 0, -4), piv=(x, abajo + 0.2, -0.75), dens=3)
 
     # ================================================================ HAKAMA ancho y ZAPATILLAS gruesas
     for s in (1, -1):
@@ -568,8 +607,8 @@ def construir():
         p.caja(f"{hueso}/pierna", "pierna", (a, 0, -1.75), (b, L, 1.75),
                lambda t: hex_(PIEL["b"] if t.y < 6.4 else NEGRO), dens=2)        # el tobillo se ve
         # hakama: trapecio ancho de la cintura a media pantorrilla
-        arriba = [(4.1, L + 0.6, 2.4), (4.1, L + 0.6, -2.4), (0.05, L + 0.6, -2.4), (0.05, L + 0.6, 2.4)]
-        abajo = [(5.7, 5.6, 3.5), (5.7, 5.6, -3.6), (0.7, 5.6, -3.6), (0.7, 5.6, 3.5)]      # se separan abajo
+        arriba = [(3.8, L + 0.6, 2.3), (3.8, L + 0.6, -2.3), (0.05, L + 0.6, -2.3), (0.05, L + 0.6, 2.3)]
+        abajo = [(5.4, 6.4, 3.3), (5.4, 6.4, -3.4), (0.7, 6.4, -3.4), (0.7, 6.4, 3.3)]      # se separan abajo
         malla = geo.tronco(abajo, arriba)
         p.malla(f"{hueso}/pantalon", "hakama", malla if s > 0 else geo.espejo_x(malla), pantalon, dens=2)
         g = f"{hueso}/zapatilla"
