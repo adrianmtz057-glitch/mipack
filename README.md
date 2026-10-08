@@ -11,6 +11,10 @@
   bufanda envolvente, capa inclinada), mechones y rizos inclinados, cuellos en V, correas cruzadas, hojas y plumas.
 - **Textura en pixel art:** cada material tiene su paleta (sombras frías, luces cálidas), luz arriba, contorno
   abajo, pliegues, ribetes de contraste y estampados limpios. El `.bbmodel` se abre con todo puesto.
+- **Luz horneada en cualquier modelo** (`taller/luz.py`): después de pintar, el motor mira la geometría de todo el
+  modelo y le da volumen a la textura: sombra de contacto donde una pieza tapa a otra, sombra proyectada de una luz
+  de arriba, brillo en lo que mira a la luz y canto con luz en los bordes. En pasos de la rampa de cada color (la
+  sombra se va al frío, la luz al cálido), sin ruido. Lo transparente no tapa. Se apaga con `modelo.luz = False`.
 - **Accesorios aparte:** cetro, libro, mochila, brújula, medallón, espada, bastón y farol salen como modelos propios.
 - **Esqueleto listo para animar:** huesos `Head`, `Body`, `RightArm`, `LeftArm`, `RightLeg`, `LeftLeg`.
   El faldón va en las piernas para que se mueva al caminar.

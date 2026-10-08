@@ -13,6 +13,7 @@ import math
 import uuid
 
 from . import malla as geo
+from .luz import Luz, rot_matriz, _aplicar
 from .textura import Lienzo, TRANSPARENTE
 
 CARAS = ("north", "east", "south", "west", "up", "down")
@@ -100,7 +101,7 @@ class Malla:
     Cada poligono original (grupo) tiene su pintor y su rectangulo en el atlas, proyectado sobre su plano:
     la textura nunca se estira aunque la cara este inclinada, y los triangulos de un mismo poligono
     comparten textura."""
-    __slots__ = ("nombre", "hueso", "vertices", "caras", "grupo", "grupos", "lado", "dens")
+    __slots__ = ("nombre", "hueso", "vertices", "caras", "grupo", "grupos", "normales", "lado", "dens")
 
     def __init__(self, nombre, hueso, vertices, lado=1, dens=1):
         self.nombre, self.hueso, self.lado, self.dens = nombre, hueso, lado, dens
@@ -108,6 +109,7 @@ class Malla:
         self.caras = []          # triangulos y quads que se exportan
         self.grupo = []          # por cara: indice del grupo (poligono original)
         self.grupos = []         # por grupo: (pintor, indices del poligono original)
+        self.normales = []       # por grupo: normal de la cara que se dio (un quad torcido partido en dos la comparte)
 
 
 class Modelo:
@@ -116,6 +118,7 @@ class Modelo:
         self.cubos: list[Cubo] = []
         self.mallas: list[Malla] = []
         self.pivotes = dict(HUESOS)
+        self.luz = True          # luz horneada (taller/luz.py): volumen con sombras y cantos de luz
 
     def malla(self, hueso, nombre, vertices, caras, pintor, lado=1, dens=1):
         """Malla de caras planas antihorarias vistas desde afuera. Una cara puede tener 3, 4 o mas vertices
@@ -130,6 +133,7 @@ class Modelo:
 
         def grupo_nuevo(pin, poli, tris):
             m.grupos.append((pin, tuple(poli)))
+            m.normales.append(geo.normal([vs[i] for i in c]))
             for t in tris:
                 m.caras.append(tuple(t))
                 m.grupo.append(len(m.grupos) - 1)
@@ -240,8 +244,97 @@ class Modelo:
         ts = [-geo._dot(p, arr) for p in pts]
         return max(ss) - min(ss), max(ts) - min(ts), min(ss), min(ts), n, der, arr
 
+    @staticmethod
+    def _marco_luz(c, cara, tl, tr, bl):
+        """Datos de una cara de cubo para la luz horneada: (pos(s, r) en el mundo, normal, ancho, alto, dueno,
+        lateral). Tiene en cuenta el giro del cubo."""
+        R = rot_matriz(*c.rot) if c.rot else None
+        o = c.origen
+        ancho, alto = tam_cara(c.desde, c.hasta, cara)
+
+        def pos(s, r):
+            p = tuple(tl[i] + s * (tr[i] - tl[i]) + r * (bl[i] - tl[i]) for i in range(3))
+            if R is None:
+                return p
+            q = _aplicar(R, (p[0] - o[0], p[1] - o[1], p[2] - o[2]))
+            return (q[0] + o[0], q[1] + o[1], q[2] + o[2])
+        n = NORMAL[cara] if R is None else _aplicar(R, NORMAL[cara])
+        return pos, n, ancho, alto, id(c), abs(n[1]) < 0.7
+
+    @staticmethod
+    def _cantos_malla(m):
+        """Aristas de la malla que son canto de verdad: abiertas (de un solo poligono) o con un quiebre fuerte
+        (mas de 50 grados entre las caras). Las aristas entre paneles de una superficie suave no llevan canto."""
+        def clave(i):
+            return tuple(round(c, 3) for c in m.vertices[i])
+        usos = {}
+        for _, poli in m.grupos:
+            n = geo.normal([m.vertices[i] for i in poli])
+            for k in range(len(poli)):
+                a, b = clave(poli[k - 1]), clave(poli[k])
+                usos.setdefault((min(a, b), max(a, b)), []).append(n)
+        cantos = set()
+        for arista, ns in usos.items():
+            if len(ns) == 1 or any(geo._dot(ns[0], q) < math.cos(math.radians(50)) for q in ns[1:]):
+                cantos.add(arista)
+        return cantos, clave
+
+    def _marco_luz_malla(self, m, g, d, n, der, arr, s0, t0, w, h, cantos):
+        """Lo mismo para un poligono de malla, con la prueba de si un punto cae adentro del poligono y con sus
+        aristas que son canto (en el plano del poligono)."""
+        poli = m.grupos[g][1]
+        pol = [(geo._dot(m.vertices[i], der), -geo._dot(m.vertices[i], arr)) for i in poli]
+        aristas, clave = cantos
+        mios = []
+        for k in range(len(poli)):
+            a, b = clave(poli[k - 1]), clave(poli[k])
+            if (min(a, b), max(a, b)) in aristas:
+                mios.append((pol[k - 1], pol[k]))
+
+        cx, cy = sum(q[0] for q in pol) / len(pol), sum(q[1] for q in pol) / len(pol)
+
+        def adentro(x, y):
+            dentro = False
+            for k in range(len(pol)):
+                (x1, y1), (x2, y2) = pol[k], pol[k - 1]
+                if (y1 > y) != (y2 > y) and x < x1 + (y - y1) * (x2 - x1) / (y2 - y1):
+                    dentro = not dentro
+            return dentro
+
+        def pos(a, b):
+            """Punto de la grilla de luz sobre el poligono: si cae afuera (el rect es mas grande que un triangulo)
+            se trae al borde, asi la muestra queda sobre la superficie de verdad y no detras de la cara vecina."""
+            s, t = s0 + a * w, t0 + b * h
+            if not adentro(s, t):
+                mejor = None
+                for k in range(len(pol)):
+                    (x1, y1), (x2, y2) = pol[k - 1], pol[k]
+                    dx, dy = x2 - x1, y2 - y1
+                    u = max(0.0, min(1.0, ((s - x1) * dx + (t - y1) * dy) / ((dx * dx + dy * dy) or 1e-9)))
+                    px, py = x1 + u * dx, y1 + u * dy
+                    dd = (px - s) ** 2 + (py - t) ** 2
+                    if mejor is None or dd < mejor[0]:
+                        mejor = (dd, px, py)
+                _, s, t = mejor
+                s, t = s + (cx - s) * 0.02, t + (cy - t) * 0.02
+            return (d * n[0] + s * der[0] - t * arr[0], d * n[1] + s * der[1] - t * arr[1],
+                    d * n[2] + s * der[2] - t * arr[2])
+
+        def cruza(a, b, db):
+            """Si al moverse db (en 0..1 del alto) desde (a, b) se cruza una arista que es canto."""
+            x, y1, y2 = s0 + a * w, t0 + b * h, t0 + (b + db) * h
+            lo, hi = min(y1, y2), max(y1, y2)
+            for (xa, ya), (xb, yb) in mios:
+                if (xa > x) == (xb > x) or xa == xb:
+                    continue
+                y = ya + (x - xa) * (yb - ya) / (xb - xa)
+                if lo <= y <= hi:
+                    return True
+            return False
+        return pos, n, w, h, id(m), abs(n[1]) < 0.7, cruza, m.normales[g]
+
     def pintar(self):
-        """Pinta todas las caras. Devuelve (lienzo, uv por cubo/malla)."""
+        """Pinta todas las caras y, si self.luz, hornea la luz encima. Devuelve (lienzo, uv por cubo/malla)."""
         for ancho in (128, 256, 512, 1024, 2048):
             r = self._empaquetar(ancho)
             if r and r[0] <= ancho:
@@ -253,6 +346,7 @@ class Modelo:
         lienzo = Lienzo(lado, lado)
         uvs = {}
         tx = Texel()
+        caras_luz = []           # lo que hace falta para hornear la luz despues, cuando ya esta todo pintado
         for c in self.cubos:
             uvc = {}
             for cara in c.caras:
@@ -281,8 +375,12 @@ class Modelo:
                         tx.i, tx.j = int(s * tw), int(r * th)
                         col = c.pintor(tx) if c.pintor else TRANSPARENTE
                         lienzo.poner(ux + ix, uy + jy, col)
+                if self.luz:
+                    caras_luz.append((self._marco_luz(c, cara, tl, tr, bl) + (th, None), ux, uy, tw, th,
+                                      u1 > u2, v1 > v2))
             uvs[id(c)] = uvc
         for m in self.mallas:
+            cantos = self._cantos_malla(m) if self.luz else None
             xs, ys, zs = zip(*m.vertices)
             tx.f, tx.t, tx.nombre, tx.lado = (min(xs), min(ys), min(zs)), (max(xs), max(ys), max(zs)), m.nombre, m.lado
             marcos = []
@@ -302,13 +400,38 @@ class Modelo:
                         tx.z = d * n[2] + s * der[2] - t * arr[2]
                         tx.i, tx.j = ix, jy
                         lienzo.poner(ux + ix, uy + jy, pintor(tx) if pintor else TRANSPARENTE)
+                if self.luz:
+                    # en la malla la textura no se da vuelta: s y r salen directo de la columna y la fila
+                    marco = self._marco_luz_malla(m, g, d, n, der, arr, s0, t0, w, h, cantos)
+                    caras_luz.append((marco[:6] + (th, marco[6], marco[7]), ux, uy, tw, th, False, False))
             uvm = []
             for cara, g in zip(m.caras, m.grupo):
                 ux, uy, kx, ky, s0, t0, der, arr = marcos[g]
                 uvm.append([(ux + (geo._dot(m.vertices[i], der) - s0) * kx,
                              uy + (-geo._dot(m.vertices[i], arr) - t0) * ky) for i in cara])
             uvs[id(m)] = uvm
+        if self.luz:
+            self._hornear_luz(lienzo, uvs, caras_luz)
         return lienzo, uvs
+
+    def _hornear_luz(self, lienzo, uvs, caras_luz):
+        """Segunda pasada: con todo ya pintado (asi lo transparente no tapa la luz), corre cada texel unos pasos de su
+        rampa segun la oclusion, la sombra proyectada y los cantos (taller/luz.py)."""
+        luz = Luz(self, lienzo, uvs)
+        for datos, ux, uy, tw, th, voltea_u, voltea_v in caras_luz:
+            sombrear = luz.cara(*datos)
+            for jy in range(th):
+                r = (jy + 0.5) / th
+                if voltea_v:
+                    r = 1 - r
+                for ix in range(tw):
+                    s = (ix + 0.5) / tw
+                    if voltea_u:
+                        s = 1 - s
+                    col = lienzo.leer(ux + ix, uy + jy)
+                    nuevo = sombrear(col, s, r)
+                    if nuevo is not col:
+                        lienzo.poner(ux + ix, uy + jy, nuevo)
 
     # ------------------------------------------------------------------ exportar
     def a_bbmodel(self, lienzo=None, uvs=None) -> dict:
