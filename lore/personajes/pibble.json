@@ -1,0 +1,87 @@
+{
+  "nombre": "Pibble",
+  "titulo": "Semidios errante - Diversion",
+  "descripcion": "Organiza eventos y reparte totems y nueces de revivir. Su origen es desconocido.",
+  "piel": "#D9A06B",
+  "cara": {
+    "ojos": "#F28A2E",
+    "expresion": "alegre",
+    "rubor": false,
+    "mascara": "#141012"
+  },
+  "pelo": {
+    "estilo": "ninguno",
+    "color": "#141012",
+    "volumen": 1
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#F1E2C6"
+    },
+    "pantalon": {
+      "color": "#5A3520"
+    },
+    "botas": {
+      "color": "#E3B04B",
+      "ribete": "#3FA7A6",
+      "alto": 5
+    },
+    "tunica": {
+      "largo": "corta",
+      "abierta": false,
+      "colores": [
+        "#C2402E",
+        "#F1E2C6",
+        "#3FA7A6",
+        "#E3B04B"
+      ],
+      "patron": "manchas",
+      "ribete": "#3FA7A6"
+    },
+    "mangas": {
+      "color": "#C2402E",
+      "color2": "#E3B04B",
+      "forma": "ajustadas",
+      "patron": "rayas"
+    },
+    "bufanda": {
+      "color": "#E3B04B",
+      "color2": "#C2402E",
+      "tamano": "grande",
+      "colas": false
+    },
+    "hombreras": {
+      "color": "#3FA7A6",
+      "detalle": "#E3B04B"
+    },
+    "cinturon": {
+      "color": "#5A3520",
+      "hebilla": "#E3B04B"
+    },
+    "brazaletes": "#3FA7A6"
+  },
+  "cabeza": [
+    {
+      "tipo": "plumas",
+      "color": "#E3B04B",
+      "color2": "#C2402E",
+      "colores": [
+        "#C2402E",
+        "#3FA7A6",
+        "#E3B04B",
+        "#F1E2C6"
+      ]
+    }
+  ],
+  "extras": [
+    {
+      "tipo": "amuletos",
+      "colores": [
+        "#3FA7A6",
+        "#C2402E",
+        "#E3B04B",
+        "#F1E2C6"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "nombre": "Anteros",
+  "titulo": "Dios de Aseris",
+  "descripcion": "Disciplina, estrategia y equilibrio. El orden tambien es una forma de amor. Reservado, observador, leal; hermano de Meron.",
+  "piel": "#D5A27A",
+  "cara": {
+    "ojos": "#3E7A4A",
+    "expresion": "serena",
+    "rubor": false
+  },
+  "pelo": {
+    "estilo": "rizos",
+    "color": "#14100E",
+    "brillo": "#2A221C",
+    "volumen": 2
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#1E1B1A"
+    },
+    "pantalon": {
+      "color": "#1A1716"
+    },
+    "botas": {
+      "color": "#221C18",
+      "ribete": "#CFCBB8",
+      "alto": 5
+    },
+    "tunica": {
+      "largo": "media",
+      "abierta": true,
+      "colores": [
+        "#1E1B1A",
+        "#274B2E",
+        "#1E1B1A",
+        "#E6E1D0"
+      ],
+      "patron": "paneles",
+      "ribete": "#CFCBB8"
+    },
+    "mangas": {
+      "color": "#274B2E",
+      "color2": "#1E3A24",
+      "forma": "ajustadas",
+      "patron": "hojas"
+    },
+    "bufanda": {
+      "color": "#E6E1D0",
+      "color2": "#CFCBB8",
+      "tamano": "pequena",
+      "colas": true
+    },
+    "capa": {
+      "color": "#274B2E",
+      "color2": "#3E6B3A",
+      "largo": "larga",
+      "capucha": true,
+      "patron": "hojas"
+    },
+    "cinturon": {
+      "color": "#3B2A1E",
+      "hebilla": "#CFCBB8"
+    },
+    "guantes": {
+      "color": "#3B2A1E",
+      "detalle": "#CFCBB8"
+    }
+  },
+  "cabeza": [
+    {
+      "tipo": "laurel",
+      "color": "#3E7A3A"
+    }
+  ],
+  "extras": [
+    {
+      "tipo": "emblema",
+      "forma": "hoja",
+      "color": "#5FA05A",
+      "color2": "#1E1B1A"
+    }
+  ]
+}

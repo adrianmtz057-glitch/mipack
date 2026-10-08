@@ -1,0 +1,72 @@
+{
+  "nombre": "Kemira",
+  "titulo": "Reina de Thza - Exploradora",
+  "descripcion": "Princesa curiosa y escandalosa, aprendio a leer las estrellas y se reia fuerte.",
+  "brazos": "finos",
+  "piel": "#D9A57A",
+  "cara": {
+    "ojos": "#8A5A2A",
+    "expresion": "alegre",
+    "rubor": true
+  },
+  "pelo": {
+    "estilo": "largo",
+    "color": "#1A1620",
+    "brillo": "#2E2838",
+    "volumen": 2
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#232B5E"
+    },
+    "pantalon": {
+      "color": "#1B2040"
+    },
+    "botas": {
+      "color": "#1B2040",
+      "ribete": "#E3B04B",
+      "alto": 5
+    },
+    "tunica": {
+      "largo": "media",
+      "abierta": true,
+      "colores": [
+        "#F2E8D3",
+        "#E9DDC2",
+        "#DCCFAE"
+      ],
+      "patron": "liso",
+      "ribete": "#E3B04B"
+    },
+    "mangas": {
+      "color": "#232B5E",
+      "color2": "#E3B04B",
+      "forma": "ajustadas",
+      "patron": "estrellas"
+    },
+    "capa": {
+      "color": "#232B5E",
+      "color2": "#2B3470",
+      "largo": "larga",
+      "capucha": false,
+      "patron": "estrellas"
+    },
+    "cinturon": {
+      "color": "#8A5A2A",
+      "hebilla": "#E3B04B"
+    },
+    "banda": {
+      "color": "#E3B04B",
+      "detalle": "#232B5E"
+    },
+    "brazaletes": "#E3B04B"
+  },
+  "cabeza": [
+    {
+      "tipo": "tiara",
+      "color": "#E3B04B",
+      "color2": "#3A7BD5"
+    }
+  ],
+  "extras": []
+}

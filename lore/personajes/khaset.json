@@ -1,0 +1,85 @@
+{
+  "nombre": "Khaset",
+  "titulo": "Rey de Thza - Protector",
+  "descripcion": "El ultimo rey de Thza, un gobernante que realmente cuidaba a su gente. Guerrero por tradicion, pero cercano a su pueblo.",
+  "piel": "#C98E5E",
+  "cara": {
+    "ojos": "#4A2E1A",
+    "expresion": "alegre",
+    "rubor": false
+  },
+  "pelo": {
+    "estilo": "corto",
+    "color": "#3A2415",
+    "brillo": "#5A3A22",
+    "volumen": 2
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#7A4A2A"
+    },
+    "pantalon": {
+      "color": "#5A3520"
+    },
+    "botas": {
+      "color": "#5A3520",
+      "ribete": "#E3B04B",
+      "alto": 5
+    },
+    "tunica": {
+      "largo": "larga",
+      "abierta": true,
+      "colores": [
+        "#F1E4CC",
+        "#E8D9BC",
+        "#D9C49E"
+      ],
+      "patron": "manchas",
+      "ribete": "#E3B04B"
+    },
+    "mangas": {
+      "color": "#F1E4CC",
+      "color2": "#D9C49E",
+      "forma": "ajustadas",
+      "patron": "liso"
+    },
+    "capa": {
+      "color": "#F1E4CC",
+      "color2": "#D9C49E",
+      "largo": "larga",
+      "capucha": false,
+      "patron": "liso"
+    },
+    "hombreras": {
+      "color": "#7A4A2A",
+      "detalle": "#E3B04B"
+    },
+    "cinturon": {
+      "color": "#5A3520",
+      "hebilla": "#E3B04B"
+    },
+    "guantes": {
+      "color": "#6B3F26",
+      "detalle": "#E3B04B"
+    },
+    "banda": {
+      "color": "#8A5A32",
+      "detalle": "#E3B04B"
+    }
+  },
+  "cabeza": [
+    {
+      "tipo": "corona",
+      "color": "#E3B04B",
+      "color2": "#2E8A6E"
+    }
+  ],
+  "extras": [
+    {
+      "tipo": "emblema",
+      "forma": "sol",
+      "color": "#E3B04B",
+      "color2": "#7A4A2A"
+    }
+  ]
+}

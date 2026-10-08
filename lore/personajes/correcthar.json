@@ -1,0 +1,71 @@
+{
+  "nombre": "Correcthar",
+  "titulo": "Semidios de la redencion - Orden",
+  "descripcion": "Devuelve las cosas a su estado anterior. Sereno, paciente, preciso, pero no aburrido.",
+  "piel": "#E7B48F",
+  "cara": {
+    "ojos": "#3C5BA0",
+    "expresion": "serena",
+    "rubor": false
+  },
+  "pelo": {
+    "estilo": "lado",
+    "color": "#1F2447",
+    "brillo": "#8FA3C9",
+    "volumen": 2
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#EDE3D0"
+    },
+    "pantalon": {
+      "color": "#1B2040"
+    },
+    "botas": {
+      "color": "#1B2040",
+      "ribete": "#7FA7C4",
+      "alto": 4
+    },
+    "tunica": {
+      "largo": "larga",
+      "abierta": true,
+      "colores": [
+        "#232B52",
+        "#7FA7C4",
+        "#EDE3D0"
+      ],
+      "patron": "paneles",
+      "ribete": "#4FA3A5"
+    },
+    "mangas": {
+      "color": "#232B52",
+      "color2": "#7FA7C4",
+      "forma": "anchas",
+      "patron": "paneles"
+    },
+    "bufanda": {
+      "color": "#8FB4D4",
+      "color2": "#EDE3D0",
+      "tamano": "pequena",
+      "colas": true
+    },
+    "cinturon": {
+      "color": "#2B2F55",
+      "hebilla": "#4FA3A5"
+    },
+    "banda": {
+      "color": "#4FA3A5",
+      "detalle": "#EDE3D0"
+    },
+    "brazaletes": "#4FA3A5"
+  },
+  "cabeza": [],
+  "extras": [
+    {
+      "tipo": "emblema",
+      "forma": "diamante",
+      "color": "#7FD0D2",
+      "color2": "#232B52"
+    }
+  ]
+}

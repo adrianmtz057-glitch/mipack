@@ -1,0 +1,77 @@
+{
+  "nombre": "Meron",
+  "titulo": "Dios de Velkia",
+  "descripcion": "Alegria, libertad y caos controlado. La vida es corta, por eso hay que reirla el doble. Ama el sol, la musica, el desierto y los atardeceres.",
+  "piel": "#D9A27A",
+  "cara": {
+    "ojos": "#8A5A2B",
+    "expresion": "alegre",
+    "rubor": true
+  },
+  "pelo": {
+    "estilo": "rizos",
+    "color": "#1E1612",
+    "brillo": "#3A2A20",
+    "volumen": 2
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#1F1712"
+    },
+    "pantalon": {
+      "color": "#1F1712"
+    },
+    "botas": {
+      "color": "#2A1E16",
+      "ribete": "#F1E2C6",
+      "alto": 4
+    },
+    "tunica": {
+      "largo": "media",
+      "abierta": true,
+      "colores": [
+        "#F1E2C6",
+        "#E3B04B",
+        "#F7EEDA",
+        "#D9A441"
+      ],
+      "patron": "manchas",
+      "ribete": "#E3B04B"
+    },
+    "mangas": {
+      "color": "#F1E2C6",
+      "color2": "#E3B04B",
+      "forma": "anchas",
+      "patron": "manchas"
+    },
+    "bufanda": {
+      "color": "#F1E2C6",
+      "color2": "#E8C98A",
+      "tamano": "grande",
+      "colas": true
+    },
+    "cinturon": {
+      "color": "#3B2A1E",
+      "hebilla": "#E3B04B"
+    },
+    "brazaletes": "#E3B04B"
+  },
+  "cabeza": [
+    {
+      "tipo": "laurel",
+      "color": "#E3B04B"
+    }
+  ],
+  "extras": [
+    {
+      "tipo": "cintas",
+      "color": "#F1E2C6"
+    },
+    {
+      "tipo": "emblema",
+      "forma": "sol",
+      "color": "#E3B04B",
+      "color2": "#3B2A1E"
+    }
+  ]
+}

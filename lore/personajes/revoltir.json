@@ -1,0 +1,77 @@
+{
+  "nombre": "Revoltir",
+  "titulo": "Semidios de la risa - Caos",
+  "descripcion": "Lo que toca puede volverse algo aleatorio. Joven, inquieto, bromista e impulsivo.",
+  "piel": "#E3A57C",
+  "cara": {
+    "ojos": "#D9772B",
+    "expresion": "traviesa",
+    "rubor": true
+  },
+  "pelo": {
+    "estilo": "puntas",
+    "color": "#17120F",
+    "brillo": "#2E241E",
+    "mechas": "#E3B04B",
+    "volumen": 2
+  },
+  "ropa": {
+    "camisa": {
+      "color": "#F1E2C6"
+    },
+    "pantalon": {
+      "color": "#6B3F26"
+    },
+    "botas": {
+      "color": "#5A3520",
+      "ribete": "#E3B04B",
+      "alto": 4
+    },
+    "tunica": {
+      "largo": "corta",
+      "abierta": true,
+      "colores": [
+        "#E8832A",
+        "#F1E2C6",
+        "#C96A1E",
+        "#6B3F26"
+      ],
+      "patron": "manchas",
+      "ribete": "#E3B04B"
+    },
+    "mangas": {
+      "color": "#F1E2C6",
+      "color2": "#E8832A",
+      "forma": "ajustadas",
+      "patron": "manchas"
+    },
+    "bufanda": {
+      "color": "#E8832A",
+      "color2": "#C96A1E",
+      "tamano": "grande",
+      "colas": true
+    },
+    "hombreras": {
+      "color": "#8A4E2A",
+      "detalle": "#E3B04B"
+    },
+    "cinturon": {
+      "color": "#6B3F26",
+      "hebilla": "#E3B04B"
+    },
+    "brazaletes": "#E3B04B"
+  },
+  "cabeza": [
+    {
+      "tipo": "flor",
+      "color": "#E8832A",
+      "color2": "#E3B04B"
+    }
+  ],
+  "extras": [
+    {
+      "tipo": "cintas",
+      "color": "#E8832A"
+    }
+  ]
+}
