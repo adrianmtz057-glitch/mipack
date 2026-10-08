@@ -1,18 +1,17 @@
 """
-Pibble, el semidios errante. Hecho a mano con el kit (boceto 8: cuerpo nuevo de cero).
+Pibble, el semidios errante. Hecho a mano con el kit (boceto 9).
 
-Todo low-poly con paneles (mallas facetadas), a la escala de la capucha y pachoncito:
+Low-poly con paneles usados con moderacion, a la escala de la capucha y pachoncito:
   - capucha (taller/personajes/pibble_capucha.py): ovalo acostado, forro negro, agujero de la cara, cubo de la
     cabeza adentro y orejas en cono con paneles
-  - tunica: un solo cuerpo facetado de 10 lados con la panza gordita hacia adelante y abierta en A abajo;
-    pintada: abrigo crema, franjas negras, panel azul con runa atras y filete dorado en el borde
-  - falda de abajo azul con puntas doradas que asoman debajo del abrigo
-  - bufanda negra gruesa (tapa la boca dentro de la capucha) y su punta colgando adelante, en 3D
+  - tunica: UNA sola pieza de 8 lados, del cuello a las puntas de abajo: hombros, panza gordita hacia adelante,
+    abrigo abierto en A con su borde (escalon hacia adentro) y la falda azul con puntas doradas a los costados.
+    Pintada: cuello negro bajo la capucha, abrigo crema, franjas negras, panel azul con runa atras, filetes
   - estola azul en 3D sobre la panza, con filetes dorados y runa de rombos, que termina en punta
-  - mangas crema acampanadas con punos negros (las manos no se ven)
+  - mangas crema con puno negro que nacen de adentro del hombro (no pegadas por fuera)
   - botas facetadas negras con banda y puntera doradas
   - cola en gancho, gruesa, azul con runas doradas
-  - aro dorado en 3D con gema azul al costado izquierdo de la capucha y colgantes de rombos apilados en 3D
+  - joyas en 3D bien agarradas: aro con gema prendido a la capucha con un broche, y rombos apilados
 """
 
 import math
@@ -29,13 +28,14 @@ TOSTADO = tonos("#B08A60")
 ORO = tonos("#C8A058")
 VACIO = "#0E0B0E"
 
-# tunica: (altura, centro z, semieje x, semieje z) de cada anillo, de arriba hacia abajo
-TUNICA = ((17.4, 0.2, 4.4, 3.5),       # cuello (adentro de la capucha)
-          (15.0, 0.0, 6.3, 4.8),       # hombros
-          (11.0, -0.6, 7.0, 5.8),      # panza, corrida hacia adelante
-          (7.2, -0.3, 7.2, 5.6),
-          (4.6, 0.0, 7.8, 5.9))        # borde del abrigo, abierto en A
-LADOS_TUNICA = 10
+# tunica: (altura, centro z, semieje x, semieje z) de cada anillo, de ARRIBA hacia abajo (la parte del abrigo)
+TUNICA = ((17.6, 0.1, 4.6, 3.6),       # cuello (adentro de la capucha)
+          (15.2, 0.0, 6.0, 4.6),       # hombros
+          (9.8, -0.5, 7.3, 5.8),       # panza, corrida hacia adelante
+          (4.6, 0.1, 8.2, 6.1))        # borde del abrigo, abierto en A
+LADOS_TUNICA = 8
+GIRO_TUNICA = 22.5                     # con este giro la cara de adelante queda plana (ahi va la estola)
+Y_BORDE = 4.6                          # borde del abrigo; debajo, la falda
 
 
 # ---------------------------------------------------------------- piezas
@@ -45,6 +45,12 @@ def loft(anillos, lados, giro=0.0, tapa_abajo=True, tapa_arriba=True):
     rs = [geo.anillo(cx, y, cz, rx, rz, lados, giro) for y, cx, cz, rx, rz in anillos]
     return geo.unir(*[geo.tronco(rs[k], rs[k + 1], tapa_abajo=tapa_abajo and k == 0,
                                  tapa_arriba=tapa_arriba and k == len(rs) - 2) for k in range(len(rs) - 1)])
+
+
+def loft_puntos(anillos, tapa_abajo=True, tapa_arriba=True):
+    """Como loft, pero con los anillos ya armados (listas de puntos), de abajo hacia arriba."""
+    return geo.unir(*[geo.tronco(anillos[k], anillos[k + 1], tapa_abajo=tapa_abajo and k == 0,
+                                 tapa_arriba=tapa_arriba and k == len(anillos) - 2) for k in range(len(anillos) - 1)])
 
 
 def extruir_x(perfil_zy, x1, x2):
@@ -82,7 +88,7 @@ def aro3d(r_ext, r_int, grosor, lados=8):
 
 def frente_tunica(y):
     """z de la cara de adelante de la tunica a la altura y (la cara plana del medio)."""
-    pts = [(a[0], a[1] - a[3] * math.sin(math.radians(72))) for a in TUNICA]
+    pts = [(a[0], a[1] - a[3] * math.sin(math.radians(90 - 180 / LADOS_TUNICA))) for a in TUNICA]
     for (y1, z1), (y2, z2) in zip(pts, pts[1:]):
         if y2 <= y <= y1:
             return z1 + (z2 - z1) * (y1 - y) / (y1 - y2)
@@ -116,17 +122,25 @@ def desgirar(p, rot, piv):
 
 def tunica(t):
     if t.cara == "down":
-        return hex_(AZUL["s"])
-    if t.y < 5.15:
-        return hex_(ORO["b"] if t.y > 4.85 else ORO["s"])                 # filete dorado en el borde del abrigo
+        return hex_(AZUL["s"])                                             # debajo del borde del abrigo
     ax = abs(t.x)
+    if t.y < Y_BORDE - 0.1:                                                # falda de abajo
+        if t.y < 2.5:
+            return hex_(ORO["s"])                                          # puntas doradas
+        if t.n[2] < -0.35 and ax < 2.4:
+            return hex_(NEGRO["b"])
+        return hex_(AZUL["b"])
+    if t.y < Y_BORDE + 0.55:
+        return hex_(ORO["b"] if t.y > Y_BORDE + 0.25 else ORO["s"])        # filete dorado del borde del abrigo
+    if t.y > 15.0:
+        return hex_(NEGRO["b"])                                            # cuello negro debajo de la capucha
     if t.n[2] < -0.35:                                                     # adelante
         if ax < 2.9:
             return hex_(NEGRO["b"])
         return hex_(CREMA["l"] if t.cara == "up" else CREMA["b"])
     if t.n[2] > 0.35:                                                      # atras
         if ax < 1.8:
-            return hex_(ORO["b"] if _runa(t.x, t.y - 10.5) else AZUL["b"])
+            return hex_(ORO["b"] if _runa(t.x, t.y - 10.0) else AZUL["b"])
         if ax < 2.6:
             return hex_(NEGRO["b"])
     return hex_(CREMA["l"] if t.cara == "up" else (CREMA["b"] if t.y > 8 else CREMA["s"]))
@@ -139,14 +153,6 @@ def _runa(x, y):
         if 0.95 < d < 1.35 or d < 0.3:
             return True
     return False
-
-
-def falda(t):
-    if t.y < 2.4:
-        return hex_(ORO["s"])                                              # puntas doradas
-    if t.n[2] < -0.35 and abs(t.x) < 2.4:
-        return hex_(NEGRO["b"])
-    return hex_(AZUL["b"] if t.cara != "down" else AZUL["s"])
 
 
 def estola(t):
@@ -215,25 +221,17 @@ def construir():
     # ================================================================ CAPUCHA (cabeza y orejas incluidas)
     cap.poner(p)
 
-    # ================================================================ TUNICA pachoncita
-    anillos = [(y, 0.0, cz, rx, rz) for y, cz, rx, rz in reversed(TUNICA)]
-    p.malla("Body/tunica", "tunica", loft(anillos, LADOS_TUNICA), tunica)
-    # falda de abajo: asoma debajo del abrigo con puntas (los vertices de abajo alternan altura)
-    arriba = geo.anillo(0, 7.0, 0, 6.9, 5.1, 12)
-    abajo = [(x * 1.2, 1.8 if k % 2 == 0 else 3.1, z * 1.18) for k, (x, _, z) in
-             enumerate(geo.anillo(0, 0, 0, 6.9, 5.1, 12))]
-    p.malla("Body/tunica", "falda", geo.tronco(abajo, arriba, tapa_abajo=False, tapa_arriba=False), falda)
-
-    # ================================================================ BUFANDA (arriba en Head: tapa la boca)
-    collar = [(15.6, 0, -0.2, 5.6, 4.6), (17.2, 0, -0.3, 5.0, 4.3)]
-    p.malla("Body/bufanda", "bufanda_cuello", loft(collar, 8, 22.5, tapa_arriba=False), negro_tela)
-    boca = [(17.2, 0, -0.3, 5.0, 4.3), (20.4, 0, -0.5, 4.3, 4.5)]
-    p.malla("Head/bufanda", "bufanda_boca", loft(boca, 8, 22.5, tapa_abajo=False), negro_tela)
-    punta = geo.extruir([(-2.6, 16.4), (-2.2, 13.6), (0, 11.6), (2.2, 13.6), (2.6, 16.4)], -5.6, -4.9)
-    p.malla("Body/bufanda", "bufanda_punta", geo.girar(punta, (16, 0, 0), (0, 16.4, -5.2)), negro_tela)
+    # ================================================================ TUNICA pachoncita, una sola pieza
+    abrigo = [geo.anillo(0, y, cz, rx, rz, LADOS_TUNICA, GIRO_TUNICA) for y, cz, rx, rz in reversed(TUNICA)]
+    # falda: puntas largas a los costados, mas corta adelante y atras
+    largas = {0, 3, 4, 7}
+    falda = [(x, 1.9 if k in largas else 3.1, z) for k, (x, _, z) in
+             enumerate(geo.anillo(0, 0, 0.1, 8.3, 6.2, LADOS_TUNICA, GIRO_TUNICA))]
+    escalon = geo.anillo(0, Y_BORDE - 0.15, 0.1, 7.4, 5.5, LADOS_TUNICA, GIRO_TUNICA)   # el abrigo pisa la falda
+    p.malla("Body/tunica", "tunica", loft_puntos([falda, escalon] + abrigo, tapa_abajo=False), tunica)
 
     # ================================================================ ESTOLA en 3D sobre la panza, con punta
-    ys = (16.0, 15.0, 13.0, 11.0, 9.0, 7.2, 4.6)
+    ys = (15.0, 13.0, 11.0, 9.8, 8.0, 6.2, 4.6)
     frente = [(frente_tunica(y) - 0.12, y) for y in ys]
     perfil = frente + [(z + 0.45, y) for z, y in reversed(frente)]
     p.malla("Body/estola", "estola", extruir_x(perfil, -1.8, 1.8), estola)
@@ -241,11 +239,9 @@ def construir():
     p.malla("Body/estola", "estola_punta", geo.extruir([(-1.8, 4.6), (0, 2.4), (1.8, 4.6)], zf, zf + 0.45), estola)
 
     # ================================================================ MANGAS crema acampanadas con puno negro
-    anillos = [(7.3, 8.9, -0.5, 3.0, 3.0),        # abajo del puno
-               (9.65, 8.6, -0.4, 3.2, 3.2),       # arriba del puno
-               (10.6, 8.2, -0.3, 2.9, 2.9),       # fin de la manga crema
-               (15.4, 6.9, 0.0, 2.4, 2.4),        # hombro
-               (16.6, 6.5, 0.0, 1.3, 1.3)]        # remate redondeado del hombro
+    anillos = [(7.6, 8.4, -0.4, 2.8, 2.8),        # abajo del puno
+               (9.65, 8.1, -0.3, 3.0, 3.0),       # arriba del puno
+               (17.2, 4.2, 0.0, 1.6, 1.6)]        # arriba: nace adentro del hombro, debajo del borde de la capucha
     p.malla_par("RightArm/manga", "manga", loft(anillos, 8, 22.5), manga)
 
     # ================================================================ PIERNAS cortas y botas
@@ -262,11 +258,13 @@ def construir():
 
     # ================================================================ JOYAS en 3D
     # aro con gema al costado izquierdo de la capucha (mira hacia afuera), y debajo rombos apilados
-    aro = geo.mover(geo.girar(aro3d(2.3, 1.5, 0.6), (0, 55, 0)), (-8.75, 23.0, -2.2))   # mira afuera y adelante
-    p.malla("Head/joyas", "aro", aro, oro_pintor)
-    p.malla("Head/joyas", "gema", bipiramide((-8.75, 23.0, -2.2), 0.75, 1.1, 1.1), gema)
-    for lado, x, y0 in ((-1, -8.75, 20.7), (1, 8.55, 21.4)):
-        tag = "izq" if lado < 0 else "der"
+    # aro con gema al costado izquierdo de la capucha, mirando afuera y adelante, prendido con un broche
+    centro = (-8.45, 23.0, -2.2)
+    p.malla("Head/joyas", "aro", geo.mover(geo.girar(aro3d(2.3, 1.5, 0.6), (0, 55, 0)), centro), oro_pintor)
+    p.malla("Head/joyas", "gema", bipiramide(centro, 0.75, 1.1, 1.1), gema)
+    p.caja("Head/joyas", "broche", (-8.6, 24.9, -2.45), (-7.1, 25.5, -1.95), oro_pintor, dens=2)
+    # colgantes de rombos apilados: el izquierdo cuelga del aro, el derecho sale de la capucha
+    for tag, x, y0 in (("izq", -8.45, 20.9), ("der", 8.2, 22.2)):
         p.caja("Head/joyas", f"eslabon_{tag}", (x - 0.15, y0 - 0.7, -2.35), (x + 0.15, y0, -2.05), oro_pintor, dens=2)
         p.malla("Head/joyas", f"cuenta_{tag}", bipiramide((x, y0 - 1.2, -2.2), 0.45, 0.5, 0.5), oro_pintor)
         p.caja("Head/joyas", f"eslabon2_{tag}", (x - 0.15, y0 - 2.4, -2.35), (x + 0.15, y0 - 1.7, -2.05), oro_pintor,
