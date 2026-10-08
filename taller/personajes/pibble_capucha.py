@@ -3,42 +3,46 @@ Capucha de Pibble sola (para trabajarla aparte antes de ponerla en el personaje)
 
 Piezas low-poly independientes, con las mismas reglas:
   - ovalo: un ovalo COMPLETO acostado (mas ancho que alto), armado panel a panel: paneles chicos donde hay
-    curva (alrededor de la cara y en el contorno) y paneles grandes atras. En el medio del frente, el agujero
-    de la cara, con un tunel corto hacia adentro y el vacio con los ojos al fondo.
-  - dos orejas de gato: cuna triangular con el frente hundido (la parte de adentro de la oreja), base ancha y
-    punta fina, en las esquinas de arriba del ovalo, inclinadas hacia afuera y atras.
+    curva (alrededor de la cara y en el contorno) y paneles grandes atras. Es una cascara con grosor: afuera
+    crema, adentro negra. En el medio del frente, el agujero ovalado de la cara con filete dorado.
+  - cabeza: un cubo de vacio adentro de la capucha, con los dos ojos; se ve por el agujero.
+  - dos orejas de gato: conos de base redonda en las esquinas de arriba del ovalo, inclinados hacia afuera y atras.
 """
 
 import math
 
 from .. import malla as geo
 from ..kit import Personaje
-from .pibble import CREMA, ORO, VACIO, hex_
+from .pibble import CREMA, ORO, hex_
 
 # medidas (px). Frente = -Z, derecha del personaje = +X.
 CX, CY, CZ = 0.0, 22.5, 0.0         # centro del ovalo
-RX, RY, RZ = 8.5, 6.5, 6.5          # semiejes: ancho, alto, fondo
+RX, RY, RZ = 8.5, 7.0, 7.0          # semiejes: ancho, alto, fondo
+GROSOR = 0.8                        # grosor de la tela de la capucha
 # columnas (grados desde el frente hacia +X) y filas (grados de altura): mas juntas cerca de la cara
 ALFAS = (0, 27, 72, 126, 180, 234, 288, 333)
 BETAS = (-66, -32, 0, 32, 60, 80)
 # borde del agujero de la cara: 8 vertices del ovalo (columna, fila)
 BORDE = ((333, -32), (0, -32), (27, -32), (27, 0), (27, 32), (0, 32), (333, 32), (333, 0))
 ESQUINAS = {(333, -32), (27, -32), (27, 32), (333, 32)}
-Z_CARA = -3.6                       # profundidad del vacio con los ojos
+HUECO = {(a, b) for a in (333, 0) for b in (-32, 0)}       # los 4 paneles del frente que se sacan
+
+CABEZA = 7.0                        # lado del cubo de la cabeza
+CABEZA_Z = -0.7                     # centro del cubo (un poco hacia adelante, para que se vea por el agujero)
+FORRO = "#080608"                   # adentro de la capucha
+VACIO_CABEZA = "#17131A"            # la cabeza, apenas mas clara que el forro para que se lea el cubo
 
 
-def punto(a, b):
-    p = _sobre_ovalo(a, b)
+def punto(a, b, enc=0.0):
+    """Vertice del ovalo en (columna a, fila b); enc achica los semiejes (cascara de adentro)."""
+    rx, ry, rz = RX - enc, RY - enc, RZ - enc
+    ar, br = math.radians(a), math.radians(b)
+    p = (CX + rx * math.cos(br) * math.sin(ar), CY + ry * math.sin(br), CZ - rz * math.cos(br) * math.cos(ar))
     if (a, b) in ESQUINAS:                     # esquinas del agujero: se meten hacia el centro -> agujero ovalado
         x, y = CX + (p[0] - CX) * 0.82, CY + (p[1] - CY) * 0.82
-        k = max(0.0, 1 - ((x - CX) / RX) ** 2 - ((y - CY) / RY) ** 2)
-        p = (x, y, CZ - RZ * math.sqrt(k))     # sigue sobre la superficie del ovalo
+        k = max(0.0, 1 - ((x - CX) / rx) ** 2 - ((y - CY) / ry) ** 2)
+        p = (x, y, CZ - rz * math.sqrt(k))     # sigue sobre la superficie del ovalo
     return p
-
-
-def _sobre_ovalo(a, b):
-    a, b = math.radians(a), math.radians(b)
-    return (CX + RX * math.cos(b) * math.sin(a), CY + RY * math.sin(b), CZ - RZ * math.cos(b) * math.cos(a))
 
 
 class Armador:
@@ -65,51 +69,34 @@ class Armador:
 
 
 def ovalo():
-    """Ovalo completo con el agujero de la cara. Devuelve (vertices, caras, tipos)."""
+    """Cascara del ovalo con el agujero de la cara. Devuelve (vertices, caras, tipos)."""
     m = Armador()
-    V = {(a, b): m.v(punto(a, b)) for a in ALFAS for b in BETAS}
+    V = {(a, b): m.v(punto(a, b)) for a in ALFAS for b in BETAS}              # afuera
+    W = {(a, b): m.v(punto(a, b, GROSOR)) for a in ALFAS for b in BETAS}      # adentro (forro)
     centro = (CX, CY, CZ)
-    hueco = {(a, b) for a in (333, 0) for b in (-32, 0)}            # 4 paneles del frente que se sacan
     for i, b in enumerate(BETAS[:-1]):
         b2 = BETAS[i + 1]
         for k, a in enumerate(ALFAS):
-            a2 = ALFAS[(k + 1) % len(ALFAS)]
-            if (a, b) in hueco:
+            if (a, b) in HUECO:
                 continue
+            a2 = ALFAS[(k + 1) % len(ALFAS)]
             m.cara((V[a, b], V[a2, b], V[a2, b2], V[a, b2]), lambda c: geo._sub(c, centro), "fuera")
-    m.cara(tuple(V[a, BETAS[-1]] for a in ALFAS), (0, 1, 0), "fuera")      # techo chico
-    m.cara(tuple(V[a, BETAS[0]] for a in ALFAS), (0, -1, 0), "fuera")      # abajo
-    # agujero de la cara: borde de 8 vertices del ovalo -> tunel corto -> vacio plano con los ojos
-    borde = BORDE
-    adentro = []
-    for a, b in borde:
-        x, y, _ = punto(a, b)
-        adentro.append(m.v((CX + (x - CX) * 0.9, CY + (y - CY) * 0.9, Z_CARA)))
-    for k in range(len(borde)):
-        k2 = (k + 1) % len(borde)
-        m.cara((V[borde[k]], V[borde[k2]], adentro[k2], adentro[k]), lambda c: (CX - c[0], CY - c[1], 0), "dentro")
-    m.cara(tuple(adentro), (0, 0, -1), "cara")
+            m.cara((W[a, b], W[a2, b], W[a2, b2], W[a, b2]), lambda c: geo._sub(centro, c), "forro")
+    for b, arriba in ((BETAS[-1], 1), (BETAS[0], -1)):                       # techo chico y abajo
+        m.cara(tuple(V[a, b] for a in ALFAS), (0, arriba, 0), "fuera")
+        m.cara(tuple(W[a, b] for a in ALFAS), (0, -arriba, 0), "forro")
+    for k in range(len(BORDE)):                                              # canto del agujero (el grosor)
+        q, q2 = BORDE[k], BORDE[(k + 1) % len(BORDE)]
+        m.cara((V[q], V[q2], W[q2], W[q]), lambda c: (CX - c[0], CY - c[1], 0), "forro")
     return m.vs, m.caras, m.tipos
 
 
 def oreja():
-    """Oreja de gato (derecha, +X): base ancha en forma de flecha, punta fina, frente hundido (adentro de la oreja).
-    Las dos caras de adelante forman una canaleta; las de atras son lomo. Devuelve (malla, tipos)."""
-    L, R = (-2.3, 0, 0.0), (2.3, 0, 0.0)          # base de lado a lado
-    F, B = (0.0, 0, 0.8), (0.0, 0, 2.0)           # F metido hacia atras: frente concavo; B lomo de atras
-    T = (0.4, 6.6, 1.1)                           # punta, un poco corrida hacia afuera y atras
-    vs = [L, R, F, B, T]
-    caras = [(0, 2, 4), (2, 1, 4), (1, 3, 4), (3, 0, 4), (0, 3, 1, 2)]
-    tipos = ["adentro", "adentro", "lomo", "lomo", "base"]
-    m = Armador()
-    m.vs = list(vs)
-    c0 = (0.0, 2.0, 1.0)
-    for idx, tipo in zip(caras, tipos):
-        m.cara(idx, lambda c: geo._sub(c, c0), tipo)
-    malla = geo.girar((m.vs, m.caras), (8, -12, -14))              # mira un poco hacia afuera, se abre y va atras
-    pie = punto(50, 54)                                            # esquina de arriba del ovalo
-    malla = geo.mover(malla, (pie[0] - 0.3, pie[1] - 0.8, pie[2] + 0.3))
-    return malla, m.tipos
+    """Oreja de gato (derecha, +X): un cono de base redonda (10 lados), con la base hundida en el ovalo."""
+    cono = geo.piramide(geo.anillo(0, 0, 0, 2.4, 2.4, 10), (0, 6.8, 0))
+    cono = geo.girar(cono, (10, 0, -18))                           # hacia atras y hacia afuera
+    pie = punto(48, 52)                                            # esquina de arriba del ovalo
+    return geo.mover(cono, (pie[0], pie[1] - 0.9, pie[2] + 0.4))
 
 
 # ---------------------------------------------------------------- pintores
@@ -135,32 +122,29 @@ def tela(t):
     return hex_(CREMA["b"] if t.y > CY - 3 else CREMA["s"])
 
 
-def cara_vacio(t):
-    """Vacio con dos ojos cuadrados (1.5 px): claro arriba hacia afuera, dorado abajo hacia adentro."""
-    for ox in (1.9, -1.9):
-        dx, dy = t.x - ox, t.y - (CY + 0.3)
-        if abs(dx) < 0.75 and abs(dy) < 0.75:
-            fuera = (dx > 0) == (ox > 0)
-            if dy > 0:
-                return hex_("#F6E2AE" if fuera else "#E9CF92")
-            return hex_("#DDB267" if fuera else "#9C7440")
-    return hex_(VACIO)
+def cabeza(t):
+    """Cubo de vacio; adelante, dos ojos cuadrados (1.4 px): claro arriba hacia afuera, dorado abajo hacia adentro."""
+    if t.cara == "north":
+        for ox in (1.6, -1.6):
+            dx, dy = t.x - ox, t.y - (CY + 0.4)
+            if abs(dx) < 0.7 and abs(dy) < 0.7:
+                fuera = (dx > 0) == (ox > 0)
+                if dy > 0:
+                    return hex_("#F6E2AE" if fuera else "#E9CF92")
+                return hex_("#DDB267" if fuera else "#9C7440")
+    return hex_(VACIO_CABEZA)
 
 
-def oreja_adentro(t):
-    return hex_("#1E2533")                      # azul casi negro: se lee la forma de la oreja
-
-
-def oreja_lomo(t):
-    return hex_("#1A161C" if t.n[1] > 0.3 else "#141016")
+def cono_negro(t):
+    return hex_("#1C181E" if t.n[1] > 0.3 else "#141016")
 
 
 def construir():
     p = Personaje("pibble_capucha", altura=27, cabeza=10, torso=(8, 11, 5), brazo=(4, 5))
     vs, caras, tipos = ovalo()
-    pint = {"fuera": tela, "dentro": lambda t: hex_(VACIO), "cara": cara_vacio}
+    pint = {"fuera": tela, "forro": lambda t: hex_(FORRO)}
     p.malla("Head/capucha", "ovalo", (vs, caras), [pint[k] for k in tipos])
-    malla, tipos = oreja()
-    pint = {"adentro": oreja_adentro, "lomo": oreja_lomo, "base": oreja_lomo}
-    p.malla_par("Head/capucha", "oreja", malla, [pint[k] for k in tipos])
+    h = CABEZA / 2
+    p.caja("Head/cabeza", "cabeza", (CX - h, CY - h, CABEZA_Z - h), (CX + h, CY + h, CABEZA_Z + h), cabeza, dens=2)
+    p.malla_par("Head/capucha", "oreja", oreja(), cono_negro)
     return p
