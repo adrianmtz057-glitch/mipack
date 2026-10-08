@@ -5,10 +5,11 @@ usuario (referencias/personajes/revolthir_bufon.jpg) y las formas que marco enci
 Pibble (nada mas que la altura), estilo propio: carnaval caotico, ni desertico, ni japones, ni de bosque.
 
 Formas (en bloques, como la referencia; cristales, cascabeles y estrella en low-poly):
-  CABEZA-CUBO naranja con orejitas de bloque, ojos blancos con las pupilas hacia adentro (se miran entre si) y un
-    bigotito en "w" con las puntas para arriba
+  CABEZA-CUBO naranja con orejitas de bloque; una placa en la cara con dos huecos deja los ojos HUNDIDOS (blancos,
+    grandes, con las pupilas hacia adentro: se miran entre si); bigotito en "w" en 3D con las puntas para arriba
   CORONA DE BUFON magenta bien abajo (tapa la cabeza hasta arriba de los ojos) y encima un racimo de CRISTALES de
-    colores; a los costados, dos puntas con cascabeles de cristal (uno grande celeste, uno rosa con gotita dorada)
+    colores; de las esquinas de adelante salen dos puntas con cascabeles de cristal (uno grande celeste, uno rosa
+    con gotita dorada)
   TORSO rojo y delgado con el cuello amarillo en punta; FALDA de solapas sueltas de distintos largos y tonos
   MANGAS amarillas con PUNOS grandes; PIERNAS verdes; BOTAS en bloque
   VARITA en la mano izquierda: baston con bandas y una estrella morada
@@ -76,22 +77,25 @@ def _trazo(u, v, a, b, grosor):
     return math.hypot(u - ax - k * dx, v - ay - k * dy) <= grosor / 2
 
 
-BIGOTE = [(-1.8, 2.75), (-1.45, 2.2), (-0.75, 2.2), (0.0, 2.75), (0.75, 2.2), (1.45, 2.2), (1.8, 2.75)]
+BIGOTE = [(-1.85, 2.8), (-1.45, 2.2), (-0.75, 2.2), (0.0, 2.8), (0.75, 2.2), (1.45, 2.2), (1.85, 2.8)]
+OJOS_V = (3.6, 6.4)                     # alto de los ojos (desde el menton)
+OJOS_U = (0.7, 3.3)                     # de donde a donde va cada ojo, desde el centro de la cara
+HUNDIDO = 0.3                           # cuanto se meten los ojos: lo que mide de grueso la placa de la cara
+
+
+def en_ojo(u, v):
+    """Si (u, v) cae en un ojo. u: hacia la derecha de quien mira, v: desde el menton."""
+    return OJOS_U[0] <= abs(u) <= OJOS_U[1] and OJOS_V[0] <= v <= OJOS_V[1]
 
 
 def cara(t):
-    """Ojos blancos con la pupila abajo y hacia adentro (se miran entre si) y un bigotito en w con las puntas para
-    arriba."""
-    u, v = -t.x, t.y - CABEZA_Y                              # u: hacia la derecha de quien mira; v: desde el menton
-    for lado in (-1, 1):
-        u0, u1 = (0.9, 3.0) if lado > 0 else (-3.0, -0.9)
-        if u0 <= u <= u1 and 4.0 <= v <= 6.3:
-            adentro = (u0, u0 + 1.05) if lado > 0 else (u1 - 1.05, u1)
-            if adentro[0] <= u <= adentro[1] and 4.0 <= v <= 5.4:
-                return hex_(PUPILA)
-            return hex_(OJO)
-    if any(_trazo(u, v, BIGOTE[k], BIGOTE[k + 1], 0.36) for k in range(len(BIGOTE) - 1)):
-        return hex_(PUPILA)
+    """El frente de la cabeza, que solo se ve por los huecos de la placa: los ojos blancos con la pupila abajo y
+    hacia adentro (se miran entre si)."""
+    u, v = -t.x, t.y - CABEZA_Y
+    if en_ojo(u, v):
+        if abs(u) <= OJOS_U[0] + 1.25 and v <= OJOS_V[0] + 1.65:
+            return hex_(PUPILA)
+        return hex_(OJO)
     return CABEZA_TEX(t)
 
 
@@ -100,6 +104,36 @@ CABEZA_TEX = voxel(NARANJA, claro=0.14)                 # la cabeza mas clara y 
 
 def cabeza(t):
     return cara(t) if t.cara == "north" else CABEZA_TEX(t)
+
+
+def placa(t):
+    """La placa de la cara (0.3 de grueso) con dos huecos: por ahi se ven los ojos, hundidos."""
+    if t.cara in ("north", "south") and en_ojo(-t.x, t.y - CABEZA_Y):
+        return TRANSPARENTE
+    return CABEZA_TEX(t)
+
+
+def bigote_malla(z):
+    """El bigotito en w con las puntas para arriba, en 3D: el trazo engrosado y extruido 0.35 hacia adelante."""
+    w = 0.21
+    pts = [(-u, CABEZA_Y + v) for u, v in BIGOTE]              # a coordenadas del mundo (x = -u)
+    arriba, abajo = [], []
+    for k, (x, y) in enumerate(pts):
+        (xa, ya), (xb, yb) = pts[max(k - 1, 0)], pts[min(k + 1, len(pts) - 1)]
+        dx, dy = xb - xa, yb - ya
+        largo = math.hypot(dx, dy) or 1.0
+        nx, ny = -dy / largo, dx / largo
+        if ny < 0:
+            nx, ny = -nx, -ny
+        arriba.append((x + nx * w, y + ny * w))
+        abajo.append((x - nx * w, y - ny * w))
+    return geo.extruir(arriba + abajo[::-1], z - 0.35, z)
+
+
+def bigote(t):
+    if t.n[1] > 0.4 or t.n[2] < -0.7 and t.y > CABEZA_Y + 2.6:
+        return hex_("#3A2A30")
+    return hex_(PUPILA)
 
 
 CORONA_Y = (TOPE - 3.1, TOPE + 0.8)     # la corona tapa la cabeza hasta arriba de los ojos
@@ -186,13 +220,14 @@ def pintor_estrella(cx, cy):
     return p
 
 
-def punta(base, largo, giro):
-    """Punta de bufon: cono de 6 lados que sale de 'base' girado 'giro' grados (rz). Devuelve (malla, punta)."""
+def punta(base, largo, caida, ry):
+    """Punta de bufon: cono de 6 lados que sale de 'base' hacia afuera y caido ('caida' grados, como rz) y despues
+    girado 'ry' grados para que salga en diagonal desde la esquina. Devuelve (malla, punta)."""
     m = geo.loft([(0.0, 0, 0, 1.2, 1.2), (largo * 0.55, 0, 0, 0.85, 0.85), (largo, 0, 0, 0.25, 0.25)], 6, 30)
-    m = geo.girar(m, (0, 0, giro))
-    a = math.radians(giro)
-    tip = (base[0] - largo * math.sin(a), base[1] + largo * math.cos(a), base[2])
-    return geo.mover(m, base), tip
+    m = geo.girar(geo.girar(m, (0, 0, caida)), (0, ry, 0))
+    vs, cs = geo.mover(m, base)
+    tip = max(vs, key=lambda q: (q[0] - base[0]) ** 2 + (q[1] - base[1]) ** 2 + (q[2] - base[2]) ** 2)
+    return (vs, cs), tip
 
 
 def construir():
@@ -202,6 +237,8 @@ def construir():
 
     # ================================================================ CABEZA-CUBO con OREJITAS
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D)
+    p.caja("Head/cabeza", "placa", (-5, C, -5.02 - HUNDIDO), (5, CORONA_Y[0] + 0.1, -5.02), placa, dens=D)
+    p.malla("Head/cabeza", "bigote", bigote_malla(-5.02 - HUNDIDO), bigote, dens=D)
     for s in (1, -1):
         x1, x2 = sorted((s * 5.0, s * 5.7))
         p.caja("Head/cabeza", f"oreja{s}", (x1, C + 3.6, -0.4), (x2, C + 5.6, 1.2), voxel(OREJA), dens=D)
@@ -217,12 +254,12 @@ def construir():
                  ((-0.6, 3.6), 1.0, 3.8, (16, 0, 0), CELESTE), ((4.1, 3.6), 0.9, 3.0, (16, 0, -18), FUEGO)]
     for k, ((x, z), r, alto, giro, col) in enumerate(cristales):
         p.malla(g, f"cristal{k}", pieza_cristal(x, y1 - 0.3, z, r, alto, giro), cristal(col), dens=D)
-    # puntas a los costados con cascabeles de cristal: el grande celeste a la derecha del personaje
-    malla, tip = punta((5.4, y0 + 1.4, -0.4), 3.4, -116)
+    # puntas que salen de las esquinas de adelante, en diagonal, con cascabeles de cristal
+    malla, tip = punta((5.2, y0 + 1.6, -5.2), 3.6, -116, 45)
     p.malla(g, "punta_der", malla, voxel(VERDE), dens=D)
     p.malla(g, "cascabel_der", geo.bipiramide((tip[0] + 0.3, tip[1] - 1.2, tip[2]), 1.25, 1.2, 1.4, lados=6, giro=30),
             cristal(CELESTE), dens=D)
-    malla, tip = punta((-5.4, y0 + 1.0, 0.6), 2.4, 120)
+    malla, tip = punta((-5.2, y0 + 1.4, -5.2), 2.6, 120, -45)
     p.malla(g, "punta_izq", malla, voxel(ROSA), dens=D)
     cas = (tip[0] - 0.2, tip[1] - 0.9, tip[2])
     p.malla(g, "cascabel_izq", geo.bipiramide(cas, 0.95, 0.9, 1.0, lados=6, giro=30), cristal(ROSA), dens=D)
