@@ -7,14 +7,18 @@ Piezas low-poly independientes, con las mismas reglas:
     adentro negra. En el medio del frente, el agujero ovalado de la cara con filete dorado. Abajo queda
     abierta, a la altura del cuello, para conectarse con el cuerpo.
   - cabeza: un cubo de vacio adentro de la capucha, con los dos ojos; se ve por el agujero.
-  - dos orejas de gato: conos de base redonda arriba de la cabeza, abiertos un poco hacia los costados.
+  - dos orejas de gato: conos armados con paneles (anillos de 8 lados), con panza (base ancha que sube casi
+    recta y despues se cierra) y la punta roma; arriba de la cabeza, abiertos un poco hacia los costados.
 """
 
 import math
 
 from .. import malla as geo
-from ..kit import Personaje
-from .pibble import CREMA, ORO, hex_
+from ..kit import Personaje, tonos
+from ..textura import hex_a_rgba as hex_
+
+CREMA = tonos("#DCD3C3")
+ORO = tonos("#C8A058")
 
 # medidas (px). Frente = -Z, derecha del personaje = +X.
 CX, CY, CZ = 0.0, 22.5, 0.0         # centro del ovalo
@@ -96,12 +100,21 @@ def ovalo():
     return m.vs, m.caras, m.tipos
 
 
+# perfil de la oreja: (altura, radio) de cada anillo. Sube casi recta (volumen) y se cierra arriba sin punta fina.
+PERFIL_OREJA = ((0.0, 2.8), (1.8, 2.6), (3.7, 2.0), (5.4, 1.2), (6.4, 0.55))
+PUNTA_OREJA = 6.85                  # remate romo arriba del ultimo anillo
+
+
 def oreja():
-    """Oreja de gato (derecha, +X): un cono de base redonda (10 lados), con la base hundida en el ovalo."""
-    cono = geo.piramide(geo.anillo(0, 0, 0, 2.4, 2.4, 10), (0, 6.8, 0))
+    """Oreja de gato (derecha, +X): cono armado con paneles, de 8 lados, con la base hundida en el ovalo."""
+    anillos = [geo.anillo(0, h, 0, r, r, 8, giro=22.5) for h, r in PERFIL_OREJA]
+    partes = [geo.tronco(anillos[k], anillos[k + 1], tapa_abajo=(k == 0), tapa_arriba=False)
+              for k in range(len(anillos) - 1)]
+    partes.append(geo.piramide(anillos[-1], (0, PUNTA_OREJA, 0), tapa=False))
+    cono = geo.unir(*partes)
     cono = geo.girar(cono, (0, 0, -22))                            # abierta hacia el costado, sin ir hacia atras
     pie = punto(85, 60)                                            # arriba y mas atras, sobre la cabeza
-    return geo.mover(cono, (pie[0], pie[1] - 0.9, pie[2] + 0.4))
+    return geo.mover(cono, (pie[0], pie[1] - 1.0, pie[2]))
 
 
 # ---------------------------------------------------------------- pintores
@@ -144,12 +157,17 @@ def cono_negro(t):
     return hex_("#1C181E" if t.n[1] > 0.3 else "#141016")
 
 
-def construir():
-    p = Personaje("pibble_capucha", altura=27, cabeza=10, torso=(8, 11, 5), brazo=(4, 5))
+def poner(p):
+    """Agrega la capucha, la cabeza y las orejas (hueso Head) a un Personaje."""
     vs, caras, tipos = ovalo()
     pint = {"fuera": tela, "forro": lambda t: hex_(FORRO)}
     p.malla("Head/capucha", "ovalo", (vs, caras), [pint[k] for k in tipos])
     h = CABEZA / 2
     p.caja("Head/cabeza", "cabeza", (CX - h, CY - h, CABEZA_Z - h), (CX + h, CY + h, CABEZA_Z + h), cabeza, dens=2)
     p.malla_par("Head/capucha", "oreja", oreja(), cono_negro)
+
+
+def construir():
+    p = Personaje("pibble_capucha", altura=27, cabeza=10, torso=(8, 11, 5), brazo=(4, 5))
+    poner(p)
     return p

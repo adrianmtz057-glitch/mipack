@@ -1,16 +1,15 @@
 """
-Pibble, el semidios errante. Hecho a mano con el kit (boceto 6, segun la referencia voxel pibble_voxel.png).
+Pibble, el semidios errante. Hecho a mano con el kit (boceto 7).
 
-Estilo voxel limpio: casi todo son cajas rectas en capas (como el modelo de referencia) y solo giran
-la visera, las orejas, los paneles que se abren en A y la cola.
-  - cuerpo base propio (no Steve): cabeza-vacio ancha, nucleo de tunica, mangas cubicas, botas
-  - capucha crema en caja con visera inclinada, orejas de gato negras y runas azul/oro
-  - aro dorado con gema azul al costado y colgantes en rombo
-  - bufanda negra gruesa que tapa la boca, estola azul con runa dorada, paneles crema largos
-  - mangas negras con hombreras crema, botas negras con bandas doradas
-  - cola en hoja de rombo escalonada (azul, oro y borde crema)
+  - capucha nueva low-poly (taller/personajes/pibble_capucha.py): ovalo acostado armado panel a panel, forro
+    negro, agujero ovalado de la cara con filete dorado, cubo de la cabeza adentro y orejas de gato en cono con
+    paneles; abajo abierta, conectada al cuerpo por el cuello
+  - aro dorado con gema azul al costado izquierdo de la capucha y colgantes en rombo
+  - CUERPO PROVISORIO (el del boceto 6, se rehace de cero): bufanda negra, estola azul con runa dorada,
+    paneles crema largos en A, mangas negras con hombreras crema, botas con bandas doradas, cola en hoja
 """
 
+from . import pibble_capucha
 from ..kit import Personaje, dibujo, sprite, tonos
 from ..pintura import metal
 from ..textura import TRANSPARENTE, hex_a_rgba
@@ -23,31 +22,6 @@ ORO = tonos("#C8A058")
 VACIO = "#0E0B0E"
 
 # ---------------------------------------------------------------- dibujos
-
-# cara de 10x10 px a dens 2: solo dos ojos rectangulares que brillan (la visera y la bufanda tapan el resto)
-CARA = dibujo("""
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKWWWWKKKKWWWWKKKK
-    KKKKowwwKKKKwwwoKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-    KKKKKKKKKKKKKKKKKKKK
-""")
-PAL_CARA = {"K": VACIO, "W": "#F6E2AE", "w": "#DDB267", "o": "#9C7440"}
 
 ARO = dibujo("""
     ...GGGG...
@@ -106,13 +80,6 @@ EMBLEMA = dibujo("""
     ...G...
 """)
 
-RUNA = dibujo("""
-    .aa...
-    aGGa..
-    .aGaa.
-    ..aGGa
-    ...aa.
-""")
 RUNA2 = dibujo("""
     ..a..
     .aGa.
@@ -146,21 +113,6 @@ def con_runas(base, runas):
                 if 0 <= r < len(filas) and 0 <= c < len(filas[0]) and filas[r][c] != ".":
                     return pal[filas[r][c]]
         return base(t)
-    return p
-
-
-def capucha(semilla=0):
-    def p(t):
-        if t.cara == "up":
-            return hex_(_moteado(t, CREMA["l"], CREMA["b"], semilla))
-        if t.cara == "down":
-            return hex_(NEGRO["s"])                              # forro oscuro
-        k = t.j / max(1, t.th - 1)
-        if t.fila_abajo == 0:
-            return hex_(CREMA["s"])
-        if k < 0.1:
-            return hex_(CREMA["l"])
-        return hex_(_moteado(t, CREMA["b"] if k < 0.75 else CREMA["s"], "#CFC5B3", semilla))
     return p
 
 
@@ -205,14 +157,6 @@ def negro(picos_=None, pliegues=False, semilla=0):
     return p
 
 
-def oreja(t):
-    if t.cara == "north" and 1 < t.i < t.tw - 2 and 1 < t.j < t.th - 2:
-        return hex_("#3A3340")                                     # adentro un poco mas claro
-    if t.cara in ("up", "east"):
-        return hex_(NEGRO["l"])
-    return hex_(NEGRO["b"] if t.cara != "south" else NEGRO["s"])
-
-
 def cana(t):
     """Bota: negra con banda dorada arriba y suela tostada."""
     if t.cara == "up":
@@ -248,42 +192,18 @@ def rombo(p, grupo, nombre, x, y, z, tam, cadena=0.0):
 
 def construir():
     p = Personaje("pibble", altura=27, cabeza=10, torso=(8, 11, 5), brazo=(4, 5))
-    C, T = p.cuello, p.tope                              # cuello 17, arriba de la cabeza 27
+    C = p.cuello                                         # cuello 17
 
-    # ================================================================ CABEZA: vacio ancho con ojos que brillan
-    p.caja("Head/cabeza", "cabeza", (-5, C, -4.4), (5, T, 4.4),
-           sprite({"north": CARA}, PAL_CARA, base=lambda t: hex_(VACIO)), dens=2)
+    # ================================================================ CAPUCHA nueva (cabeza y orejas incluidas)
+    pibble_capucha.poner(p)
 
-    # ================================================================ CAPUCHA en caja
-    g = "Head/capucha"
-    for s in (1, -1):
-        x1, x2 = sorted((s * 5.0, s * 6.2))
-        runas = [("east", 6, 6, RUNA, PAL_RUNA)] if s > 0 else []
-        p.caja(g, f"pared{s}", (x1, C - 1.0, -5.6), (x2, T + 0.2, 5.4), con_runas(capucha(3 + s), runas), dens=2)
-    p.caja(g, "techo", (-6.2, T + 0.2, -6.4), (6.2, T + 2.0, 5.4), capucha(1), dens=2)
-    p.caja(g, "nuca", (-5.0, C - 0.5, 4.4), (5.0, T + 0.2, 5.4), capucha(2), dens=2)
-    # visera inclinada (mas alta del lado derecho, como en la referencia): deja la cara en sombra
-    p.caja(g, "visera", (-6.2, T - 2.0, -7.0), (6.2, T + 1.4, -5.4),
-           con_runas(capucha(5), [("north", 3, 2, RUNA2, PAL_RUNA)]), rot=(0, 0, 9), piv=(0, T - 0.3, -6.2), dens=2)
-
-    # orejas de gato: dos cubos girados 45 grados y cruzados, medio enterrados en el techo:
-    # triangulo limpio de frente y de costado, inclinado hacia afuera
-    for s in (1, -1):
-        cx, cy, cz = s * 3.8, T + 2.0, -1.6
-        p.caja("Head/orejas", f"oreja{s}", (cx - 2.0, cy - 2.0, cz - 0.8), (cx + 2.0, cy + 2.0, cz + 0.8), oreja,
-               rot=(0, 0, 45 - 15 * s), piv=(cx, cy, cz), dens=2)
-        p.caja("Head/orejas", f"oreja_lado{s}", (cx - 0.8, cy - 1.9, cz - 1.9), (cx + 0.8, cy + 1.9, cz + 1.9), oreja,
-               rot=(45, 0, -15 * s), piv=(cx, cy, cz), dens=2)
-
-    # aro dorado con gema azul al costado izquierdo, con dos rombos colgando; colgante chico del otro lado
-    p.plano("Head/joyas", "aro", (-6.35, T - 6.0, -2.8), (-6.35, T - 1.0, 2.2), sprite({"todas": ARO}, PAL_ARO), dens=2)
-    rombo(p, "Head/joyas", "colgante_aro", -6.5, T - 7.6, -0.3, 1.0, cadena=0.6)
-    rombo(p, "Head/joyas", "colgante_aro2", -6.5, T - 10.4, -0.3, 1.5, cadena=1.0)
-    rombo(p, "Head/joyas", "colgante_der", 6.5, C - 0.6, -3.4, 1.2, cadena=4.0)
+    # aro dorado con gema azul al costado izquierdo de la capucha, con dos rombos colgando; colgante chico a la derecha
+    p.plano("Head/joyas", "aro", (-8.45, 20.0, -4.6), (-8.45, 25.0, 0.4), sprite({"todas": ARO}, PAL_ARO), dens=2)
+    rombo(p, "Head/joyas", "colgante_aro", -8.55, 18.4, -3.0, 1.0, cadena=0.6)
+    rombo(p, "Head/joyas", "colgante_aro2", -8.55, 15.9, -3.0, 1.4, cadena=0.8)
+    rombo(p, "Head/joyas", "colgante_der", 8.45, 19.4, -3.0, 1.2, cadena=1.0)
 
     # ================================================================ BUFANDA negra gruesa (tapa la boca)
-    p.caja("Head/bufanda", "bufanda_boca", (-5.0, C + 0.2, -5.4), (5.0, C + 4.6, 4.4), negro(pliegues=True, semilla=1),
-           dens=2)
     p.caja("Body/bufanda", "bufanda_cuello", (-5.0, C - 2.4, -4.6), (5.0, C + 0.2, 3.6), negro(pliegues=True, semilla=2),
            dens=2)
     p.caja("Body/bufanda", "bufanda_caida", (-2.4, C - 4.6, -4.2), (2.4, C - 2.4, -3.2), negro(semilla=3), dens=2)
