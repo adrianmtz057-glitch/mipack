@@ -1,195 +1,48 @@
 """
-Correcthar, el dios libre ("自由な神"). Hecho a mano con el kit (boceto 9, segun referencias/personajes/correctar_nuevo.png
-y las siluetas correctar_silueta.png y correctar_zapatos_silueta.png).
+Correcthar, el semidios que corrige todo a su forma anterior (原状回復: volver al estado original). Hecho a mano con el
+kit segun referencias/personajes/correctar_semidios.png. Estilo: serio, tranquilo, disciplinado, analitico, solitario.
 
-Bases del pedido original: semidios cuyo poder es hacer cualquier cosa random; estilo unico, alocado, rebelde, sin
-control y arriesgado; estilo japones; SIN MUCHOS DETALLES; pose neutra. Por eso: pocas piezas, bien marcadas.
-
-Medidas: 2.5 bloques (40 px, 1.25 veces Steve). Alto y delgado por proporcion, no por tamano: cabeza de 8 px, torso
-de 10 (7 de ancho), piernas de 22 (cintura alta), brazos finos de 15 (las manos a la altura de la entrepierna).
-
-Pintura (textura a densidad 6): PALETA CERRADA de rampas de 5 tonos con hue shifting, una por material, y nada de
-ruido al azar. El haori lleva pixel art sacado de la referencia con Pyxelate y limpiado (correctar_pixelart.py,
-generado con taller/pixelar.py); el kanji de la espalda sale nitido de una fuente. El pelo es UN solo campo de
-mechones que sigue de una caja a la otra sin cortarse.
+Medidas: 2.5 bloques (40 px). Cabeza de 8, torso de 10 (7 de ancho), piernas de 22, brazos finos.
+Pintura a densidad 8: cada px del modelo son 8 x 8 texeles (la cara es un pixel art de 64 x 64). Paleta cerrada de
+rampas con hue shifting y sin ruido; el volumen lo termina la luz horneada del motor (taller/luz.py).
 
 Capas, de adentro hacia afuera:
-  BASE: cara del boceto 6 (24 x 24 al doble, ojos amarillos cansados de anime); torso de piel con abdominales, el engranaje
-    tatuado, unas ramas de tinta y el cordon del collar; hombros desnudos con el engranaje tatuado
-  PELO simple: casco ajustado y flequillo con los mechones dibujados, terminados en puntas; unos pocos cubitos que lo
-    despeinan (arriba, costados, nuca); un mechon blanco y la cinta roja a la izquierda
-  ACCESORIOS 3D: arete con talisman (izquierda), moneda del collar, un anillo por mano
-  HAORI: chaqueta aparte que se abre en la cadera, con manchones blancos de la referencia, kanji 変 atras y el FINAL
-    BLANCO (franja de pincelada en el borde de abajo y al final de las mangas); mangas de kimono con la bolsa atras
-  FAJA con nudo; tres cintas con "自由な神" escrito (roja adelante y atras, amarilla con talisman al costado
-  izquierdo); HAKAMA en trapecio ancho, negro con pliegues, que termina un poco arriba de la zapatilla; ZAPATILLAS
-  gordas y bajas con puno del tobillo
+  BASE: cara serena de ojos grises; kimono negro cruzado en V con el cuello blanco, el pecho a la vista con el
+    tatuaje del circulo y el collar de jade; manos con un anillo de plata
+  PELO negro ordenado: casco, flequillo que cae sobre el ojo derecho, mechones que enmarcan la cara, un pelito
+    parado arriba; todo con el mismo campo de mechones (continuo de una caja a otra) y puntas abajo
+  ARETES en las dos orejas: argolla de plata, etiqueta blanca y borla azul hasta el hombro
+  HAORI BLANCO largo hasta la canilla, abierto adelante con las bandas negras del cuello, el simbolo del circulo
+    (aro con una gota y una cuerda) grande en la espalda y chico en cada manga, mangas de kimono con forro azul
+  OBI azul con el cordon blanco y su nudo, cordones con borlas y la etiqueta 原状回復 colgando adelante y atras
+  HAKAMA negro ancho con pliegues hasta el tobillo; calcetas a rayas; BOTAS gruesas negras y blancas
+  KATANA a la izquierda, metida en el obi: mango con trenzado, tsuba y punta de oro, vaina negra hacia atras
 """
 
 import math
 
 from .. import malla as geo
 from . import correctar_pixelart as PX
-from ..kit import Objeto, Personaje, dibujo, sprite, tonos
+from ..kit import Personaje, sprite, tonos
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 
-PIEL = tonos("#C8966E")
-# PALETA CERRADA: cada material usa solo su rampa fija de 5 tonos con hue shifting (sombras hacia el azul/violeta,
-# luces hacia el calido). Nada de ruido al azar: todo dibujo sale de una forma pensada o de la referencia.
-TELA_N = ("#0A0A12", "#141420", "#1E1C26", "#2C2832", "#3E3840")    # tela negra: hondo, base, pliegue, canto, brillo
-TELA_B = ("#8E8C9E", "#B4B2C0", "#D4D0D4", "#ECE8E2", "#FFFBF0")    # tela blanca
-PELO = ("#0B0910", "#15111A", "#221A22", "#3A2A2C", "#5C4238")      # pelo negro con reflejo cafe
-NEGRO, NEGRO2 = TELA_N[1], TELA_N[2]
-BLANCO, GRIS = TELA_B[3], TELA_B[1]
-TINTA = "#181214"                                                   # tatuajes y escritura
-AMARILLO = tonos("#E2B42A")
-ROJO = tonos("#C0262A")
+D = 8                                                   # texeles por px: la cara queda de 64 x 64
+DENS_LETRAS = 12                                        # las etiquetas: 1.5 px de ancho = letra de 16 + borde
+
+# PALETA CERRADA: cada material usa solo su rampa (oscuro -> claro); las sombras van al frio, las luces al calido
+PIEL = tonos("#ECCDB2")
+TELA_B = ("#9C9AAA", "#BEBCC8", "#DAD8DE", "#EFEDE9", "#FFFDF8")    # haori blanco
+TELA_N = ("#0A0A12", "#141420", "#1E1C26", "#2C2832", "#3E3840")    # kimono y hakama negros
+AZUL = ("#151B2E", "#222C46", "#33405E", "#4A5B7E", "#687CA0")      # obi, forro, borlas
+PELO = ("#050508", "#0B0C11", "#12141B", "#1E2230", "#343B50")      # negro con reflejo frio
+PLATA = tonos("#B9BEC9")
+JADE = tonos("#4F8C70")
 ORO = tonos("#C9A14A")
-D = 6                                   # texeles por px en todo el modelo (textura grande, mas detalle)
+TINTA = "#15151C"
+NEGRO, NEGRO2 = TELA_N[1], TELA_N[2]
+BLANCO = TELA_B[3]
 
-# ---------------------------------------------------------------- cara (24 x 24, al doble)
-
-def escalar_dibujo(filas, k):
-    """Agranda un dibujo k veces (vecino mas cercano), para usarlo a la densidad nueva."""
-    h, w = len(filas), len(filas[0])
-    H, W = round(h * k), round(w * k)
-    return ["".join(filas[min(h - 1, int(r / k))][min(w - 1, int(c / k))] for c in range(W)) for r in range(H)]
-
-
-CARA_BASE = dibujo("""
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    ppkkkkkkkkppppkkkkkkkkpp
-    pppkWYLoYWppppWYoLYWkppp
-    ppppWYYoGWppppWGoYYWpppp
-    pppppGGGbppppppbGGGppppp
-    ppppbbbbbppppppbbbbbpppp
-    pppppppppppssppppppppppp
-    pppppppppppppppppppppppp
-    ppppppppppmmmmpppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    pppppppppppppppppppppppp
-    ssssssssssssssssssssssss
-""")
-
-
-# la cara del boceto 6 tal cual (la que le gusta al usuario), agrandada al doble para la densidad 6 sin retocarla
-CARA = escalar_dibujo(CARA_BASE, 2)
-PAL_CARA = {"p": PIEL["b"], "s": PIEL["s"], "k": "#1E1416", "W": "#EDE6DC", "Y": "#F0C81E", "G": "#B88A12",
-            "L": "#FFF0A0", "o": "#3A2808", "b": PIEL["s2"], "m": "#8A5A44"}
-
-
-TATUAJE = dibujo("""
-    .kkkk.
-    k.kk.k
-    kk..kk
-    kk..kk
-    k.kk.k
-    .kkkk.
-""")
-
-TALISMAN = dibujo("""
-    wwwwww
-    wwkkww
-    wkkkkw
-    wwkkww
-    wkwwkw
-    wkkkkw
-    wwkkww
-    wkwkww
-    wkkkkw
-    wwwkww
-    wkwwkw
-    wwwwww
-""")
-PAL_TALISMAN = {"w": BLANCO, "k": TINTA}
-
-CARA_MASCARA = dibujo("""
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-    yykykyyyyykykyyy
-    yyykyyyyyyykyyyy
-    yykykyyyyykykyyy
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-    yykyyyyyyyyykyyy
-    yyykyyyyyyykyyyy
-    yyyykkkkkkkyyyyy
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-    yyyyyyyyyyyyyyyy
-""")
-
-
-def torso_dibujo(W, H, k=1.0):
-    """Frente del torso: cordon del collar en V, claviculas, pecho, abdominales, oblicuos, el engranaje tatuado en
-    el pecho izquierdo (derecha de la imagen) y unas ramas de tinta en el derecho. k: escala (densidad / 3)."""
-    g = [["p"] * W for _ in range(H)]
-    m = W // 2
-
-    def pon(c, r, ch):
-        if 0 <= r < H and 0 <= c < W:
-            g[r][c] = ch
-
-    def fila(f):
-        return round(f * H)
-    for r in range(round(11 * k)):                              # cordon en V hasta la moneda
-        pon(round(m - 6 * k + r * 0.55), r, "k")
-        pon(round(m + 5 * k - r * 0.55), r, "k")
-    for c in list(range(1, m - 2)) + list(range(m + 2, W - 1)):  # claviculas
-        pon(c, round(3 * k), "s")
-    for c in list(range(1, m - 1)) + list(range(m + 1, W - 1)):  # borde de abajo del pecho
-        pon(c, fila(0.36), "s")
-    for r in range(fila(0.38), fila(0.86)):                     # linea del medio
-        pon(m, r, "s")
-    for f in (0.5, 0.63, 0.76):                                 # abdominales
-        for c in list(range(m - round(6 * k), m - 1)) + list(range(m + 2, m + round(7 * k))):
-            pon(c, fila(f), "s")
-    for r in range(fila(0.5), fila(0.92)):                      # oblicuos
-        pon(2 + (r - fila(0.5)) // 6, r, "s")
-        pon(W - 3 - (r - fila(0.5)) // 6, r, "s")
-    pon(m, fila(0.84), "d")                                     # ombligo
-    for f in (0.36, 0.5, 0.63, 0.76):                           # brillo arriba de cada linea
-        for c in range(2, W - 2):
-            if g[fila(f)][c] == "s" and g[fila(f) - 1][c] == "p":
-                g[fila(f) - 1][c] = "l"
-    for r in range(round(4 * k), H):                            # costados del torso mas oscuros
-        for c in (0, 1, W - 2, W - 1):
-            if g[r][c] == "p":
-                g[r][c] = "q"
-    engranaje = ("...kkkk...", "..k.kk.k..", ".k.k..k.k.", "kk.k..k.kk", "k.kk..kk.k", "k.kk..kk.k",
-                 "kk.k..k.kk", ".k.k..k.k.", "..k.kk.k..", "...kkkk...")
-    for r, fil in enumerate(engranaje):
-        for c, ch in enumerate(fil):
-            if ch == "k":
-                pon(m + 2 + c, round(3 * k) + r, "k")
-    for r in range(round(3 * k) + 10, round(3 * k) + 15):          # tinta que chorrea
-        if r % 2:
-            pon(m + 5, r, "k")
-        pon(m + 8, r - 1, "k")
-    for c, r in ((1, 5), (2, 6), (3, 7), (4, 8), (5, 9), (9, 5), (8, 6), (7, 7), (6, 8), (5, 10), (6, 11),
-                 (7, 12), (3, 11)):                             # ramas de tinta
-        pon(c, round(r * k), "k")
-    return ["".join(f) for f in g]
-
-
-# ---------------------------------------------------------------- pintores (solo colores de las rampas, sin ruido)
-
-CUELLO, TOPE = 32, 40                   # alturas de la cabeza (las fija construir: altura 40, cabeza 8)
+CUELLO, TOPE, CADERA = 32, 40, 22                       # alturas (las fija construir)
 
 
 def color(hexa):
@@ -197,97 +50,90 @@ def color(hexa):
     return lambda t: c
 
 
-def _u(t):
-    """Coordenada horizontal sobre la superficie (px): x en las caras de frente y espalda, z en los costados."""
-    return t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
+# ---------------------------------------------------------------- dibujo con primitivas (pixel art a mano)
+
+class Hoja:
+    """Lienzo de letras para dibujar pixel art con primitivas: puntos, lineas, elipses."""
+
+    def __init__(self, ancho, alto, fondo):
+        self.w, self.h = ancho, alto
+        self.g = [[fondo] * ancho for _ in range(alto)]
+
+    def p(self, x, y, c):
+        x, y = int(round(x)), int(round(y))
+        if 0 <= x < self.w and 0 <= y < self.h:
+            self.g[y][x] = c
+
+    def linea(self, x0, y0, x1, y1, c, grosor=1):
+        n = max(1, int(max(abs(x1 - x0), abs(y1 - y0)) * 2))
+        for k in range(n + 1):
+            x, y = x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n
+            for g in range(grosor):
+                self.p(x, y + g, c)
+
+    def filas(self):
+        return ["".join(f) for f in self.g]
 
 
-def onda_pincel(c):
-    """Cuantos texeles sube o baja el borde de arriba de la franja blanca en la columna c (pincelada ondulada)."""
-    return round(2.2 * math.sin(c * 0.33) + 1.2 * math.sin(c * 0.87 + 1.3))
+def cara_dibujo():
+    """Cara serena de 64 x 64: ojos grises en almendra con el parpado caido (mirada fria y tranquila), raya gruesa de
+    pestanas con la punta hacia afuera, iris con sombra del parpado arriba y luz abajo, brillo chico; cejas finas y
+    rectas, nariz de una sombra, boca de una linea. Sin ojeras ni colores en las mejillas."""
+    h = Hoja(64, 64, "p")
+    for y in range(64):                                   # costados un poco mas oscuros (volumen)
+        for x in (0, 1, 62, 63):
+            h.p(x, y, "q")
+    for lado in (1, -1):
+        def X(x):
+            return x if lado > 0 else 63 - x
+        # el ojo de la izquierda de la imagen; el otro es su espejo. Esquina de afuera en x=9, de adentro en x=25
+        for x in range(9, 26):
+            u = (x - 9) / 16
+            arriba = 33 - 3.4 * math.sin(math.pi * u) + 0.6 * (1 - u)   # parpado caido, mas bajo afuera
+            abajo = 33.2 + 2.2 * math.sin(math.pi * u)
+            for y in range(25, 40):
+                if arriba < y < abajo:
+                    h.p(X(x), y, "W")
+            for g in range(3 if u < 0.35 else 2):         # raya de pestanas, mas gruesa afuera
+                h.p(X(x), arriba - g, "k")
+            if u > 0.12:
+                h.p(X(x), arriba - 4.2, "s")              # pliegue del parpado
+            if u < 0.4:
+                h.p(X(x), abajo + 0.6, "k")               # pestana de abajo, solo afuera
+            elif u < 0.9:
+                h.p(X(x), abajo + 0.6, "s")
+        h.linea(X(9), 32, X(6), 30.5, "k", 2)               # punta de las pestanas hacia afuera
+        for y in range(25, 40):                           # iris y pupila, recortados por los parpados
+            for x in range(9, 26):
+                if h.g[y][X(x)] != "W":
+                    continue
+                d = math.hypot(x - 18, y - 32.6)
+                if d < 1.7:
+                    h.p(X(x), y, "o")
+                elif d < 4.7:
+                    h.p(X(x), y, "Y" if y < 31 else ("I" if y > 34 else "y"))
+                elif y < 30.5:
+                    h.p(X(x), y, "w")                     # sombra del parpado sobre lo blanco
+        for x, y in ((15, 30), (16, 30), (15, 31), (16, 31)):
+            h.p(X(x), y, "H")
+        h.p(X(20), 34, "L")
+        h.linea(X(8), 22.5, X(25), 21.5, "k")              # ceja fina y recta
+        h.linea(X(9), 23.5, X(24), 22.5, "s")
+    for y, x, c in ((40, 33, "s"), (41, 33, "s"), (42, 33, "s"), (43, 32, "s"), (42, 31, "l")):   # nariz
+        h.p(x, y, c)
+    for x in range(28, 37):                               # boca
+        h.p(x, 50, "n" if 30 <= x <= 34 else "m")
+    for x in range(30, 35):
+        h.p(x, 52, "s")
+    for x in range(64):                                   # mandibula
+        h.p(x, 63, "s")
+    return h.filas()
 
 
-DIENTES = (0, 0, 1, 3, 2, 0, 0, 1, 0, 2, 4, 2, 1, 0)   # dobladillo deshilachado (texeles), por pares de columnas
-GOTAS = {5: 4, 19: 6, 31: 3}                            # columna (cada 40) -> chorrito de tinta sobre lo blanco
-PAL_PX = {"n": hex_(NEGRO), "g": hex_(TELA_B[1]), "b": hex_(TELA_B[3]), "h": hex_(TELA_B[4]),
-          "k": hex_(TELA_B[3]), "a": hex_(TELA_N[3])}
-
-
-def proyectar(filas, u_de, v_de):
-    """Pixel art pegado por posicion: u_de(t), v_de(t) dan los px desde la esquina de arriba a la izquierda (de quien
-    mira esa cara). Devuelve la funcion t -> letra del texel (None si cae afuera del dibujo)."""
-    alto, ancho = len(filas), len(filas[0])
-
-    def letra(t):
-        c, r = math.floor(u_de(t) * D), math.floor(v_de(t) * D)
-        if 0 <= r < alto and 0 <= c < ancho:
-            return filas[r][c]
-        return None
-    return letra
-
-
-def tela(borde=None, dibujo=None, franja=2.8):
-    """Tela del haori. dibujo: t -> letra del pixel art de la referencia (o None); lo negro queda liso (las caras de
-    arriba con luz). borde: t -> altura del final de la tela; los ultimos 'franja' px quedan BLANCOS: pincelada con
-    el borde de arriba ondulado, chorritos de tinta, sombra del dobladillo y el borde deshilachado en dientes."""
-    def p(t):
-        y = t.y
-        if borde is not None and t.cara not in ("up", "down"):
-            c = math.floor(_u(t) * D) % 400
-            d = (y - borde(t)) * D                              # texeles desde el final de la tela
-            diente = DIENTES[(c // 2) % len(DIENTES)]
-            if d < diente:
-                return TRANSPARENTE
-            tope = franja * D + onda_pincel(c)
-            if d < tope:
-                if GOTAS.get(c % 40, 0) > tope - d:
-                    return hex_(NEGRO)
-                if d >= tope - 1:
-                    return hex_(TELA_B[2])                      # canto de la pincelada
-                if d < diente + 2:
-                    return hex_(TELA_B[1])                      # sombra del dobladillo
-                return hex_(TELA_B[3])
-        if dibujo is not None:
-            letra = dibujo(t)
-            if letra is not None and letra != "n":
-                return PAL_PX[letra]
-        return hex_(NEGRO2 if t.cara == "up" else NEGRO)
-    return p
-
-
-def pantalon(t):
-    """Hakama negro liso: cada 8 texeles un pliegue hondo con el canto iluminado al lado; el ruedo mas oscuro."""
-    if t.cara == "down":
-        return hex_(TELA_N[0])
-    if t.cara == "up":
-        return hex_(NEGRO2)
-    c = math.floor(abs(_u(t)) * D) % 8
-    if c == 0 or t.y < 6.4 + 1.5 / D:
-        return hex_(TELA_N[0])
-    if c == 1:
-        return hex_(TELA_N[2])
-    return hex_(NEGRO)
-
-
-def faja(t):
-    """Faja negra con el canto de arriba y de abajo con luz."""
-    if t.cara in ("north", "south", "east", "west") and (t.j == 0 or t.j == t.th - 1):
-        return hex_(TELA_N[3])
-    return hex_(NEGRO2)
-
-
-def encima(base, capas):
-    """Dibujos encima de otro pintor: capas = [(cara, i0, j0, filas, paleta)]."""
-    capas = [(c, i0, j0, f, {k: hex_(v) for k, v in pal.items()}) for c, i0, j0, f, pal in capas]
-
-    def p(t):
-        for cara, i0, j0, filas, pal in capas:
-            if t.cara == cara:
-                r, c = t.j - j0, t.i - i0
-                if 0 <= r < len(filas) and 0 <= c < len(filas[0]) and filas[r][c] != ".":
-                    return pal[filas[r][c]]
-        return base(t)
-    return p
+CARA = cara_dibujo()
+PAL_CARA = {"p": PIEL["b"], "q": "#DDB79A", "s": PIEL["s"], "l": PIEL["l"], "k": "#1A1820", "W": "#F4F2EE",
+            "w": "#C9C8D2", "Y": "#4E5870", "y": "#7D89A3", "I": "#A9B5CB", "o": "#22263A", "H": "#FFFFFF",
+            "L": "#DDE6F2", "m": "#B07C6C", "n": "#8E5E54"}
 
 
 def piel(t):
@@ -297,24 +143,118 @@ def piel(t):
     if t.cara == "down":
         return hex_(PIEL["s"])
     if t.i < 2 or t.i >= t.tw - 2:
-        return hex_("#B98864")
+        return hex_("#DDB79A")
     return hex_(PIEL["b"])
 
 
-CINTA_LETRAS = (PX.CINTA_0, PX.CINTA_1, PX.CINTA_2, PX.CINTA_3)
+# ---------------------------------------------------------------- simbolo del circulo (equilibrio)
+
+def simbolo(u, v, r):
+    """El simbolo de Correcthar centrado en (0, 0), radio r (px): un aro, adentro una gota que apunta arriba y un
+    circulito arriba del aro con la cuerda que sube. Devuelve True si (u, v) cae en la tinta (v hacia arriba)."""
+    d = math.hypot(u, v)
+    if abs(d - r) < r * 0.13:
+        return True                                        # aro
+    gota_c, gota_r = -0.12 * r, 0.36 * r
+    if math.hypot(u, v - gota_c) < gota_r:
+        return True                                        # panza de la gota
+    alto = v - gota_c
+    if 0 < alto < 0.78 * r and abs(u) < gota_r * (1 - alto / (0.78 * r)) ** 1.3:
+        return True                                        # punta de la gota
+    if abs(math.hypot(u, v - 1.13 * r) - 0.15 * r) < 0.06 * r:
+        return True                                        # circulito arriba
+    return False
 
 
-def cinta(c, marcas="#5A1010"):
-    """Cinta de tela: cantos en sombra, brillo junto al canto y "自由な神" (dios libre) escrito hacia abajo."""
+# ---------------------------------------------------------------- pintores de la ropa
+
+def kosode(t):
+    """Kimono negro del torso, cruzado en V: adentro de la V se ve el pecho con el tatuaje del circulo y el cordon
+    del collar; el borde de la V lleva el cuello blanco del kimono de abajo."""
+    if t.cara == "up":
+        return hex_(NEGRO2)
+    if t.cara != "north":
+        return hex_(NEGRO)
+    x, y = t.x, t.y
+    fondo = CUELLO - 5.6                                   # punta de la V (medio pecho)
+    ancho = 0.0 if y < fondo else 1.75 * (y - fondo) / (CUELLO - fondo)
+    if abs(x) < ancho:
+        if y > CUELLO - 3.3 and abs(abs(x) - 0.62 * (y - (CUELLO - 3.3))) < 0.09:
+            return hex_(TINTA)                             # cordon del collar
+        if abs(math.hypot(x + 0.95, y - (CUELLO - 4.2)) - 0.48) < 0.08:
+            return hex_(TINTA)                             # tatuaje del circulo (pecho izquierdo)
+        if abs(x) > ancho - 0.18:
+            return hex_(PIEL["s"])                         # sombra del borde del kimono
+        return hex_(PIEL["b"])
+    if abs(x) < ancho + 0.38:
+        return hex_(BLANCO)                                # cuello blanco del kimono de abajo
+    return hex_(NEGRO)
+
+
+MANO = CUELLO - 15.0                                    # punta de los dedos
+PUNO, BOLSA = MANO + 2.6, MANO - 1.2                    # final de la manga adelante (muneca) y atras (bolsa)
+
+
+def brazo(t):
+    """Brazo: manga negra del kimono hasta la muneca, despues la mano."""
+    if t.y < MANO + 2.9:
+        return piel(t)
+    return hex_(NEGRO2 if t.cara == "up" else NEGRO)
+
+
+OBI_ABAJO, OBI_ARRIBA = 24.4, 26.6
+OBI_CORDON = 25.5
+
+
+def obi(t):
+    """Obi azul con dos lineas finas de luz (la tela doblada) y el cordon blanco pintado alrededor."""
+    if t.cara in ("up", "down"):
+        return hex_(AZUL[1])
+    y = t.y
+    if abs(y - OBI_CORDON) < 0.16:
+        return hex_(BLANCO)
+    if abs(y - OBI_CORDON) < 0.26:
+        return hex_(TELA_B[1])
+    if abs(y - (OBI_ABAJO + 0.5)) < 0.07 or abs(y - (OBI_ARRIBA - 0.45)) < 0.07:
+        return hex_(AZUL[3])
+    return hex_(AZUL[2])
+
+
+def pantalon(t):
+    """Hakama negro: cada 9 texeles un pliegue hondo con el canto iluminado al lado; el ruedo mas oscuro."""
+    if t.cara == "down":
+        return hex_(TELA_N[0])
+    if t.cara == "up":
+        return hex_(NEGRO2)
+    u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
+    c = math.floor(abs(u) * D) % 9
+    if c == 0 or t.y < 5.4 + 1.5 / D:
+        return hex_(TELA_N[0])
+    if c == 1:
+        return hex_(TELA_N[2])
+    return hex_(NEGRO)
+
+
+def pierna(t):
+    """Calcetas a rayas blancas y negras abajo del hakama."""
+    if t.y > 6.6:
+        return hex_(NEGRO)
+    return hex_(BLANCO if math.floor(t.y * 2.2) % 2 else NEGRO)
+
+
+def etiqueta(letras=True, borde=TELA_B[1]):
+    """Etiqueta de papel (ofuda) blanca con borde gris y 原状回復 escrito hacia abajo en pixel art de 16 x 16."""
+    glifos = (PX.LETRA_0, PX.LETRA_1, PX.LETRA_2, PX.LETRA_3)
+
     def p(t):
-        if t.i == 0 or t.i == t.tw - 1:
-            return hex_(c["s"])
-        if t.tw >= 8:
-            k, r = divmod(t.j - 3, 10)
-            cc = t.i - (t.tw - 7) // 2
-            if t.j >= 3 and r < 7 and 0 <= cc < 7 and CINTA_LETRAS[k % 4][r][cc] == "k":
-                return hex_(marcas)
-        return hex_(c["l"] if t.i == 1 else c["b"])
+        if t.i == 0 or t.i == t.tw - 1 or t.j == 0 or t.j == t.th - 1:
+            return hex_(borde)
+        if letras:
+            k, r = divmod(t.j - 2, 18)
+            c = t.i - (t.tw - 16) // 2
+            if t.j >= 2 and k < 4 and r < 16 and 0 <= c < 16 and glifos[k][r][c] == "k":
+                return hex_(TINTA)
+        return hex_(BLANCO)
     return p
 
 
@@ -322,48 +262,43 @@ def oro(t):
     return hex_(ORO["l"] if t.cara == "up" else ORO["b"])
 
 
+def plata(t):
+    return hex_(PLATA["l"] if t.cara == "up" else PLATA["b"])
+
+
 # ---------------------------------------------------------------- pelo: un solo campo de mechones
 
-CORONILLA = (0.0, 1.2)                  # (x, z) de donde salen los mechones (un remolino un poco atras)
-MECHONES = 22                           # mechones en la vuelta entera de la cabeza
-SUBE = (0.0, 0.5, 0.2, 0.8, 0.1, 0.6, 0.3)  # cuanto mas corto es cada mechon (px), en orden fijo
-MECHON_BLANCO = (-4,)                   # mechon blanco del lado izquierdo, junto a la cinta roja
-SUBE_FLEQUILLO = {-3: 0.0, -2: 0.9, -1: 0.6, 0: 0.35, 1: 1.0, 2: 0.0}   # flequillo: hasta los ojos, uno los cruza
+CORONILLA = (0.0, 1.0)
+MECHONES = 24
+SUBE = (0.0, 0.6, 0.25, 0.9, 0.15, 0.7, 0.35)           # cuanto mas corto es cada mechon (px), en orden fijo
+SUBE_FLEQUILLO = {-3: 0.1, -2: 1.75, -1: 1.35, 0: 1.2, 1: 0.25, 2: 0.0}   # el mechon 1 cae sobre el ojo derecho
 
 
 def mechon(t):
-    """Campo de mechones CONTINUO: depende solo de la posicion (angulo alrededor de la coronilla), asi el mismo
-    mechon sigue de arriba al costado, a la nuca, al flequillo y a los cubitos sin cortarse entre cajas.
-    Devuelve (numero de mechon, 0..1 a lo ancho del mechon)."""
-    a = math.atan2(t.x - CORONILLA[0], -(t.z - CORONILLA[1])) + 0.08 * math.sin(t.y * 1.1)
+    """Campo de mechones continuo: el angulo alrededor de la coronilla. (numero de mechon, 0..1 a lo ancho)."""
+    a = math.atan2(t.x - CORONILLA[0], -(t.z - CORONILLA[1])) + 0.07 * math.sin(t.y * 1.1)
     s = a / (2 * math.pi) * MECHONES
     n = math.floor(s)
     return n, s - n
 
 
-def pelo(t, blanco=False):
-    """Cada mechon: separacion honda, lado en sombra, cuerpo y canto con luz. Un anillo de brillo de anime que baja
-    en diagonal en cada mechon; mas oscuro abajo, cerca del cuello."""
+def pelo(t):
+    """Cada mechon: separacion honda, lado en sombra, cuerpo y canto con luz; anillo de brillo frio de anime."""
     n, k = mechon(t)
-    rampa = TELA_B if (blanco or n in MECHON_BLANCO) else PELO
     if t.cara == "down":
-        return hex_(rampa[0])
-    i = 0 if k < 0.1 else 1 if k < 0.3 else 2 if k < 0.8 else 3 if k < 0.9 else 2
-    if t.cara == "up":
-        if math.hypot(t.x - CORONILLA[0], t.z - CORONILLA[1]) < 0.7:
-            i = 1                                               # remolino
-    else:
-        anillo = TOPE - 1.9 + 0.35 * ((n % 3) - 1) + 0.6 * (k - 0.5)
-        if abs(t.y - anillo) < 0.32 and 0.25 < k < 0.85:
-            return hex_(rampa[4] if 0.45 < k < 0.65 else rampa[3])
-        if t.y < CUELLO + 4.0:
+        return hex_(PELO[0])
+    i = 0 if k < 0.09 else 1 if k < 0.28 else 2 if k < 0.8 else 3 if k < 0.9 else 2
+    if t.cara != "up":
+        anillo = TOPE - 1.7 + 0.3 * ((n % 3) - 1) + 0.5 * (k - 0.5)
+        if abs(t.y - anillo) < 0.3 and 0.25 < k < 0.85:
+            return hex_(PELO[4] if 0.45 < k < 0.65 else PELO[3])
+        if t.y < CUELLO + 3.0:
             i = max(0, i - 1)
-    return hex_(rampa[i])
+    return hex_(PELO[i])
 
 
 def puntas(base, sube=SUBE, punta=1.0):
-    """Recorta el borde de abajo de una caja de pelo en PUNTAS alineadas con los mechones: cada mechon termina en
-    una punta (el centro baja mas) y unos son mas cortos que otros."""
+    """Recorta el borde de abajo de una caja de pelo en puntas alineadas con los mechones."""
     def p(t):
         if t.cara == "down":
             return TRANSPARENTE
@@ -376,9 +311,10 @@ def puntas(base, sube=SUBE, punta=1.0):
     return p
 
 
+# ---------------------------------------------------------------- haori blanco y mangas
+
 def tubo_hueco(abajo, arriba, grosor=0.15, tapa=True):
-    """Tubo de 4 lados abierto abajo: cara de afuera y forro corrido hacia adentro (se ve por la abertura).
-    Anillos de 4 puntos antihorarios vistos desde arriba. Devuelve (malla, cantidad de caras de afuera)."""
+    """Tubo de 4 lados abierto abajo: cara de afuera y forro corrido hacia adentro. Devuelve (malla, caras de afuera)."""
     afuera = geo.tronco(abajo, arriba, tapa_abajo=False, tapa_arriba=tapa)
 
     def encoger(r):
@@ -392,117 +328,108 @@ def tubo_hueco(abajo, arriba, grosor=0.15, tapa=True):
     return geo.unir(afuera, (vs, [tuple(reversed(c)) for c in cs])), len(afuera[1])
 
 
-def haori(C, abajo, pint_paneles):
-    """Cuerpo del haori como chaqueta aparte: espalda, costados y dos delanteros que se ABREN hacia la cadera (pasan
-    por encima del pantalon y marcan el dobladillo). Abierto adelante; derecha puesta en el hombro, izquierda caida.
-    Cada panel tiene forro corrido hacia adentro. pint_paneles: pintores de espalda, costado derecho, costado
-    izquierdo, delantero derecho y delantero izquierdo. Devuelve (malla, pintores)."""
-    espalda, costado_d, costado_i, delantero_d, delantero_i = pint_paneles
+HAORI_ABAJO = 6.0                                       # el haori llega a la canilla
+SUP = CUELLO - 0.2                                      # alto de los hombros en los delanteros
+ABERTURA = (1.7, 2.6)                                   # borde de la abertura: arriba y abajo (x)
+
+
+def _pincelada(x, y):
+    """Marca de tinta en forma de triangulo abierto (como la del haori de la referencia), cerca del ruedo."""
+    u, v = x - 4.3, y - 8.6
+    if -0.9 < u < 0.9 and abs(v - (0.9 - abs(u) * 1.1)) < 0.13:
+        return True                                        # techo del triangulo
+    return abs(u + 0.5) < 0.12 and -0.6 < v < 0.3          # palito de abajo
+
+
+def haori_tela(espalda=False, delantero=0):
+    """Tela blanca del haori. espalda: el simbolo grande con su cuerda y la banda negra del cuello. delantero (1
+    derecho, -1 izquierdo): la banda negra a lo largo de la abertura y, en el izquierdo, una pincelada abajo."""
+    def p(t):
+        x, y = t.x, t.y
+        if espalda:
+            if y > CUELLO + 0.4 - 0.75 and abs(x) < 2.3:
+                return hex_(NEGRO)                         # banda del cuello por detras
+            if simbolo(x, y - (CUELLO - 5.4), 2.15):
+                return hex_(TINTA)
+            if abs(x) < 0.09 and CUELLO - 2.8 < y < CUELLO - 0.4:
+                return hex_(TINTA)                         # la cuerda del simbolo
+        if delantero:
+            f = (SUP - y) / (SUP - HAORI_ABAJO)
+            borde = ABERTURA[0] + (ABERTURA[1] - ABERTURA[0]) * max(0.0, min(1.0, f))
+            if delantero * x - borde < 0.7:
+                return hex_(NEGRO)                         # banda negra del cuello, hasta abajo
+            if delantero < 0 and _pincelada(-x, y):
+                return hex_(TINTA)
+        return hex_(BLANCO)
+    return p
+
+
+def haori():
+    """Cuerpo del haori: espalda, costados y dos delanteros que bajan casi rectos hasta la canilla, abierto adelante.
+    Cada panel con forro azul corrido hacia adentro. Devuelve (malla, pintores)."""
     m = geo.Armador()
     pint = []
-    afuera_de = (0.0, 0.0, 0.0)
 
-    def panel(pts, pintor, solo_afuera=False):
+    def panel(pts, pintor):
         idx = [m.v(q) for q in pts]
         cx = sum(q[0] for q in pts) / 4
         cz = sum(q[2] for q in pts) / 4
-        m.cara(tuple(idx), (cx - afuera_de[0], 0, cz - afuera_de[2]), "fuera")
+        m.cara(tuple(idx), (cx, 0, cz), "fuera")
         pint.append(pintor)
-        if solo_afuera:
-            return
-        hacia = [(q[0] - 0.12 * (cx - afuera_de[0]) / max(0.01, math.hypot(cx, cz)), q[1],
-                  q[2] - 0.12 * (cz - afuera_de[2]) / max(0.01, math.hypot(cx, cz))) for q in pts]
-        idx2 = [m.v(q) for q in hacia]
-        m.cara(tuple(idx2), (-(cx - afuera_de[0]), 0, -(cz - afuera_de[2])), "forro")
-        pint.append(color(TELA_N[0]))
-    zt_f, zt_b, zb_f, zb_b = -2.15, 2.2, -3.05, 3.1               # arriba ajustado, abajo abierto
-    xt, xb = 3.85, 4.95
-    sup_d, sup_i = C - 0.2, C - 3.5                               # delantero derecho puesto, izquierdo caido
-    lado_d, lado_i = C - 0.2, C - 5.0
-    panel([(-3.8, C + 0.4, zt_b), (3.8, C + 0.4, zt_b), (xb, abajo, zb_b), (-xb, abajo, zb_b)], espalda)
-    panel([(xt, lado_d, zt_b), (xt, lado_d, zt_f), (xb, abajo, zb_f), (xb, abajo, zb_b)], costado_d)
-    panel([(-xt, lado_i, zt_f), (-xt, lado_i, zt_b), (-xb, abajo, zb_b), (-xb, abajo, zb_f)], costado_i)
-    panel([(1.9, sup_d, zt_f), (xt, sup_d, zt_f), (xb, abajo, zb_f), (2.4, abajo, zb_f)], delantero_d)
-    panel([(-xt, sup_i, zt_f), (-1.9, sup_i, zt_f), (-2.4, abajo, zb_f), (-xb, abajo, zb_f)], delantero_i)
-    # solapas negras a lo largo de la abertura (un poco adelante del delantero)
-    for s, sup in ((1, sup_d), (-1, sup_i)):
-        pts = [(s * 1.65, sup + 0.3, zt_f - 0.1), (s * 2.35, sup + 0.3, zt_f - 0.1),
-               (s * 2.85, abajo + 0.3, zb_f - 0.1), (s * 2.15, abajo + 0.3, zb_f - 0.1)]
-        if s < 0:
-            pts = [pts[1], pts[0], pts[3], pts[2]]
-        idx = [m.v((q[0], q[1], q[2])) for q in pts]
-        m.cara(tuple(idx), (0, 0, -1), "solapa")
-        pint.append(lambda t: hex_(TELA_N[3] if t.i in (0, t.tw - 1) else NEGRO2))
+        largo = max(0.01, math.hypot(cx, cz))
+        adentro = [(q[0] - 0.12 * cx / largo, q[1], q[2] - 0.12 * cz / largo) for q in pts]
+        m.cara(tuple(m.v(q) for q in adentro), (-cx, 0, -cz), "forro")
+        pint.append(color(AZUL[1]))
+    C, A = CUELLO, HAORI_ABAJO
+    zt_f, zt_b, zb_f, zb_b = -2.15, 2.2, -3.4, 3.5
+    xt, xb = 3.85, 5.6
+    a0, a1 = ABERTURA
+    panel([(-3.8, C + 0.4, zt_b), (3.8, C + 0.4, zt_b), (xb, A, zb_b), (-xb, A, zb_b)], haori_tela(espalda=True))
+    panel([(xt, SUP, zt_b), (xt, SUP, zt_f), (xb, A, zb_f), (xb, A, zb_b)], haori_tela())
+    panel([(-xt, SUP, zt_f), (-xt, SUP, zt_b), (-xb, A, zb_b), (-xb, A, zb_f)], haori_tela())
+    panel([(a0, SUP, zt_f), (xt, SUP, zt_f), (xb, A, zb_f), (a1, A, zb_f)], haori_tela(delantero=1))
+    panel([(-xt, SUP, zt_f), (-a0, SUP, zt_f), (-a1, A, zb_f), (-xb, A, zb_f)], haori_tela(delantero=-1))
     return (m.vs, m.caras), pint
 
 
 MANGA_Z_FRENTE, MANGA_Z_ATRAS = -2.9, 3.3
 
 
-def final_manga(mano):
-    """Altura del borde de abajo de la manga segun z (adelante en la muneca, atras la bolsa cuelga mas)."""
-    puno, bolsa = mano + 2.6, mano - 1.2
-
-    def f(t):
-        k = (t.z - MANGA_Z_FRENTE) / (MANGA_Z_ATRAS - MANGA_Z_FRENTE)
-        return puno + (bolsa - puno) * max(0.0, min(1.0, k))
-    return f
-
-
-def manga_kimono(arriba, mano):
+def manga_kimono(arriba):
     """Manga ancha de kimono (lado derecho): trapecio que se abre hacia afuera y hacia abajo; adelante termina en la
-    muneca (la mano sale por ahi) y atras cuelga mas, como la bolsa del kimono."""
+    muneca y atras cuelga mas, como la bolsa del kimono."""
     xi, xo_arriba, xo_abajo = 3.55, 6.7, 9.0
-    puno, bolsa = mano + 2.6, mano - 1.2
     sup = [(xo_arriba, arriba, 1.7), (xo_arriba, arriba, -1.7), (xi, arriba, -1.7), (xi, arriba, 1.7)]
-    inf = [(xo_abajo, bolsa, MANGA_Z_ATRAS), (xo_abajo, puno, MANGA_Z_FRENTE), (xi + 0.05, puno, MANGA_Z_FRENTE),
-           (xi + 0.05, bolsa, MANGA_Z_ATRAS)]
+    inf = [(xo_abajo, BOLSA, MANGA_Z_ATRAS), (xo_abajo, PUNO, MANGA_Z_FRENTE), (xi + 0.05, PUNO, MANGA_Z_FRENTE),
+           (xi + 0.05, BOLSA, MANGA_Z_ATRAS)]
     return tubo_hueco(inf, sup)
 
 
-def tela_manga(s, arriba, mano):
-    """Tela de la manga (s = 1 derecha, -1 izquierda): en la cara de afuera, la de adelante y la de atras va el pixel
-    art sacado de la misma cara en la referencia; el final de la manga queda blanco."""
-    lado = "DER" if s > 0 else "IZQ"
-    v = (lambda t: arriba - t.y)
-    dib = {
-        "fuera": proyectar(getattr(PX, f"MANGA_{lado}_FUERA"),
-                           (lambda t: MANGA_Z_ATRAS - t.z) if s > 0 else (lambda t: t.z - MANGA_Z_FRENTE), v),
-        "frente": proyectar(getattr(PX, f"MANGA_{lado}_FRENTE"),
-                            (lambda t: 9.0 - t.x) if s > 0 else (lambda t: -3.55 - t.x), v),
-        "espalda": proyectar(getattr(PX, f"MANGA_{lado}_ESPALDA"),
-                             (lambda t: t.x - 3.55) if s > 0 else (lambda t: t.x + 9.0), v),
-    }
-
-    def dibujo(t):
-        n = t.n
-        if abs(n[0]) > 0.7:
-            return dib["fuera"](t) if n[0] * s > 0 else None
-        if abs(n[2]) > 0.7:
-            return dib["frente" if n[2] < 0 else "espalda"](t)
-        return None
-    return tela(final_manga(mano), dibujo)
+def manga_tela(s, arriba):
+    """Manga blanca: el simbolo chico en la cara de afuera, arriba, y una banda negra fina en la boca de la manga."""
+    def p(t):
+        k = (t.z - MANGA_Z_FRENTE) / (MANGA_Z_ATRAS - MANGA_Z_FRENTE)
+        fin = PUNO + (BOLSA - PUNO) * max(0.0, min(1.0, k))
+        if t.cara != "up" and t.y - fin < 0.4:
+            return hex_(NEGRO)
+        if abs(t.n[0]) > 0.7 and t.n[0] * s > 0 and simbolo(t.z - 0.3, t.y - (arriba - 3.2), 1.05):
+            return hex_(TINTA)
+        return hex_(BLANCO)
+    return p
 
 
-# ---------------------------------------------------------------- zapatillas, cubo por cubo
+# ---------------------------------------------------------------- botas
 
-MANCHAS_SUELA = ((-2.4, 1.1, 1.0, 0.42), (1.2, 0.95, 0.75, 0.5))   # (z, y, radio z, radio y) de cada mancha
-
-
-def suela_manchada(t):
-    """Plataforma blanca con manchas negras grandes (como la referencia), de forma fija."""
+def suela(t):
+    """Plataforma blanca gruesa con una franja negra al medio y sombra contra el piso."""
     if t.cara == "down":
         return hex_(TELA_B[0])
     if t.cara == "up":
         return hex_(TELA_B[4])
-    if t.fila_abajo < 2:
-        return hex_(TELA_B[1])                                 # sombra contra el piso
-    if t.j < 1:
-        return hex_(TELA_B[4])                                 # canto de arriba con luz
-    if abs(t.n[0]) > 0.7:                                      # dos manchas negras a cada costado
-        for zc, yc, rz, ry in MANCHAS_SUELA:
-            if ((t.z - zc) / rz) ** 2 + ((t.y - yc) / ry) ** 2 < 1:
-                return hex_(NEGRO)
+    if t.y < 0.25:
+        return hex_(TELA_B[1])
+    if 0.75 < t.y < 1.0:
+        return hex_(NEGRO)
     return hex_(BLANCO)
 
 
@@ -513,174 +440,153 @@ def capellada(t):
     return hex_(NEGRO2 if t.cara == "up" else NEGRO)
 
 
-def zapatilla(p, g, x, s):
-    """Zapatilla de calle GORDA y baja, con la geometria del dibujo: plataforma con escalon (hueco en el arco),
-    punta larga y baja, capellada que sube en rampa hasta el tobillo (perfil extruido), puntera y talonera blancas,
-    cordones amarillos sobre la rampa, y arriba un PUNO del tobillo mas angosto con dos correas y hebilla."""
+def bota(p, g, x, s):
+    """Bota gruesa: plataforma blanca con franja negra, capellada negra que sube en rampa, puntera y talon blancos,
+    cordones de plata y un puno alto con dos correas y hebilla."""
     def cubo(nombre, xa, xb, y1, y2, z1, z2, pintor, rot=None, piv=None):
         a, b = x(xa, xb)
         piv2 = None if piv is None else (s * piv[0], piv[1], piv[2])
         rot2 = None if rot is None else (rot[0], rot[1] * s, rot[2] * s)
-        if abs(a - b) < 1e-6:
-            p.plano(g, nombre, (a, y1, z1), (b, y2, z2), pintor, rot2, piv2, dens=D)
-        else:
-            p.caja(g, nombre, (a, y1, z1), (b, y2, z2), pintor, rot2, piv2, dens=D)
+        p.caja(g, nombre, (a, y1, z1), (b, y2, z2), pintor, rot2, piv2, dens=D)
 
-    blanco, negro, amarillo = color(BLANCO), color(NEGRO), color(AMARILLO["b"])
-    # plataforma ancha con escalon abajo (hueco en el arco) y bordes redondeados con dos cajas cruzadas
-    cubo("suela_baja_frente", 0.35, 3.65, 0.0, 0.55, -4.1, -1.1, suela_manchada)
-    cubo("suela_baja_atras", 0.35, 3.65, 0.0, 0.55, 0.7, 2.6, suela_manchada)
-    cubo("suela_arco", 0.6, 3.4, 0.3, 0.55, -1.1, 0.7, color(GRIS))
-    cubo("suela_ancha", 0.12, 3.88, 0.55, 1.6, -3.7, 2.3, suela_manchada)
-    cubo("suela_larga", 0.35, 3.65, 0.55, 1.6, -4.2, 2.7, suela_manchada)
-    # capellada: perfil de costado (punta baja, rampa, tobillo) extruido a lo ancho
+    blanco, negro = color(BLANCO), color(NEGRO)
+    cubo("suela_frente", 0.35, 3.65, 0.0, 0.55, -4.1, -1.1, suela)
+    cubo("suela_atras", 0.35, 3.65, 0.0, 0.55, 0.7, 2.6, suela)
+    cubo("suela_arco", 0.6, 3.4, 0.3, 0.55, -1.1, 0.7, color(TELA_B[1]))
+    cubo("suela_ancha", 0.12, 3.88, 0.55, 1.6, -3.7, 2.3, suela)
+    cubo("suela_larga", 0.35, 3.65, 0.55, 1.6, -4.2, 2.7, suela)
     perfil = [(-4.0, 1.6), (-3.9, 2.35), (-3.2, 2.75), (-1.0, 3.55), (-0.75, 3.9), (2.45, 3.9), (2.6, 1.6)]
     malla = geo.extruir_x(perfil, 0.4, 3.6)
     p.malla(g, "capellada", malla if s > 0 else geo.espejo_x(malla), capellada, dens=D)
     cubo("puntera", 0.6, 3.4, 1.6, 2.25, -4.15, -3.45, blanco)
     cubo("talonera", 0.6, 3.4, 1.6, 3.4, 2.5, 2.75, blanco)
     rampa = dict(rot=(-20.0, 0, 0), piv=(2.3, 3.55, -1.0))
-    cubo("cordon", 1.4, 2.4, 3.55, 3.67, -3.2, -1.0, amarillo, **rampa)
+    cubo("cordon", 1.4, 2.4, 3.55, 3.67, -3.2, -1.0, plata, **rampa)
     for k, zc in enumerate((-2.7, -1.8)):
-        cubo(f"cordon_cruce{k}", 0.8, 3.0, 3.55, 3.65, zc - 0.18, zc + 0.18, amarillo, **rampa)
-    # puno del tobillo, mas angosto, con dos correas, hebilla amarilla y lengueta
-    cubo("puno", 0.0, 3.8, 3.6, 5.2, -1.95, 2.3, negro)                   # rodea la pierna (que mide +-1.75)
-    cubo("correa1", -0.05, 3.9, 3.85, 4.25, -2.05, 2.4, color("#D8D4CE"))
-    cubo("correa2", -0.05, 3.9, 4.5, 4.95, -2.05, 2.4, negro)
-    cubo("hebilla", 1.3, 2.4, 4.4, 5.05, -2.27, -2.03, amarillo)
-    cubo("hebilla_perno", 1.7, 2.0, 4.6, 4.85, -2.34, -2.25, oro)
+        cubo(f"cordon_cruce{k}", 0.8, 3.0, 3.55, 3.65, zc - 0.18, zc + 0.18, plata, **rampa)
+    cubo("puno", 0.0, 3.8, 3.6, 5.6, -1.95, 2.3, negro)
+    cubo("correa1", -0.05, 3.9, 3.85, 4.25, -2.05, 2.4, blanco)
+    cubo("correa2", -0.05, 3.9, 4.75, 5.15, -2.05, 2.4, negro)
+    cubo("hebilla", 1.4, 2.3, 4.65, 5.25, -2.25, -2.03, plata)
     cubo("lengueta", 1.1, 2.6, 3.5, 4.4, -2.15, -1.9, negro)
-    cubo("lengueta_punta", 1.1, 2.6, 5.0, 5.6, -2.15, -1.9, blanco)
-    cubo("tira_colgando", 3.95, 3.95, 3.0, 4.6, -1.9, -1.3, amarillo, rot=(0, 0, -8), piv=(3.95, 4.6, -1.6))
+
+
+# ---------------------------------------------------------------- katana
+
+def katana(p):
+    """Katana metida en el obi del lado izquierdo: el mango adelante y arriba, la vaina hacia atras y abajo."""
+    g = "Body/katana"
+    giro = dict(rot=(24.0, 0, 0), piv=(-5.05, 25.4, -1.0))
+
+    def trenzado(t):
+        if t.cara in ("north", "south"):
+            return hex_(NEGRO)
+        return hex_(BLANCO if (t.i + t.j) % 6 in (0, 1) and (t.i - t.j) % 6 in (0, 1) else NEGRO)
+
+    def vaina(t):
+        if t.cara == "up" and t.i in (1, 2):
+            return hex_(TELA_N[3])                         # brillo de la laca
+        return hex_(NEGRO2 if t.cara == "up" else NEGRO)
+    x1, x2 = -5.35, -4.75
+    p.caja(g, "mango", (x1 + 0.02, 25.1, -5.4), (x2 - 0.02, 25.7, -2.1), trenzado, dens=D, **giro)
+    p.caja(g, "kashira", (x1, 25.05, -5.6), (x2, 25.75, -5.4), oro, dens=D, **giro)
+    p.caja(g, "tsuba", (x1 - 0.3, 24.75, -2.1), (x2 + 0.3, 26.05, -1.85), oro, dens=D, **giro)
+    p.caja(g, "vaina", (x1 + 0.03, 25.05, -1.85), (x2 - 0.03, 25.75, 8.4), vaina, dens=D, **giro)
+    p.caja(g, "sageo", (x1 - 0.04, 25.0, -1.2), (x2 + 0.04, 25.8, -0.7), color(AZUL[2]), dens=D, **giro)
+    p.caja(g, "kojiri", (x1, 25.03, 8.4), (x2, 25.77, 8.8), oro, dens=D, **giro)
 
 
 # ---------------------------------------------------------------- construccion
 
 def construir():
     p = Personaje("correctar", altura=40, cabeza=8, torso=(7, 10, 3.5), brazo=(2.8, 2.8), pierna=(3.5, 3.5))
-    C, T, L = p.cuello, p.tope, p.lh                           # 32, 40, 22: cintura alta y piernas largas
-    assert (C, T) == (CUELLO, TOPE)
+    C, T, L = p.cuello, p.tope, p.lh
+    assert (C, T, L) == (CUELLO, TOPE, CADERA)
 
     # ================================================================ CABEZA y cara
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), sprite({"north": CARA}, PAL_CARA, base=piel), dens=D)
 
-    # ================================================================ PELO simple: casco + flequillo + unos cubitos
-    # todo pintado con el MISMO campo de mechones (continuo de una caja a otra); abajo termina en puntas
+    # ================================================================ PELO negro ordenado
     g = "Head/pelo"
-    p.caja(g, "casco_arriba", (-4.35, T - 0.6, -4.35), (4.35, T + 0.6, 4.35), pelo, dens=D)
-    p.caja(g, "casco_nuca", (-4.35, C + 1.4, 3.7), (4.35, T - 0.6, 4.35), puntas(pelo), dens=D)
+    p.caja(g, "casco_arriba", (-4.35, T - 0.6, -4.35), (4.35, T + 0.7, 4.4), pelo, dens=D)
+    p.caja(g, "casco_nuca", (-4.35, C + 0.2, 3.7), (4.35, T - 0.6, 4.4), puntas(pelo, punta=1.3), dens=D)
     for s in (1, -1):
-        x1, x2 = sorted((s * 3.7, s * 4.35))
-        p.caja(g, f"casco_lado{s}", (x1, C + 2.6, -3.95), (x2, T - 0.6, 3.7), puntas(pelo), dens=D)
-    p.caja(g, "flequillo", (-4.35, C + 3.4, -4.35), (4.35, T - 0.6, -3.95), puntas(pelo, SUBE_FLEQUILLO, 1.2),
+        x1, x2 = sorted((s * 3.7, s * 4.4))
+        p.caja(g, f"casco_lado{s}", (x1, C + 0.9, -3.95), (x2, T - 0.6, 3.7), puntas(pelo), dens=D)
+        # mechon largo que enmarca la cara, adelante de la oreja
+        x1, x2 = sorted((s * 3.55, s * 4.45))
+        p.caja(g, f"mechon_cara{s}", (x1, C - 0.6, -4.45), (x2, C + 4.2, -3.6), puntas(pelo, punta=1.4), dens=D)
+    p.caja(g, "flequillo", (-4.35, C + 2.6, -4.45), (4.35, T - 0.6, -3.95), puntas(pelo, SUBE_FLEQUILLO, 1.3),
            dens=D)
-    # unos pocos cubitos que lo despeinan: (centro, medidas, giro, de donde cuelga, color)
-    cubitos = [((-2.0, T + 1.0, -1.2), (1.0, 1.6, 1.0), (10, 0, 22), "abajo", "negro"),
-               ((0.9, T + 1.1, -1.8), (1.0, 1.8, 1.0), (-14, 0, -12), "abajo", "negro"),
-               ((2.7, T + 0.9, 0.8), (1.0, 1.4, 1.0), (8, 0, -28), "abajo", "negro"),
-               ((-0.8, T + 1.0, 2.0), (1.0, 1.5, 1.0), (24, 0, 10), "abajo", "negro"),
-               ((-3.3, T + 0.9, -0.4), (1.0, 1.5, 1.0), (0, 0, 28), "abajo", "blanco"),
-               ((-1.8, C + 2.4, 4.5), (1.0, 1.8, 0.8), (-25, 0, 8), "arriba", "negro"),
-               ((0.6, C + 2.0, 4.5), (1.0, 2.0, 0.8), (-30, 0, -6), "arriba", "negro"),
-               ((2.6, C + 2.6, 4.5), (1.0, 1.6, 0.8), (-22, 0, -12), "arriba", "negro")]
-    for s in (1, -1):
-        for y, z in ((C + 5.6, -1.4), (C + 4.0, 1.6)):
-            tinte = "blanco" if (s < 0 and z < 0) else "negro"
-            cubitos.append(((s * 4.45, y, z), (0.8, 1.8, 0.8), (0, 0, 25 * s), "arriba", tinte))
-    tintes = {"negro": pelo, "blanco": lambda t: pelo(t, blanco=True)}
-    for k, ((x, y, z), (w, h, d), rot, cuelga, tinte) in enumerate(cubitos):
-        piv = (x, y - h / 2, z) if cuelga == "abajo" else (x, y + h / 2, z)
-        p.caja(g, f"cubito{k}", (x - w / 2, y - h / 2, z - d / 2), (x + w / 2, y + h / 2, z + d / 2), tintes[tinte],
-               rot=rot, piv=piv, dens=D)
-    # cinta roja del lado izquierdo
-    p.caja(g, "cinta_roja", (-5.0, T - 2.8, -2.0), (-4.3, T + 0.4, -0.7), color(ROJO["b"]), rot=(0, 0, 18),
-           piv=(-4.65, T + 0.4, -1.35), dens=D)
-    p.caja(g, "cinta_roja2", (-5.4, T - 0.9, -1.9), (-4.4, T + 0.2, -0.6), color(ROJO["l"]), dens=D)
+    # pelito parado arriba, apenas inclinado
+    p.caja(g, "pelito", (-0.15, T + 0.7, -0.6), (0.15, T + 2.1, 0.2), pelo, rot=(0, 0, -22),
+           piv=(0, T + 0.7, -0.2), dens=D)
+    p.caja(g, "pelito_punta", (-0.15, T + 1.7, -0.6), (0.15, T + 2.0, 0.6), pelo, rot=(0, 0, -22),
+           piv=(0, T + 0.7, -0.2), dens=D)
 
-    # ================================================================ ARETE con talisman (izquierda)
+    # ================================================================ ARETES largos con etiqueta y borla azul
     g = "Head/aretes"
-    p.caja(g, "argolla", (-4.55, C + 2.4, -0.4), (-4.25, C + 3.2, 0.4), oro, dens=D)
-    p.caja(g, "cadena", (-4.75, C + 1.4, -0.1), (-4.55, C + 2.6, 0.1), oro, dens=D)
-    p.plano(g, "talisman", (-5.4, C - 1.2, -0.2), (-4.3, C + 1.5, -0.2), sprite({"todas": TALISMAN}, PAL_TALISMAN), dens=D)
+    for s in (1, -1):
+        x1, x2 = sorted((s * 4.45, s * 4.7))
+        xm = s * 4.6
+        p.caja(g, f"argolla{s}", (x1, C + 2.35, -0.25), (x2, C + 2.85, 0.25), plata, dens=D)
+        p.caja(g, f"cadena{s}", (xm - 0.06, C + 1.95, -0.06), (xm + 0.06, C + 2.35, 0.06), plata, dens=D)
+        p.plano(g, f"etiqueta{s}", (xm, C + 1.0, -0.35), (xm, C + 1.95, 0.35), etiqueta(letras=False), dens=D)
+        p.caja(g, f"borla{s}", (xm - 0.16, C + 0.4, -0.16), (xm + 0.16, C + 1.0, 0.16), color(AZUL[3]), dens=D)
 
-    # ================================================================ TORSO delgado
-    torso = torso_dibujo(7 * D, 10 * D, D / 3)
-    pal_torso = {"p": PIEL["b"], "s": PIEL["s"], "k": TINTA, "d": PIEL["s2"], "l": PIEL["l"], "q": "#B98864"}
-    p.caja("Body/torso", "torso", (-3.5, L, -1.75), (3.5, C, 1.75), sprite({"north": torso}, pal_torso, base=piel), dens=D)
-    p.caja("Body/collar", "moneda", (-0.75, C - 4.3, -2.05), (0.75, C - 2.8, -1.75), oro, rot=(0, 0, 45),
-           piv=(0, C - 3.55, -1.9), dens=D)
-    p.caja("Body/collar", "moneda_centro", (-0.3, C - 3.85, -2.15), (0.3, C - 3.25, -2.0), color("#5A4416"), dens=D)
+    # ================================================================ TORSO: kimono negro cruzado en V, collar de jade
+    p.caja("Body/torso", "kosode", (-3.5, L, -1.75), (3.5, C, 1.75), kosode, dens=D)
+    p.caja("Body/collar", "colgante", (-0.45, C - 3.85, -1.98), (0.45, C - 2.95, -1.76),
+           sprite({"todas": [".pppp.", "pjjjjp", "pjkkjp", "pjkkjp", "pjjjjp", ".pppp."]},
+                  {"p": PLATA["b"], "j": JADE["b"], "k": JADE["s"]}), dens=D)
 
-    # ================================================================ FAJA con nudo
-    p.caja("Body/faja", "faja", (-3.9, L - 1.0, -2.15), (3.9, L + 1.2, 2.15), faja, dens=D)
-    p.caja("Body/faja", "nudo", (-0.2, L - 1.3, -2.75), (1.8, L + 1.0, -2.15), color(NEGRO), dens=D)
+    # ================================================================ OBI azul con cordon, nudo, borlas y etiqueta
+    g = "Body/obi"
+    p.caja(g, "obi", (-3.95, OBI_ABAJO, -2.2), (3.95, OBI_ARRIBA, 2.2), obi, dens=D)
+    p.caja(g, "nudo", (-1.9, OBI_CORDON - 0.45, -2.55), (-0.9, OBI_CORDON + 0.45, -2.2), color(BLANCO), dens=D)
+    for k, (x, largo) in enumerate(((-1.75, 4.6), (-1.15, 3.6))):
+        p.caja(g, f"cordon{k}", (x - 0.08, OBI_CORDON - largo, -2.5), (x + 0.08, OBI_CORDON - 0.4, -2.36),
+               color(BLANCO), dens=D)
+        p.caja(g, f"borla{k}", (x - 0.22, OBI_CORDON - largo - 1.3, -2.58), (x + 0.22, OBI_CORDON - largo, -2.28),
+               color(AZUL[3]), dens=D)
+    p.plano(g, "etiqueta", (-3.4, OBI_ABAJO - 6.2, -2.95), (-1.9, OBI_ABAJO + 0.1, -2.95), etiqueta(),
+            dens=DENS_LETRAS)
 
-    # ================================================================ HAORI: chaqueta aparte que se abre en la cadera
-    g = "Body/haori"
-    abajo = L - 5.4                                             # el haori llega a la cadera
-    def final(t, y=abajo):                                      # la franja blanca va al final del haori
-        return y
-    # pixel art de la referencia en la espalda (con el kanji) y en los delanteros; los costados casi no se ven
-    espalda = tela(final, proyectar(PX.ESPALDA, lambda t: t.x + 4.95, lambda t: C + 0.4 - t.y))
-    delantero_d = tela(final, proyectar(PX.DELANTERO_DER, lambda t: 4.95 - t.x, lambda t: C - 0.2 - t.y))
-    delantero_i = tela(final, proyectar(PX.DELANTERO_IZQ, lambda t: -1.9 - t.x, lambda t: C - 3.5 - t.y))
-    malla, pintores = haori(C, abajo, (espalda, tela(final), tela(final), delantero_d, delantero_i))
-    p.malla(g, "haori", malla, pintores, dens=D)
+    # ================================================================ HAORI blanco largo
+    malla, pintores = haori()
+    p.malla("Body/haori", "haori", malla, pintores, dens=D)
+    z_atras = 2.2 + 1.3 * (C + 0.4 - 18.0) / (C + 0.4 - HAORI_ABAJO) + 0.08
+    p.plano("Body/haori", "etiqueta_espalda", (-0.75, 15.3, z_atras), (0.75, 21.6, z_atras), etiqueta(),
+            rot=(-2.8, 0, 0), piv=(0, 21.6, z_atras), dens=DENS_LETRAS)
 
-    # ================================================================ BRAZOS finos, hombros desnudos, MANGAS de paneles
-    mano = C - 15.0                                             # punta de los dedos: a la altura de la entrepierna
+    # ================================================================ BRAZOS con manga de kimono blanca
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
         x1, x2 = sorted((s * 3.5, s * 6.3))
-        cara_fuera = "east" if s > 0 else "west"
-        p.caja(f"{hueso}/brazo", "brazo", (x1, mano, -1.4), (x2, C, 1.4),
-               encima(piel, [(cara_fuera, 2, 6, escalar_dibujo(TATUAJE, 2), {"k": TINTA})]), dens=D)
-        p.caja(f"{hueso}/anillo", "anillo", (x1 - 0.12, mano + 1.2, -1.52), (x2 + 0.12, mano + 1.6, 1.52),
-               lambda t: hex_(ORO["b"] if t.i % 4 == 1 else NEGRO), dens=D)
-        # derecha: la chaqueta tapa el hombro; izquierda: caida del hombro (se ve el tatuaje)
-        arriba = C + 0.3 if s > 0 else C - 4.0
-        malla, n_fuera = manga_kimono(arriba, mano)
+        p.caja(f"{hueso}/brazo", "brazo", (x1, MANO, -1.4), (x2, C, 1.4), brazo, dens=D)
+        p.caja(f"{hueso}/anillo", "anillo", (x1 - 0.1, MANO + 1.2, -1.5), (x2 + 0.1, MANO + 1.55, 1.5), plata, dens=D)
+        arriba = C + 0.3
+        malla, n_fuera = manga_kimono(arriba)
         if s < 0:
             malla = geo.espejo_x(malla)
-        pint = [tela_manga(s, arriba, mano)] * n_fuera + [color(TELA_N[0])] * (len(malla[1]) - n_fuera)
+        pint = [manga_tela(s, arriba)] * n_fuera + [color(AZUL[1])] * (len(malla[1]) - n_fuera)
         p.malla(f"{hueso}/manga", "manga", malla, pint, dens=D)
 
-    # ================================================================ CINTAS: roja adelante y atras, amarilla con talisman
-    g = "Body/cintas"
-    p.plano(g, "roja_frente", (0.1, L - 8.0, -2.8), (1.6, L - 0.6, -2.8), cinta(ROJO), rot=(0, 0, -3),
-            piv=(0.85, L - 0.6, -2.8), dens=D)
-    y_arriba = C - 6.6
-    z_arriba = 2.2 + 0.9 * (C + 0.4 - y_arriba) / (C + 0.4 - abajo) + 0.14
-    p.plano(g, "roja_espalda", (0.6, abajo + 0.5, z_arriba), (2.0, y_arriba, z_arriba), cinta(ROJO),
-            rot=(-3.3, 0, 0), piv=(1.3, y_arriba, z_arriba), dens=D)
-    x = -5.25
-    p.plano(g, "amarilla_lado", (x, abajo - 7.5, -1.4), (x, abajo + 0.2, -0.1), cinta(AMARILLO, "#6A4A08"),
-            rot=(0, 0, -4), piv=(x, abajo + 0.2, -0.75), dens=D)
-    p.plano(g, "talisman_lado", (x, abajo - 10.6, -1.3), (x, abajo - 7.3, -0.2), sprite({"todas": TALISMAN}, PAL_TALISMAN),
-            rot=(0, 0, -4), piv=(x, abajo + 0.2, -0.75), dens=D)
+    # ================================================================ KATANA a la izquierda
+    katana(p)
 
-    # ================================================================ HAKAMA ancho y ZAPATILLAS gruesas
+    # ================================================================ HAKAMA ancho, calcetas y BOTAS
     for s in (1, -1):
         hueso = "RightLeg" if s > 0 else "LeftLeg"
 
         def x(a, b):
             return sorted((s * a, s * b))
         a, b = x(0.1, 3.6)
-        p.caja(f"{hueso}/pierna", "pierna", (a, 3.8, -1.75), (b, L, 1.75),
-               lambda t: hex_(PIEL["b"] if t.y < 6.4 else NEGRO), dens=D)        # el tobillo se ve
-        # hakama: trapecio ancho de la cintura a media pantorrilla
-        cintura = [(3.8, L + 0.6, 2.3), (3.8, L + 0.6, -2.3), (0.05, L + 0.6, -2.3), (0.05, L + 0.6, 2.3)]
-        ruedo = [(5.4, 6.4, 3.3), (5.4, 6.4, -3.4), (0.7, 6.4, -3.4), (0.7, 6.4, 3.3)]      # se separan abajo
+        p.caja(f"{hueso}/pierna", "pierna", (a, 3.8, -1.75), (b, L, 1.75), pierna, dens=D)
+        cintura = [(3.85, OBI_ABAJO + 0.2, 2.35), (3.85, OBI_ABAJO + 0.2, -2.35), (0.05, OBI_ABAJO + 0.2, -2.35),
+                   (0.05, OBI_ABAJO + 0.2, 2.35)]
+        ruedo = [(5.2, 5.4, 3.0), (5.2, 5.4, -3.0), (0.45, 5.4, -3.0), (0.45, 5.4, 3.0)]
         malla = geo.tronco(ruedo, cintura)
         p.malla(f"{hueso}/pantalon", "hakama", malla if s > 0 else geo.espejo_x(malla), pantalon, dens=D)
-        g = f"{hueso}/zapatilla"
-        zapatilla(p, g, x, s)
+        bota(p, f"{hueso}/bota", x, s)
     return p
-
-
-def accesorios():
-    """La mascara amarilla de cubo (ojos en cruz y sonrisa), como modelo aparte."""
-    o = Objeto("correctar_mascara")
-    o.caja("cubo", (-4, 0, -4), (4, 8, 4), sprite({"north": CARA_MASCARA}, {"y": AMARILLO["b"], "k": "#161214"},
-                                                   base=color(AMARILLO["b"])), dens=D)
-    return [o]

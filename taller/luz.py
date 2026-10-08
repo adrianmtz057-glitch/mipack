@@ -371,7 +371,7 @@ class Luz:
                     k = 1                              # canto con luz
                 elif abajo and filas >= 6:
                     k = -1                             # contorno de abajo
-            if de_cara and 0 <= k < 2 and col[0] + col[1] + col[2] < 150:
-                k += 1                                 # en lo muy oscuro la sombra casi no se ve: sube la luz
+            if de_cara and k == 0 and col[0] + col[1] + col[2] < 150:
+                k = 1                                  # en lo muy oscuro la sombra casi no se ve: sube la luz
             return paso(col, k) if k else col
         return aplicar

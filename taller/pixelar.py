@@ -19,6 +19,7 @@ import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FUENTE_KANJI = "/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf"
+FUENTE_PIXEL = "/usr/share/fonts/opentype/unifont/unifont_jp.otf"   # fuente de pixel art 16 x 16 (kanji nitidos)
 
 # clase -> letra. 1 (negro claro de la iluminacion del render) se junta con el negro.
 LETRA = {0: "n", 1: "n", 2: "g", 3: "b", 4: "h"}
@@ -114,17 +115,23 @@ def pixelar(ref, caja, w, h):
     return volumen(c)
 
 
-def kanji(texto, lado, fuente=FUENTE_KANJI, grosor=1):
-    """Un kanji como mascara de lado x lado (True = trazo), con el trazo engrosado 'grosor' texeles."""
+def kanji(texto, lado, fuente=FUENTE_KANJI, grosor=1, nativo=False):
+    """Un kanji como mascara de lado x lado (True = trazo), con el trazo engrosado 'grosor' texeles.
+    nativo: la fuente ya es de pixel art (Unifont, 16 x 16): se dibuja a su tamano, sin achicar, y queda nitida."""
     import numpy as np
     from PIL import Image, ImageDraw, ImageFont
-    k = 8                                             # se dibuja grande y se baja: bordes limpios
-    im = Image.new("L", (lado * k, lado * k), 0)
-    f = ImageFont.truetype(fuente, int(lado * k * 0.98))
-    d = ImageDraw.Draw(im)
-    x1, y1, x2, y2 = d.textbbox((0, 0), texto, font=f)
-    d.text(((lado * k - (x2 - x1)) / 2 - x1, (lado * k - (y2 - y1)) / 2 - y1), texto, font=f, fill=255)
-    m = np.asarray(im.resize((lado, lado), Image.BOX)) > 70
+    if nativo:
+        im = Image.new("L", (lado, lado), 0)
+        ImageDraw.Draw(im).text((0, 0), texto, font=ImageFont.truetype(fuente, lado), fill=255)
+        m = np.asarray(im) > 127
+    else:
+        k = 8                                         # se dibuja grande y se baja: bordes limpios
+        im = Image.new("L", (lado * k, lado * k), 0)
+        f = ImageFont.truetype(fuente, int(lado * k * 0.98))
+        d = ImageDraw.Draw(im)
+        x1, y1, x2, y2 = d.textbbox((0, 0), texto, font=f)
+        d.text(((lado * k - (x2 - x1)) / 2 - x1, (lado * k - (y2 - y1)) / 2 - y1), texto, font=f, fill=255)
+        m = np.asarray(im.resize((lado, lado), Image.BOX)) > 70
     for _ in range(grosor):
         g = m.copy()
         g[:, 1:] |= m[:, :-1]
@@ -151,55 +158,15 @@ def escribir_modulo(ruta, doc, piezas):
 # ---------------------------------------------------------------- recetas
 
 def receta_correctar():
-    """Haori de Correcthar desde referencias/personajes/correctar_nuevo.png (1254 x 1254).
-    Cada recorte va al tamano de su cara a densidad 6 (texeles = px del modelo x 6). Columna 0 = izquierda de quien
-    mira esa cara."""
-    import numpy as np
-    from PIL import Image
-    ref = Image.open(os.path.join(RAIZ, "referencias/personajes/correctar_nuevo.png")).convert("RGB")
-    recortes = [
-        # nombre, caja en la referencia, columnas, filas
-        ("ESPALDA", (547, 177, 647, 393), 60, 95),
-        ("DELANTERO_DER", (100, 183, 137, 393), 19, 92),
-        ("DELANTERO_IZQ", (183, 230, 220, 393), 19, 72),
-        ("MANGA_DER_FRENTE", (60, 200, 107, 373), 33, 77),
-        ("MANGA_DER_ESPALDA", (643, 183, 700, 373), 33, 99),
-        ("MANGA_DER_FUERA", (730, 240, 813, 393), 38, 99),
-        ("MANGA_IZQ_FRENTE", (220, 217, 273, 360), 33, 51),
-        ("MANGA_IZQ_ESPALDA", (487, 200, 547, 373), 33, 74),
-        ("MANGA_IZQ_FUERA", (350, 237, 445, 410), 38, 74),
-    ]
+    """Correcthar (referencias/personajes/correctar_semidios.png): la escritura de sus etiquetas, "原状回復" (volver
+    al estado original, su poder), en letras de pixel art de 16 x 16 (Unifont). El resto de su ropa se pinta con
+    formas pensadas."""
     piezas = []
-    for nombre, caja, w, h in recortes:
-        c = pixelar(ref, caja, w, h)
-        if nombre == "ESPALDA":
-            # arriba de la espalda: negro liso con el kanji nitido (la version pixelada era una mancha)
-            c[:50, :] = 0
-            lado = 38
-            m = kanji("変", lado)
-            x0, y0 = (w - lado) // 2, 6
-            cy, cx, r = y0 + lado / 2 - 0.5, x0 + lado / 2 - 0.5, lado / 2 + 2.5
-            yy, xx = np.mgrid[0:h, 0:w]
-            aro = np.abs(np.hypot(yy - cy, xx - cx) - r) < 0.6
-            filas = a_filas(c)
-            filas = [list(f) for f in filas]
-            for y in range(h):
-                for x in range(w):
-                    if aro[y, x] and filas[y][x] == "n":
-                        filas[y][x] = "a"
-            for y in range(lado):
-                for x in range(lado):
-                    if m[y, x]:
-                        filas[y0 + y][x0 + x] = "k"
-            piezas.append((nombre, ["".join(f) for f in filas]))
-            continue
-        piezas.append((nombre, a_filas(c)))
-    # escritura de las cintas: "自由な神" (dios libre) en letras de 7 x 7 texeles
-    for k, letra in enumerate("自由な神"):
-        m = kanji(letra, 7, grosor=0)
-        piezas.append((f"CINTA_{k}", ["".join("k" if v else "." for v in fila) for fila in m]))
+    for k, letra in enumerate("原状回復"):
+        m = kanji(letra, 16, FUENTE_PIXEL, grosor=0, nativo=True)
+        piezas.append((f"LETRA_{k}", ["".join("k" if v else "." for v in fila) for fila in m]))
     destino = os.path.join(RAIZ, "taller/personajes/correctar_pixelart.py")
-    escribir_modulo(destino, "Pixel art del haori de Correcthar sacado de su referencia (Pyxelate + limpieza).", piezas)
+    escribir_modulo(destino, "Letras de las etiquetas de Correcthar: 原状回復.", piezas)
     return destino
 
 
