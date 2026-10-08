@@ -3,80 +3,79 @@
   "titulo": "Dios de Velkia",
   "descripcion": "Alegria, libertad y caos controlado. La vida es corta, por eso hay que reirla el doble.",
   "proporciones": {
-    "altura": 38,
-    "cabeza": 1.05,
+    "altura": 32,
+    "cabeza": 1.0,
     "complexion": "normal"
   },
-  "piel": "#E2AE84",
+  "piel": "#6B4430",
   "cara": {
-    "ojos": "#C98A2E",
-    "expresion": "alegre",
-    "rubor": true
+    "ojos": "#3A6FD8",
+    "expresion": "serena"
   },
   "pelo": {
-    "estilo": "rizos",
-    "color": "#2A1C14",
-    "brillo": "#4A3426",
-    "volumen": 2
+    "estilo": "corto",
+    "color": "#141010",
+    "brillo": "#2A2420",
+    "volumen": 1
   },
   "ropa": {
     "camisa": {
-      "color": "#2B1D15",
-      "patron": "manchas"
+      "color": "#ECE8E0"
     },
     "pantalon": {
-      "color": "#2A1C14"
+      "color": "#ECE8E0"
     },
     "botas": {
-      "color": "#2E2018",
+      "color": "#5A3A24",
       "ribete": "#E3B04B",
-      "alto": 5,
+      "alto": 4,
       "hebillas": "#E3B04B"
     },
     "tunica": {
-      "largo": "larga",
+      "largo": "media",
       "abierta": true,
       "colores": [
-        "#F1E4CC",
-        "#E6D3B0",
-        "#E3A93C",
-        "#5A3A22"
+        "#ECE8E0",
+        "#1E3FA0",
+        "#ECE8E0"
       ],
-      "patron": "manchas",
-      "ribete": "#E6D3B0",
-      "borde": "tiras"
+      "patron": "paneles",
+      "ribete": "#E3B04B",
+      "borde": "recto",
+      "panel": "#1E3FA0"
     },
     "mangas": {
-      "color": "#F1E4CC",
-      "color2": "#E6D3B0",
-      "forma": "capas",
-      "patron": "manchas"
+      "color": "#ECE8E0",
+      "color2": "#D8D2C6",
+      "forma": "ajustadas",
+      "patron": "liso"
     },
-    "bufanda": {
-      "color": "#F1E4CC",
-      "color2": "#E3B04B",
-      "tamano": "grande",
-      "colas": true,
-      "largo": "corto"
-    },
-    "cinturon": {
-      "color": "#3B2618",
-      "hebilla": "#E3B04B"
-    },
-    "correas": {
-      "color": "#3B2618",
+    "pechera": {
+      "color": "#F2EEE6",
       "detalle": "#E3B04B"
     },
-    "guantes": {
-      "color": "#2E2018",
-      "detalle": "#E3B04B",
-      "sin_dedos": true
-    }
+    "capa": {
+      "color": "#1E3FA0",
+      "color2": "#ECE8E0",
+      "largo": "larga",
+      "capucha": false,
+      "patron": "liso"
+    },
+    "hombreras": {
+      "color": "#1E3FA0",
+      "detalle": "#E3B04B"
+    },
+    "cinturon": {
+      "color": "#1E3FA0",
+      "hebilla": "#E3B04B"
+    },
+    "brazaletes": "#E3B04B"
   },
   "cabeza": [
     {
-      "tipo": "laurel",
-      "color": "#E3B04B"
+      "tipo": "corona",
+      "color": "#E3B04B",
+      "color2": "#2E5FD8"
     }
   ],
   "extras": [],

@@ -174,3 +174,20 @@ def construir(acc, nombre):
 
 
 __all__ = ["construir", "FABRICAS", "TRANSPARENTE"]
+
+
+def cristal(acc, nombre):
+    """Cristal de hielo (broche o colgante)."""
+    m = _m(nombre)
+    hielo = metal(acc["color"] or "#A8D8F0", 1)
+    hielo2 = metal(acc["color2"] or "#E8F6FF", 2)
+    g = "Item/cristal"
+    m.cubo(g, "nucleo", (-1.2, 0, -1.2), (1.2, 7, 1.2), hielo, rot=(0, 45, 0), origen=(0, 3.5, 0))
+    m.cubo(g, "punta", (-0.7, 7, -0.7), (0.7, 9.5, 0.7), hielo2, rot=(0, 45, 0), origen=(0, 7, 0))
+    for k, ang in enumerate((-45, -22.5, 22.5, 45)):
+        m.cubo(g, f"esquirla{k}", (-0.6, 1, -0.6), (0.6, 5.5 - abs(ang) / 22.5, 0.6), hielo2 if k % 2 else hielo,
+               rot=(0, 0, ang), origen=(0, 1.5, 0))
+    return m
+
+
+FABRICAS["cristal"] = cristal

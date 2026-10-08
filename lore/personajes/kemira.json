@@ -1,94 +1,81 @@
 {
   "nombre": "Kemira",
-  "titulo": "Reina de Thza - Exploradora",
-  "descripcion": "Princesa curiosa y escandalosa, aprendio a leer las estrellas y se reia fuerte.",
+  "titulo": "Diosa del hielo",
+  "descripcion": "Serena y distante; donde camina, el aire se vuelve cristal.",
   "brazos": "finos",
   "proporciones": {
-    "altura": 33,
+    "altura": 32,
     "cabeza": 1.0,
     "complexion": "delgada"
   },
-  "piel": "#DDAA80",
+  "piel": "#6B4430",
   "cara": {
-    "ojos": "#5A86C8",
-    "expresion": "alegre",
-    "rubor": true
+    "ojos": "#3AA8E8",
+    "expresion": "serena"
   },
   "pelo": {
     "estilo": "largo",
-    "color": "#1A1620",
-    "brillo": "#3A3448",
-    "volumen": 2
+    "color": "#ECF2F8",
+    "brillo": "#FFFFFF",
+    "mechas": "#B8D8F0",
+    "volumen": 1
   },
   "ropa": {
     "camisa": {
-      "color": "#232B5E"
+      "color": "#1A2A5A"
     },
     "pantalon": {
-      "color": "#1B2040"
+      "color": "#ECF2F8"
     },
     "botas": {
-      "color": "#1B2040",
-      "ribete": "#F2E8D3",
-      "alto": 6,
-      "hebillas": "#E3B04B"
+      "color": "#1A2A5A",
+      "ribete": "#A8D8F0",
+      "alto": 4
     },
     "tunica": {
       "largo": "larga",
       "abierta": true,
       "colores": [
-        "#F2E8D3",
-        "#232B5E",
-        "#E9DDC2",
-        "#E3B04B"
+        "#1A2A5A",
+        "#A8D8F0",
+        "#2C4488",
+        "#ECF2F8"
       ],
-      "patron": "manchas",
-      "ribete": "#E3B04B",
+      "patron": "hielo",
+      "ribete": "#A8D8F0",
       "borde": "tiras",
-      "panel": "#232B5E"
+      "panel": "#A8D8F0"
     },
-    "mangas": {
-      "color": "#232B5E",
-      "color2": "#E3B04B",
-      "forma": "ajustadas",
-      "patron": "estrellas"
+    "pechera": {
+      "color": "#1A2A5A",
+      "detalle": "#A8D8F0"
     },
     "capa": {
-      "color": "#232B5E",
-      "color2": "#2B3470",
+      "color": "#8FC0E8",
+      "color2": "#ECF2F8",
       "largo": "larga",
       "capucha": false,
-      "patron": "estrellas"
-    },
-    "bufanda": {
-      "color": "#232B5E",
-      "color2": "#2B3470",
-      "tamano": "pequena",
-      "colas": false
+      "patron": "hielo"
     },
     "cinturon": {
-      "color": "#8A5A2A",
-      "hebilla": "#E3B04B"
+      "color": "#A8D8F0",
+      "hebilla": "#ECF2F8"
     },
-    "guantes": {
-      "color": "#1B2040",
-      "detalle": "#E3B04B",
-      "sin_dedos": true
-    }
+    "brazaletes": "#A8D8F0"
   },
   "cabeza": [
     {
-      "tipo": "tiara",
-      "color": "#E3B04B",
-      "color2": "#3A7BD5"
+      "tipo": "corona",
+      "color": "#A8D8F0",
+      "color2": "#3AA8E8"
     }
   ],
   "extras": [],
   "accesorios": [
     {
-      "tipo": "brujula",
-      "color": "#E3B04B",
-      "color2": "#232B5E"
+      "tipo": "cristal",
+      "color": "#8FC0E8",
+      "color2": "#ECF2F8"
     }
   ]
 }

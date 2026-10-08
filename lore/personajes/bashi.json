@@ -1,97 +1,82 @@
 {
   "nombre": "Bashi",
-  "titulo": "Semidios del conocimiento - Sabiduria",
-  "descripcion": "Su mente esta nublada por exceso de conocimiento. Vive encerrado en una habitacion mecanica y guia a los jugadores.",
+  "titulo": "El guardian del equilibrio",
+  "descripcion": "Guarda el equilibrio entre luz y sombra. Sabio, callado, observador.",
   "proporciones": {
-    "altura": 34,
+    "altura": 32,
     "cabeza": 1.0,
     "complexion": "normal"
   },
-  "piel": "#E8B892",
+  "piel": "#5E3C2A",
   "cara": {
-    "ojos": "#5A86C8",
-    "expresion": "seria",
-    "rubor": false
+    "ojos": "#E3B04B",
+    "expresion": "seria"
   },
   "pelo": {
-    "estilo": "revuelto",
-    "color": "#17151F",
-    "brillo": "#2F3A6A",
-    "volumen": 2
+    "estilo": "corto",
+    "color": "#ECEAE4",
+    "volumen": 1
   },
   "ropa": {
     "camisa": {
-      "color": "#1F2447"
+      "color": "#141414"
     },
     "pantalon": {
-      "color": "#1A1D36"
+      "color": "#ECEAE4"
     },
     "botas": {
-      "color": "#1A1D36",
+      "color": "#141414",
       "ribete": "#E3B04B",
-      "alto": 5,
+      "alto": 4,
       "hebillas": "#E3B04B"
     },
     "tunica": {
       "largo": "larga",
       "abierta": true,
       "colores": [
-        "#1F2447",
-        "#EDE3D0",
-        "#2B3466",
-        "#E3B04B"
+        "#141414",
+        "#F0EEE8",
+        "#141414"
       ],
       "patron": "paneles",
       "ribete": "#E3B04B",
-      "borde": "tiras",
-      "panel": "#1F2447"
+      "borde": "recto",
+      "panel": "#F0EEE8"
     },
     "mangas": {
-      "color": "#1F2447",
-      "color2": "#EDE3D0",
-      "forma": "capas",
-      "patron": "manchas"
+      "color": "#141414",
+      "color2": "#F0EEE8",
+      "forma": "anchas",
+      "patron": "liso"
     },
-    "bufanda": {
-      "color": "#1F2447",
-      "color2": "#E3B04B",
-      "tamano": "pequena",
-      "colas": false
-    },
-    "hombreras": {
-      "color": "#EDE3D0",
-      "detalle": "#E3B04B"
+    "banda": {
+      "color": "#F0EEE8",
+      "detalle": "#141414"
     },
     "cinturon": {
-      "color": "#3B2A1E",
+      "color": "#141414",
       "hebilla": "#E3B04B"
     },
     "guantes": {
-      "color": "#1A1D36",
+      "color": "#141414",
       "detalle": "#E3B04B",
       "sin_dedos": true
     }
   },
   "cabeza": [
     {
-      "tipo": "gafas",
-      "color": "#E3B04B"
+      "tipo": "gorro",
+      "color": "#141414",
+      "color2": "#E3B04B"
     }
   ],
   "extras": [
     {
       "tipo": "emblema",
-      "forma": "ojo",
+      "forma": "sol",
       "color": "#E3B04B",
-      "color2": "#1F2447"
+      "color2": "#141414"
     }
   ],
-  "accesorios": [
-    {
-      "tipo": "libro",
-      "color": "#1F2447",
-      "color2": "#E3B04B",
-      "forma": "diamante"
-    }
-  ]
+  "accesorios": []
 }

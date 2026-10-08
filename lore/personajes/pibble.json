@@ -1,104 +1,71 @@
 {
   "nombre": "Pibble",
-  "titulo": "Semidios errante - Diversion",
+  "titulo": "Semidios errante",
   "descripcion": "Organiza eventos y reparte totems y nueces de revivir. Su origen es desconocido.",
   "proporciones": {
-    "altura": 22,
+    "altura": 26,
     "cabeza": 1.0,
-    "complexion": "normal"
+    "complexion": "delgada"
   },
-  "piel": "#D9A06B",
+  "piel": "#5E3C2A",
   "cara": {
-    "ojos": "#F28A2E",
-    "expresion": "alegre",
-    "rubor": false,
-    "mascara": "#1A1414"
+    "ojos": "#9A4CE0",
+    "expresion": "seria"
   },
   "pelo": {
-    "estilo": "ninguno",
-    "color": "#1A1414",
+    "estilo": "lado",
+    "color": "#16141C",
+    "bicolor": "#E8E6EE",
+    "brillo": "#2C2838",
     "volumen": 1
   },
   "ropa": {
     "camisa": {
-      "color": "#C2402E"
+      "color": "#18161E"
     },
     "pantalon": {
-      "color": "#3A2A20"
+      "color": "#18161E"
     },
     "botas": {
-      "color": "#2E9C9A",
-      "ribete": "#E3B04B",
-      "alto": 4,
-      "hebillas": "#E3B04B"
+      "color": "#4A3020",
+      "ribete": "#C9A060",
+      "alto": 3
     },
     "tunica": {
       "largo": "media",
       "abierta": true,
       "colores": [
-        "#C2402E",
-        "#3FA7A6",
-        "#F1E2C6",
-        "#E3B04B"
+        "#3A2460",
+        "#5A3490",
+        "#18161E",
+        "#7A4CC0"
       ],
       "patron": "manchas",
-      "ribete": "#3FA7A6",
-      "borde": "tiras"
+      "ribete": "#7A4CC0",
+      "borde": "recto"
     },
     "mangas": {
-      "color": "#C2402E",
-      "color2": "#3FA7A6",
-      "forma": "capas",
+      "color": "#3A2460",
+      "color2": "#5A3490",
+      "forma": "ajustadas",
       "patron": "manchas"
     },
-    "bufanda": {
-      "color": "#C2402E",
-      "color2": "#E3B04B",
-      "tamano": "grande",
-      "colas": true
+    "banda": {
+      "color": "#5A3A24",
+      "detalle": "#C9A060"
     },
     "cinturon": {
-      "color": "#5A3520",
-      "hebilla": "#E3B04B"
-    },
-    "guantes": {
-      "color": "#C2402E",
-      "detalle": "#3FA7A6",
-      "sin_dedos": false
+      "color": "#5A3A24",
+      "hebilla": "#C9A060"
     }
   },
   "cabeza": [
     {
-      "tipo": "plumas",
-      "color": "#E3B04B",
-      "colores": [
-        "#C2402E",
-        "#3FA7A6",
-        "#E3B04B",
-        "#F1E2C6"
-      ]
+      "tipo": "capucha",
+      "color": "#3A2460",
+      "color2": "#5A3490"
     }
   ],
-  "extras": [
-    {
-      "tipo": "amuletos",
-      "colores": [
-        "#3FA7A6",
-        "#C2402E",
-        "#E3B04B",
-        "#F1E2C6"
-      ]
-    }
-  ],
-  "accesorios": [
-    {
-      "tipo": "mochila",
-      "color": "#C2402E",
-      "color2": "#3FA7A6",
-      "colores": [
-        "#E3B04B",
-        "#F1E2C6"
-      ]
-    }
-  ]
+  "extras": [],
+  "accesorios": []
 }

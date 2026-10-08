@@ -3,19 +3,20 @@
 Edita este archivo libremente: todo lo que pongas acá lo tiene en cuenta Groq al crear personajes nuevos.
 
 ## Mundos
-- **Velkia**: tierra de desierto, dunas, pirámides y sol. Colores cálidos (crema, dorado, arena, naranja).
-  Su dios es **Meron**: alegría, libertad y caos controlado.
-- **Aseris**: tierra de bosques antiguos y árboles gigantes. Colores verdes del bosque, oscuros, con crema.
-  Su dios es **Anteros**: disciplina, estrategia y equilibrio. Es hermano de Meron ("Dos dioses, dos mundos, una misma estrella").
-- **Thza**: reino humano gobernado por el rey **Khaset** (protector) y la reina **Kemira** (exploradora, lee las estrellas).
-  Estética real: crema, marrón, dorado, azul marino con estrellas.
+- **Velkia**: tierra de desierto, sol y pirámides. Su dios es **Meron** (alegría, libertad, caos controlado):
+  estética real y faraónica, blanco, azul rey y dorado.
+- **Aseris**: tierra de bosques antiguos. Su dios es **Anteros** (disciplina, estrategia, equilibrio), hermano de Meron:
+  negro, verde bosque, blanco y dorado.
+- **Thza**: reino humano. **Khaset** fue su último rey; hoy es el **dios del fuego corrompido** (negro, rojo, naranja,
+  ojos que brillan, cuernos). **Kemira** es la **diosa del hielo** (azul hielo, blanco, azul marino, cristales).
 
-## Semidioses
-- **Revoltir** (risa · caos): naranja, crema, dorado. Joven, bromista, impulsivo.
-- **Correcthar** (redención · orden): azul marino, celeste, crema, turquesa. Sereno y preciso.
-- **Bashi** (conocimiento · sabiduría): azul oscuro, crema, turquesa, dorado. Gafas, etiquetas flotantes, libro.
-- **Pibble** (errante · diversión): rostro negro con ojos naranja, corona de plumas, rojo/turquesa/dorado, amuletos y tótems.
+## Otros seres
+- **Pibble** (semidiós errante): capucha violeta, pelo mitad negro mitad blanco, abrigo violeta y negro. Bajito.
+- **Revolthir** (NSWY de la negación): pelo blanco helado en puntas, abrigo negro con salpicaduras blancas, emblema de diamante.
+- **Correctar** (NSWY de la afirmación): pelo blanco largo, corona dorada, túnica blanca y negra con dorado, capa blanca.
+- **Bashi** (el guardián del equilibrio): gorro alto negro con dorado, pelo blanco, túnica negra y blanca con dorado.
 
 ## Estilo visual general
-Personajes estilo Minecraft "anime": ojos grandes de 2 px, ropa con capas, telas con manchas de color,
-ribetes dorados o de color acento, bufandas grandes y capas. Nada de armaduras modernas ni colores neón.
+Personajes serios (no chibi), proporciones de player de Minecraft, piel morena en la mayoría.
+Ropa en capas con ribetes de contraste, capas largas, coronas y emblemas. Paleta limitada por personaje
+(2 o 3 colores principales + un metal). Nada de colores neón ni armaduras modernas.

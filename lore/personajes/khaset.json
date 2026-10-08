@@ -1,108 +1,80 @@
 {
   "nombre": "Khaset",
-  "titulo": "Rey de Thza - Protector",
-  "descripcion": "El ultimo rey de Thza, un gobernante que realmente cuidaba a su gente. Guerrero por tradicion, pero cercano a su pueblo.",
+  "titulo": "Dios del fuego corrompido",
+  "descripcion": "El ultimo rey de Thza, consumido por un fuego que ya no controla.",
   "proporciones": {
-    "altura": 35,
+    "altura": 33,
     "cabeza": 1.0,
     "complexion": "robusta"
   },
-  "piel": "#C98E5E",
+  "piel": "#4A2E22",
   "cara": {
-    "ojos": "#4A2E1A",
-    "expresion": "serena",
-    "rubor": false
+    "ojos": "#FF3A2A",
+    "expresion": "seria",
+    "brillo": true
   },
   "pelo": {
-    "estilo": "revuelto",
-    "color": "#3A2415",
-    "brillo": "#5A3A22",
-    "volumen": 2
+    "estilo": "corto",
+    "color": "#141010",
+    "volumen": 1
   },
   "ropa": {
     "camisa": {
-      "color": "#5A3520"
+      "color": "#4A2E22",
+      "patron": "abdomen"
     },
     "pantalon": {
-      "color": "#4A2C1A"
+      "color": "#1A1212"
     },
     "botas": {
-      "color": "#4A2C1A",
-      "ribete": "#F1E4CC",
-      "alto": 6,
-      "hebillas": "#E3B04B"
+      "color": "#1A1212",
+      "ribete": "#E84A1A",
+      "alto": 5,
+      "hebillas": "#E8A030"
     },
     "tunica": {
       "largo": "larga",
       "abierta": true,
       "colores": [
-        "#F1E4CC",
-        "#7A4A2A",
-        "#E3B04B",
-        "#D9C49E"
+        "#1A1212",
+        "#C0281A",
+        "#E8641A",
+        "#F2B030"
       ],
-      "patron": "manchas",
-      "ribete": "#E3B04B",
+      "patron": "llamas",
+      "ribete": "#C0281A",
       "borde": "tiras"
     },
     "mangas": {
-      "color": "#F1E4CC",
-      "color2": "#D9C49E",
+      "color": "#1A1212",
+      "color2": "#C0281A",
       "forma": "ajustadas",
-      "patron": "manchas"
-    },
-    "capa": {
-      "color": "#F1E4CC",
-      "color2": "#D9C49E",
-      "largo": "larga",
-      "capucha": false,
-      "patron": "manchas"
-    },
-    "bufanda": {
-      "color": "#8A3A22",
-      "color2": "#B05A30",
-      "tamano": "pequena",
-      "colas": true
+      "patron": "llamas"
     },
     "hombreras": {
-      "color": "#7A4A2A",
-      "detalle": "#E3B04B"
+      "color": "#1A1212",
+      "detalle": "#E8641A"
+    },
+    "banda": {
+      "color": "#8A1A12",
+      "detalle": "#E8A030"
     },
     "cinturon": {
-      "color": "#5A3520",
-      "hebilla": "#E3B04B"
-    },
-    "correas": {
-      "color": "#5A3520",
-      "detalle": "#E3B04B"
+      "color": "#1A1212",
+      "hebilla": "#E8A030"
     },
     "guantes": {
-      "color": "#5A3520",
-      "detalle": "#E3B04B",
+      "color": "#1A1212",
+      "detalle": "#E8641A",
       "sin_dedos": false
     }
   },
   "cabeza": [
     {
-      "tipo": "corona",
-      "color": "#E3B04B",
-      "color2": "#2E8A6E"
+      "tipo": "cuernos",
+      "color": "#C0281A"
     }
   ],
-  "extras": [
-    {
-      "tipo": "emblema",
-      "forma": "sol",
-      "color": "#E3B04B",
-      "color2": "#7A4A2A"
-    }
-  ],
-  "accesorios": [
-    {
-      "tipo": "cetro",
-      "color": "#E3B04B",
-      "color2": "#2E8A6E",
-      "forma": "sol"
-    }
-  ]
+  "extras": [],
+  "accesorios": []
 }

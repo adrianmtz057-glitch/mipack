@@ -1,7 +1,7 @@
 {
-  "nombre": "Anteros",
-  "titulo": "Dios de Aseris",
-  "descripcion": "Disciplina, estrategia y equilibrio. El orden tambien es una forma de amor. Hermano de Meron.",
+  "nombre": "Correctar",
+  "titulo": "NSWY de la afirmacion",
+  "descripcion": "Afirma y ordena lo que toca. Solemne, firme, luminoso.",
   "proporciones": {
     "altura": 32,
     "cabeza": 1.0,
@@ -9,13 +9,13 @@
   },
   "piel": "#5E3C2A",
   "cara": {
-    "ojos": "#3E9A55",
-    "expresion": "seria"
+    "ojos": "#3A8AD8",
+    "expresion": "serena"
   },
   "pelo": {
-    "estilo": "rizos",
-    "color": "#120E0C",
-    "brillo": "#2A221C",
+    "estilo": "largo",
+    "color": "#ECEAE4",
+    "brillo": "#FFFFFF",
     "volumen": 1
   },
   "ropa": {
@@ -26,7 +26,7 @@
       "color": "#141414"
     },
     "botas": {
-      "color": "#1A1A1A",
+      "color": "#141414",
       "ribete": "#E3B04B",
       "alto": 4,
       "hebillas": "#E3B04B"
@@ -35,35 +35,31 @@
       "largo": "larga",
       "abierta": true,
       "colores": [
-        "#161616",
-        "#1E2A1E",
-        "#161616",
-        "#E3B04B"
+        "#F0EEE8",
+        "#141414",
+        "#F0EEE8"
       ],
-      "patron": "liso",
+      "patron": "paneles",
       "ribete": "#E3B04B",
       "borde": "recto",
-      "panel": "#ECE8E0"
+      "panel": "#141414"
     },
     "mangas": {
-      "color": "#161616",
-      "color2": "#222222",
-      "forma": "ajustadas",
+      "color": "#141414",
+      "color2": "#F0EEE8",
+      "forma": "anchas",
       "patron": "liso"
-    },
-    "bufanda": {
-      "color": "#24502C",
-      "color2": "#1C3E22",
-      "tamano": "grande",
-      "colas": true,
-      "largo": "corto"
     },
     "capa": {
-      "color": "#24502C",
-      "color2": "#16301A",
+      "color": "#F0EEE8",
+      "color2": "#D8D4CA",
       "largo": "larga",
-      "capucha": true,
+      "capucha": false,
       "patron": "liso"
+    },
+    "hombreras": {
+      "color": "#141414",
+      "detalle": "#E3B04B"
     },
     "cinturon": {
       "color": "#141414",
@@ -77,14 +73,15 @@
   },
   "cabeza": [
     {
-      "tipo": "laurel",
-      "color": "#E3B04B"
+      "tipo": "corona",
+      "color": "#E3B04B",
+      "color2": "#141414"
     }
   ],
   "extras": [
     {
       "tipo": "emblema",
-      "forma": "cruz",
+      "forma": "sol",
       "color": "#E3B04B",
       "color2": "#141414"
     }

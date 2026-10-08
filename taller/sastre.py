@@ -242,7 +242,7 @@ class Sastre:
             self.m.cubo(g, f"mechon_lado_{s}", d, h, pin, rot=(0, 0, 7.5 * s), origen=((d[0] + h[0]) / 2, hy1, -hd))
         # estilo
         if est in ("rizos", "revuelto"):
-            n = 18 + 6 * vol if est == "rizos" else 12
+            n = 12 + 6 * vol if est == "rizos" else 10
             for k in range(n):
                 a = azar(sem, k, 11) * math.pi * 2
                 zona = azar(sem, k, 12)
@@ -259,7 +259,7 @@ class Sastre:
                     cx = s * (hw + lado)
                     cz = (azar(sem, k, 17) * 2 - 1) * hd
                     cy = hy0 + 4 + azar(sem, k, 18) * (self.hh - 3)
-                t = 1.5 + azar(sem, k, 19) * (1.0 + 0.4 * vol)
+                t = 1.1 + azar(sem, k, 19) * (0.5 + 0.45 * vol)
                 eje = int(azar(sem, k, 20) * 3)
                 rot = [0, 0, 0]
                 rot[eje] = (-1) ** k * 22.5
@@ -270,9 +270,9 @@ class Sastre:
                 a = k / 9 * math.pi * 2
                 cx, cz = math.cos(a) * (hw - 1), math.sin(a) * (hd - 1)
                 base = hy1 + arriba - 0.5
-                largo = 3 + azar(sem, k, 21) * 3
-                rz = -22.5 if cx > 1 else (22.5 if cx < -1 else 0)
-                rx = 22.5 if cz > 1 else (-22.5 if cz < -1 else 0)
+                largo = 1.5 + azar(sem, k, 21) * 1.5 * vol
+                rz = -45 if cx > 1 else (45 if cx < -1 else 0)
+                rx = 45 if cz > 1 else (-22.5 if cz < -1 else 0)
                 self.caja(g, f"punta{k}", cx - 1, base - 1, cz - 1, cx + 1, base + largo, cz + 1, pin,
                           rot=(rx, 0, rz), piv=(cx, base, cz))
         if est == "largo":
@@ -295,9 +295,9 @@ class Sastre:
         cols = tu["colores"]
         rib = tu["ribete"] or Paleta(cols[0]).o
         cuerpo_p = tela(cols[0], cols, tu["patron"], rib, ("abajo",), sem=sem)
-        borde_p = tela(cols[0], cols, tu["patron"], rib, ("todo",), sem=sem)
+        borde_p = tela(cols[0], cols, tu["patron"], rib, ("abajo", "lados"), sem=sem)
         ribete_p = tela(rib, sem=sem, bordes=(), pliegues=False)
-        ab = 1.25 if tu["abierta"] else 0
+        ab = (2.6 if r["camisa"].get("patron") == "abdomen" else 1.25) if tu["abierta"] else 0
         g = "Body/tunica"
         e = 0.6                                                   # grosor de la tela
         # ---- torso
