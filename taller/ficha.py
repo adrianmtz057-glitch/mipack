@@ -14,12 +14,14 @@ from .textura import es_hex
 ESTILOS_PELO = ("rizos", "puntas", "lado", "revuelto", "largo", "corto", "ninguno")
 EXPRESIONES = ("alegre", "serena", "seria", "traviesa")
 LARGOS = ("corta", "media", "larga")
-PATRONES = ("liso", "manchas", "tiras", "camuflaje", "paneles", "estrellas", "hojas", "rayas", "cuadros")
-ACCESORIOS_CABEZA = ("laurel", "corona", "tiara", "gafas", "plumas", "etiquetas", "flor", "cuernos", "orejas")
+PATRONES = ("liso", "manchas", "tiras", "camuflaje", "paneles", "estrellas", "hojas", "rayas", "cuadros",
+            "llamas", "hielo", "abdomen")
+ACCESORIOS_CABEZA = ("laurel", "corona", "tiara", "gafas", "plumas", "etiquetas", "flor", "cuernos", "orejas",
+                     "capucha", "gorro")
 EXTRAS = ("amuletos", "cintas", "emblema", "bolsa")
-ACCESORIOS = ("cetro", "libro", "mochila", "brujula", "medallon", "espada", "baston", "farol")
+ACCESORIOS = ("cetro", "libro", "mochila", "brujula", "medallon", "espada", "baston", "farol", "cristal")
 BORDES = ("tiras", "picos", "recto")
-FORMAS_EMBLEMA = ("sol", "luna", "estrella", "hoja", "diamante", "ojo")
+FORMAS_EMBLEMA = ("sol", "luna", "estrella", "hoja", "diamante", "ojo", "cruz")
 MATERIALES = ("tela", "metal", "pelo", "piel", "cuero", "gema", "madera", "hueso")
 HUESOS_VALIDOS = ("Head", "Body", "RightArm", "LeftArm", "RightLeg", "LeftLeg")
 
@@ -30,7 +32,7 @@ BASE = {
     "brazos": "normal",
     "proporciones": {"altura": 32, "cabeza": 1.0, "complexion": "normal"},
     "piel": "#C99B7A",
-    "cara": {"ojos": "#4A3020", "expresion": "alegre", "rubor": False, "mascara": None},
+    "cara": {"ojos": "#4A3020", "expresion": "serena", "rubor": False, "mascara": None, "brillo": False},
     "pelo": {"estilo": "corto", "color": "#2A1D14", "brillo": None, "mechas": None, "volumen": 2},
     "ropa": {
         "camisa": {"color": "#6B6B6B"},
@@ -45,6 +47,7 @@ BASE = {
         "hombreras": None,
         "guantes": None,
         "correas": None,
+        "pechera": None,
         "brazaletes": None,
     },
     "cabeza": [],
@@ -63,9 +66,11 @@ Devuelve SOLO un objeto JSON con esta forma (todas las claves en minusculas, col
                     // altura en px sin el pelo (32 = humano normal, 22 = bajito, 40 = gigante)
   "piel": "#RRGGBB",
   "cara": {"ojos": "#RRGGBB", "expresion": "alegre|serena|seria|traviesa", "rubor": true|false,
-           "mascara": null | "#RRGGBB"},              // mascara = rostro cubierto de ese color (solo se ven los ojos)
+           "mascara": null | "#RRGGBB",               // mascara = rostro cubierto de ese color (solo se ven los ojos)
+           "brillo": true|false},                     // ojos que brillan (sin blanco), para seres magicos o corruptos
   "pelo": {"estilo": "rizos|puntas|lado|revuelto|largo|corto|ninguno", "color": "#RRGGBB",
-           "brillo": "#RRGGBB" | null, "mechas": "#RRGGBB" | null, "volumen": 1|2|3},
+           "brillo": "#RRGGBB" | null, "mechas": "#RRGGBB" | null, "bicolor": "#RRGGBB" | null, "volumen": 1|2|3},
+           // bicolor = la mitad izquierda del pelo de otro color
   "ropa": {
     "camisa":   {"color": "#RRGGBB"},                 // ropa interior pegada al cuerpo
     "pantalon": {"color": "#RRGGBB"},
@@ -84,20 +89,21 @@ Devuelve SOLO un objeto JSON con esta forma (todas las claves en minusculas, col
     "hombreras":null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},
     "guantes":  null | {"color": "#RRGGBB", "detalle": "#RRGGBB", "sin_dedos": true|false},
     "correas":  null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},   // correas cruzadas en X sobre el pecho
+    "pechera":  null | {"color": "#RRGGBB", "detalle": "#RRGGBB"},   // placa/armadura sobre el pecho
     "brazaletes": null | "#RRGGBB"
   },
-  "cabeza": [ {"tipo": "laurel|corona|tiara|gafas|plumas|etiquetas|flor|cuernos|orejas",
+  "cabeza": [ {"tipo": "laurel|corona|tiara|gafas|plumas|etiquetas|flor|cuernos|orejas|capucha|gorro",
                "color": "#RRGGBB", "color2": "#RRGGBB", "colores": ["#..", "#.."]} ],
   "extras": [ {"tipo": "amuletos|cintas|emblema|bolsa", "color": "#RRGGBB",
-               "color2": "#RRGGBB", "colores": ["#..."], "forma": "sol|luna|estrella|hoja|diamante|ojo"} ],
-  "accesorios": [ {"tipo": "cetro|libro|mochila|brujula|medallon|espada|baston|farol", "color": "#RRGGBB",
+               "color2": "#RRGGBB", "colores": ["#..."], "forma": "sol|luna|estrella|hoja|diamante|ojo|cruz"} ],
+  "accesorios": [ {"tipo": "cetro|libro|mochila|brujula|medallon|espada|baston|farol|cristal", "color": "#RRGGBB",
                    "color2": "#RRGGBB", "colores": ["#..."], "forma": "sol|luna|estrella|hoja|diamante|ojo"} ],
                    // objetos que se generan como modelos APARTE (para la mano, la espalda, etc.)
   "piezas_libres": [ {"hueso": "Head|Body|RightArm|LeftArm|RightLeg|LeftLeg", "nombre": "texto",
                       "desde": [x,y,z], "hasta": [x,y,z], "color": "#RRGGBB",
                       "material": "tela|metal|pelo|piel|cuero|gema|madera|hueso", "simetrica": true|false} ]
 }
-PATRON = "liso|manchas|tiras|camuflaje|paneles|estrellas|hojas|rayas|cuadros"
+PATRON = "liso|manchas|tiras|camuflaje|paneles|estrellas|hojas|rayas|cuadros|llamas|hielo|abdomen"
   (manchas = parches de varios colores; tiras = franjas verticales de tela; camuflaje = manchas grandes de bosque).
 """
 
@@ -160,7 +166,8 @@ def normalizar(ficha_in: dict) -> dict:
 
     cara = src.get("cara") or {}
     f["cara"] = {"ojos": _color(cara.get("ojos"), "#4A3020"),
-                 "expresion": _opcion(cara.get("expresion"), EXPRESIONES, "alegre"),
+                 "brillo": bool(cara.get("brillo", False)),
+                 "expresion": _opcion(cara.get("expresion"), EXPRESIONES, "serena"),
                  "rubor": bool(cara.get("rubor", False)),
                  "mascara": _color(cara.get("mascara"), None)}
 
@@ -169,6 +176,7 @@ def normalizar(ficha_in: dict) -> dict:
                  "color": _color(pelo.get("color"), "#2A1D14"),
                  "brillo": _color(pelo.get("brillo"), None),
                  "mechas": _color(pelo.get("mechas"), None),
+                 "bicolor": _color(pelo.get("bicolor"), None),
                  "volumen": int(_num(pelo.get("volumen"), 1, 3, 2))}
 
     ropa_in = src.get("ropa") or {}
@@ -210,7 +218,8 @@ def normalizar(ficha_in: dict) -> dict:
                               ("banda", "#8A2A2A", "#E3B04B", "detalle"),
                               ("hombreras", "#6B4A2A", "#E3B04B", "detalle"),
                               ("guantes", "#5A3A22", "#E3B04B", "detalle"),
-                              ("correas", "#3B2A1E", "#E3B04B", "detalle")):
+                              ("correas", "#3B2A1E", "#E3B04B", "detalle"),
+                              ("pechera", "#E8E4D8", "#E3B04B", "detalle")):
         v = ropa_in.get(clave)
         if isinstance(v, dict):
             r[clave] = {"color": _color(v.get("color"), d1), k2: _color(v.get(k2), d2)}

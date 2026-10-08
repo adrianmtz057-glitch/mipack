@@ -125,6 +125,35 @@ def color_estampado(patron, cols, t, sem):
                 if azar(sem, *q) < 0.045 and azar(sem + 1, *q) < 0.5:
                     return ("punta", c1)
         return c0
+    if patron == "llamas" and c1:                     # lenguas de fuego que suben desde abajo
+        if t.cara in ("up", "down"):
+            return c0
+        base = t.fila_abajo / max(1, t.th - 1)
+        n = ruido(t.x * 0.9, t.y * 0.45, t.z * 0.9, 1.8, sem)
+        if n > 0.32 + base * 0.85:
+            return c3 if n > 0.52 + base * 0.85 else (c2 if n > 0.42 + base * 0.85 else c1)
+        if (X * 3 + Y * 5 + Z) % 11 == 0 and base < 0.6 and azar(sem, X, Y, Z) < 0.4:
+            return c1                                  # brasas
+        return c0
+    if patron == "hielo" and c1:                      # cristales: vetas diagonales claras
+        n = ruido(t.x, t.y, t.z, 2.4, sem)
+        u = X if t.cara in ("north", "south", "up", "down") else Z
+        if (u + Y) % 6 == 0 and n > 0.4 or (u - Y) % 7 == 0 and n > 0.55:
+            return c1
+        if n > 0.72:
+            return c2
+        if n < 0.2:
+            return c3
+        return c0
+    if patron == "abdomen" and c1:                    # torso descubierto: pecho y abdomen marcados
+        if t.cara != "north":
+            return c0
+        fila = t.fila_abajo
+        if t.i == t.tw // 2 and fila < t.th - 2:
+            return c1
+        if fila in (t.th - 4, 3, 6) and 0 < t.i < t.tw - 1:
+            return c1
+        return c0
     if patron == "hojas" and c1:
         n = ruido(t.x, t.y, t.z, 2.3, sem)
         if n > 0.68:

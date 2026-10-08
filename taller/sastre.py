@@ -36,26 +36,25 @@ class Sastre:
     def _medidas(self):
         p = self.F["proporciones"]
         H = p["altura"]
-        hh = max(7, min(11, round(9 * p["cabeza"])))
-        hw = hh + 1 if hh % 2 else hh + 2
-        hw = min(hw, 10) if hh <= 9 else hw
+        hh = max(7, min(11, round(8 * p["cabeza"])))
+        hw = hh if hh % 2 == 0 else hh + 1
         comp = p["complexion"]
-        tw = {"delgada": 7, "normal": 8, "robusta": 10}[comp]
-        td = {"delgada": 4, "normal": 4.5, "robusta": 6}[comp]
-        aw = {"delgada": 3, "normal": 3.5, "robusta": 4.5}[comp]
+        tw = {"delgada": 8, "normal": 8, "robusta": 10}[comp]
+        td = {"delgada": 4, "normal": 4, "robusta": 5}[comp]
+        aw = {"delgada": 3.5, "normal": 4, "robusta": 5}[comp]
         if self.F["brazos"] == "finos":
             aw = 3
         resto = max(10, H - hh)
-        lh = round(resto * 0.54)
+        lh = round(resto * 0.5)
         th = resto - lh
-        self.hh, self.hw, self.hd = hh, hw, hw - 1
-        self.tw, self.td, self.aw, self.ad = tw, td, aw, min(4, aw + 0.5)
+        self.hh, self.hw, self.hd = hh, hw, hw
+        self.tw, self.td, self.aw, self.ad = tw, td, aw, 4 if aw >= 4 else aw + 0.5
         self.lh, self.th = lh, th
-        self.lw = tw / 2 - 0.5
-        self.ld = td - 0.5
+        self.lw = tw / 2
+        self.ld = td
         self.cuello = lh + th
         self.hy0, self.hy1 = self.cuello, self.cuello + hh
-        self.ay0 = lh - 1.5                              # punta de la mano
+        self.ay0 = lh                                    # punta de la mano (como el player)
         self.pivotes = {
             "Head": (0, self.cuello, 0), "Body": (0, self.cuello, 0),
             "RightArm": (tw / 2 + aw / 2, self.cuello - 1.5, 0), "LeftArm": (-(tw / 2 + aw / 2), self.cuello - 1.5, 0),
@@ -93,7 +92,8 @@ class Sastre:
         r = F["ropa"]
         tw, td, aw, ad, lw, ld = self.tw, self.td, self.aw, self.ad, self.lw, self.ld
         sem = self.sem()
-        camisa = tela(r["camisa"]["color"], patron=r["camisa"].get("patron", "liso"), sem=sem, bordes=())
+        camisa = tela(r["camisa"]["color"], [r["camisa"]["color"], Paleta(r["camisa"]["color"]).s],
+                      patron=r["camisa"].get("patron", "liso"), sem=sem, bordes=())
         pantalon = tela(r["pantalon"]["color"], sem=sem, bordes=())
         pi = piel(F["piel"])
         guantes = r["guantes"]
@@ -142,59 +142,53 @@ class Sastre:
         H = Paleta(F["pelo"]["color"])
         exp = c["expresion"]
         estilo = F["pelo"]["estilo"]
+        brillan = c.get("brillo", False)
         mascara = Paleta(c["mascara"]) if c["mascara"] else None
-        blanco = (246, 242, 234, 255)
+        blanco = (240, 238, 232, 255)
         pestana = H.o if estilo != "ninguno" else (30, 22, 22, 255)
-        boca = (122, 46, 46, 255)
-        rubor = mezcla(P.b, (238, 120, 120, 255), 0.45)
-        y0 = 2 if self.hh <= 8 else (2 if self.hh == 9 else 3)    # fila baja de los ojos
+        rubor = mezcla(P.b, (220, 110, 110, 255), 0.35)
+        y0 = 2 if self.hh <= 8 else 3                    # fila baja de los ojos (0 = menton)
+        ancho_ojo = 2 if self.hw <= 8 else 3
 
         def p(t):
             fila = t.th - 1 - t.j
-            u = t.i - (t.tw - 1) / 2                     # -4.5 .. 4.5 ; u > 0 = derecha del que mira
+            u = t.i - (t.tw - 1) / 2                     # u > 0 = derecha del que mira
             au = abs(u)
-            ojo = 1 <= au <= 3.6
-            izq_mira = u < 0
+            ojo = 1.4 <= au <= 1.6 + ancho_ojo - 1
+            interior = au < 2
+            exterior = au > 0.9 + ancho_ojo - 1
             if mascara:
-                if 1 <= au <= 2.6 and fila in (y0 + 1, y0 + 2):
-                    return O.h if fila == y0 + 2 else O.l
-                if 1 <= au <= 2.6 and fila == y0:
-                    return O.s
+                if ojo and fila in (y0, y0 + 1):
+                    return O.h if fila == y0 + 1 else O.l
                 if estilo != "ninguno" and fila >= t.th - 1:
                     return H.b
                 return mascara.b if (t.i + fila) % 4 else mascara.s
             if estilo != "ninguno":
                 if fila >= t.th - 2:
                     return H.b if (t.i % 3) else H.s
-                if fila == t.th - 3 and azar(self.semilla, t.i, 7) < 0.55:
+                if fila == t.th - 3 and azar(self.semilla, t.i, 7) < 0.5:
                     return H.s
-                if au >= 4 and fila >= y0 + 1:
+                if au >= t.tw / 2 - 0.6 and fila >= y0 + 1:
                     return H.s                            # patillas
-            if ojo and y0 <= fila <= y0 + 2:
-                guino = exp == "traviesa" and izq_mira
-                if guino:
-                    return pestana if fila == y0 + 1 else P.b
-                if fila == y0 + 2:
-                    return pestana
-                if au > 3:
-                    return blanco if fila == y0 + 1 else mezcla(blanco, P.b, 0.35)
-                if fila == y0 + 1:
-                    return O.s2 if au < 2 else O.h
-                return O.b if au < 2 else O.l
-            if fila == y0 + 3 and 1.5 <= au <= 3.6 and exp in ("seria", "traviesa", "alegre"):
-                if exp == "seria" or (exp == "alegre" and au > 2):
-                    return H.s                             # cejas
+            if ojo and fila in (y0, y0 + 1):
+                if brillan:
+                    return O.h if (fila == y0 + 1 and interior) else (O.l if fila == y0 + 1 else O.b)
+                if exp == "traviesa" and u < 0:          # guino
+                    return pestana if fila == y0 else P.b
+                if exterior and not interior:
+                    return blanco if fila == y0 + 1 else mezcla(blanco, P.b, 0.25)
+                return O.s if fila == y0 + 1 else O.b
+            if fila == y0 + 2 and ojo:                   # cejas
+                if exp == "seria" or (exp != "alegre" and not interior) or brillan:
+                    return H.s if estilo != "ninguno" else P.s2
             if fila == y0 - 1:
-                if exp == "alegre" and au < 1:
-                    return boca
-                if exp == "traviesa" and (u == 0.5 or u == 1.5):
-                    return boca
-                if exp in ("serena", "seria") and au < 1:
+                if au < 1:
+                    return {"alegre": mezcla(P.s2, (120, 50, 50, 255), 0.5), "seria": P.s2,
+                            "serena": P.s, "traviesa": P.s2 if u > 0 else P.s}[exp]
+                if exp == "traviesa" and 0.9 < u < 1.6:
                     return P.s2
-                if c["rubor"] and 2.4 < au < 3.6:
+                if c["rubor"] and ojo and exterior:
                     return rubor
-            if fila == y0 and au < 1 and u > 0:
-                return P.s                                 # nariz
             return P.b
         return p
 
@@ -206,7 +200,14 @@ class Sastre:
         if est == "ninguno":
             return
         sem = self.sem()
-        pin = pelo(P["color"], P["brillo"], P["mechas"], sem)
+        pin1 = pelo(P["color"], P["brillo"], P["mechas"], sem)
+        if P.get("bicolor"):                                   # mitad de otro color (lado izquierdo, -X)
+            pin2 = pelo(P["bicolor"], None, None, sem + 1)
+
+            def pin(t):
+                return pin2(t) if t.x < 0 else pin1(t)
+        else:
+            pin = pin1
         vol = P["volumen"]
         hw, hd, hy0, hy1 = self.hw / 2, self.hd / 2, self.hy0, self.hy1
         lado = 0.5 + 0.25 * vol
@@ -557,6 +558,20 @@ class Sastre:
                      cuero(Paleta(b["color"]).l, sem, costura=False))
             self.par(g, "bota_hebilla", lw + 0.5, yh - 0.25, -0.9, lw + 0.9, yh + 1.25, 0.9, metal(b["hebillas"], sem))
 
+    def pechera(self):
+        pe = self.F["ropa"].get("pechera")
+        if not pe:
+            return
+        sem = self.sem()
+        tw, td = self.tw, self.td
+        y1, y2 = self.cuello - self.th * 0.55, self.cuello + 0.2
+        placa = tela(pe["color"], ribete=pe["detalle"], bordes=("todo",), sem=sem, pliegues=False)
+        self.caja("Body/pechera", "pechera", -tw / 2 - 0.9, y1, -td / 2 - 1.1, tw / 2 + 0.9, y2, -td / 2 - 0.4, placa)
+        self.caja("Body/pechera", "pechera_atras", -tw / 2 - 0.9, y1 + 1, td / 2 + 0.4, tw / 2 + 0.9, y2, td / 2 + 1.0,
+                  placa)
+        self.caja("Body/pechera", "pechera_gema", -1, y1 + 1.5, -td / 2 - 1.5, 1, y1 + 3.5, -td / 2 - 1.0,
+                  metal(pe["detalle"], sem, gema=pe.get("gema") or "#3A7BD5"))
+
     # ------------------------------------------------------------------ cabeza
     def accesorios_cabeza(self):
         for acc in self.F["cabeza"]:
@@ -608,6 +623,35 @@ class Sastre:
             self.caja(g, f"punta{k}", x, y2, zf - 0.6, x + 1.0 + (k == 1), y2 + alto, zf, oro)
             self.caja(g, f"punta_a{k}", x, y2, zb, x + 1.0, y2 + 1.5, zb + 0.6, oro)
         self.par(g, "punta_lado", r - 0.6, y2, -0.6, r, y2 + 1.8, 0.6, oro)
+
+    def acc_capucha(self, acc):
+        """Capucha puesta: envuelve la cabeza y enmarca la cara."""
+        sem = self.sem()
+        col = acc["color"] or "#3A2A5A"
+        p = tela(col, [col, acc["color2"] or col], "liso", Paleta(col).o, ("abajo",), sem=sem)
+        hw, hd = self.hw / 2 + 1.0, self.hd / 2 + 1.0
+        top = max(self.hy1 + 0.8, getattr(self, "pelo_top", self.hy1) + 0.3)
+        g = "Head/capucha"
+        self.caja(g, "capucha_arriba", -hw, top - 1.2, -hd, hw, top, hd, p)
+        self.caja(g, "capucha_atras", -hw, self.hy0 - 1.5, hd - 1.0, hw, top - 1.2, hd, p)
+        self.par(g, "capucha_lado", hw - 1.0, self.hy0 - 1.0, -hd, hw, top - 1.2, hd - 1.0, p)
+        self.caja(g, "capucha_visera", -hw, top - 2.4, -hd - 0.6, hw, top - 1.0, -hd + 0.6, p,
+                  rot=(-15, 0, 0), piv=(0, top - 1.2, -hd))
+        self.caja(g, "capucha_punta", -1.5, self.hy0 - 2.5, hd - 0.5, 1.5, self.hy0, hd + 1.2, p,
+                  rot=(15, 0, 0), piv=(0, self.hy0, hd))
+
+    def acc_gorro(self, acc):
+        """Gorro alto (tipo sombrero de erudito) con banda y emblema."""
+        sem = self.sem()
+        col = acc["color"] or "#1A1A1A"
+        det = acc["color2"] or ORO
+        top = getattr(self, "pelo_top", self.hy1)
+        hw, hd = self.hw / 2 + 0.8, self.hd / 2 + 0.8
+        g = "Head/gorro"
+        self.caja(g, "gorro", -hw, top - 1.5, -hd, hw, top + 4, hd,
+                  tela(col, ribete=det, bordes=("arriba",), sem=sem, pliegues=False))
+        self.caja(g, "gorro_banda", -hw - 0.3, top - 1.7, -hd - 0.3, hw + 0.3, top - 0.2, hd + 0.3, metal(det, sem))
+        self.caja(g, "gorro_emblema", -1.2, top + 0.5, -hd - 0.5, 1.2, top + 2.9, -hd, metal(det, sem, gema="#3FA7A6"))
 
     def acc_tiara(self, acc):
         sem = self.sem()
@@ -741,6 +785,7 @@ class Sastre:
                 return Fd.s
             cx, cy = t.i - (t.tw - 1) / 2, t.j - (t.th - 1) / 2
             on = {"sol": abs(cx) < 0.6 or abs(cy) < 0.6 or abs(abs(cx) - abs(cy)) < 0.6,
+                  "cruz": abs(cx) < 0.6 or (abs(cy + 0.5) < 0.6),
                   "estrella": abs(cx) < 0.6 or abs(cy) < 0.6,
                   "hoja": abs(cx + cy * 0.6) < 0.9,
                   "luna": cx < 0.2 and abs(cy) < 1.6,
@@ -776,6 +821,7 @@ class Sastre:
         self.mangas()
         self.manos()
         self.hombreras()
+        self.pechera()
         self.correas()
         self.cinturon()
         self.banda()
