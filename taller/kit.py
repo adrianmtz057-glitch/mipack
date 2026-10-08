@@ -185,6 +185,17 @@ class Personaje:
     def plano_par(self, grupo, nombre, desde, hasta, pintor, rot=None, piv=None, dens=1):
         self.m.par(grupo, nombre, desde, hasta, pintor, rot, piv, dens=dens)
 
+    def malla(self, grupo, nombre, malla, pintor, dens=2):
+        """Malla low-poly (vertices, caras) hecha con taller.malla (tronco, piramide, extruir, girar...).
+        pintor: uno para todas las caras o una lista con uno por cara."""
+        vs, cs = malla
+        return self.m.malla(grupo, nombre, vs, cs, pintor, dens=dens)
+
+    def malla_par(self, grupo, nombre, malla, pintor, dens=2):
+        """Malla del lado DERECHO (+X); se copia en espejo a la izquierda."""
+        vs, cs = malla
+        self.m.malla_par(grupo, nombre, vs, cs, pintor, dens=dens)
+
     def cadena(self, grupo, nombre, base, pasos, largo, grosor, pintor, achica=0.85, dens=1):
         """Segmentos encadenados que se curvan (cuernos, colas, mechones largos, capas que ondean).
         pasos = [(giro_z, giro_x), ...] en grados, acumulados segmento a segmento."""

@@ -1,5 +1,5 @@
 """
-Modelo en cubos con esqueleto de player, atlas de textura pintado y exportacion a .bbmodel.
+Modelo en cubos y mallas low-poly con esqueleto de player, atlas de textura pintado y exportacion a .bbmodel.
 
 Convenciones (las de Blockbench):
   - Unidades en px (16 px = 1 bloque). Pies en y = 0, el player mide 32 px.
@@ -12,6 +12,7 @@ import json
 import math
 import uuid
 
+from . import malla as geo
 from .textura import Lienzo, TRANSPARENTE
 
 CARAS = ("north", "east", "south", "west", "up", "down")
@@ -65,7 +66,7 @@ def uv_caja(ox, oy, w, h, d):
 
 class Texel:
     """Lo que recibe un pintor: posicion 3D del texel y datos de la cara/cubo."""
-    __slots__ = ("x", "y", "z", "cara", "i", "j", "tw", "th", "f", "t", "nombre", "lado")
+    __slots__ = ("x", "y", "z", "cara", "i", "j", "tw", "th", "f", "t", "nombre", "lado", "n")
 
     @property
     def fila_abajo(self):            # 0 = fila mas baja de una cara lateral
@@ -94,11 +95,79 @@ class Cubo:
         self.dens = dens                 # texeles por px (1 = normal, 2 = el doble de detalle)
 
 
+class Malla:
+    """Malla low-poly de Blockbench: vertices libres y caras planas de 3 o 4 vertices (antihorario desde afuera).
+    Cada poligono original (grupo) tiene su pintor y su rectangulo en el atlas, proyectado sobre su plano:
+    la textura nunca se estira aunque la cara este inclinada, y los triangulos de un mismo poligono
+    comparten textura."""
+    __slots__ = ("nombre", "hueso", "vertices", "caras", "grupo", "grupos", "lado", "dens")
+
+    def __init__(self, nombre, hueso, vertices, lado=1, dens=1):
+        self.nombre, self.hueso, self.lado, self.dens = nombre, hueso, lado, dens
+        self.vertices = [tuple(float(c) for c in v) for v in vertices]
+        self.caras = []          # triangulos y quads que se exportan
+        self.grupo = []          # por cara: indice del grupo (poligono original)
+        self.grupos = []         # por grupo: (pintor, indices del poligono original)
+
+
 class Modelo:
     def __init__(self, nombre: str):
         self.nombre = nombre
         self.cubos: list[Cubo] = []
+        self.mallas: list[Malla] = []
         self.pivotes = dict(HUESOS)
+
+    def malla(self, hueso, nombre, vertices, caras, pintor, lado=1, dens=1):
+        """Malla de caras planas antihorarias vistas desde afuera. Una cara puede tener 3, 4 o mas vertices
+        (los poligonos de 5+ o concavos se triangulan; un quad torcido se parte en dos triangulos).
+        pintor: uno para todas las caras o una lista (uno por cara)."""
+        caras = [tuple(c) for c in caras]
+        pintores = pintor if isinstance(pintor, (list, tuple)) else [pintor] * len(caras)
+        if len(pintores) != len(caras):
+            raise ValueError(f"{nombre}: {len(pintores)} pintores para {len(caras)} caras")
+        m = Malla(nombre, hueso, vertices, lado, dens)
+        vs = m.vertices
+
+        def grupo_nuevo(pin, poli, tris):
+            m.grupos.append((pin, tuple(poli)))
+            for t in tris:
+                m.caras.append(tuple(t))
+                m.grupo.append(len(m.grupos) - 1)
+
+        for c, pin in zip(caras, pintores):
+            pts = [vs[i] for i in c]
+            if len(c) < 3 or geo.normal(pts) == (0.0, 0.0, 0.0):
+                raise ValueError(f"{nombre}: cara degenerada {c}")
+            if len(c) == 3:
+                grupo_nuevo(pin, c, [c])
+                continue
+            if len(c) == 4 and geo.plano(pts) > geo.TOL_PLANO:      # quad torcido: dos triangulos
+                for t in geo._cara(vs, c):
+                    grupo_nuevo(pin, t, [t])
+                continue
+            if geo.plano(pts) > 0.1:
+                raise ValueError(f"{nombre}: el poligono {c} no es plano")
+            _, der, arr = geo.marco(pts)
+            pol2d = [(geo._dot(p, der), geo._dot(p, arr)) for p in pts]
+            if len(c) == 4 and geo._convexo(pol2d):
+                grupo_nuevo(pin, c, [c])
+            else:
+                grupo_nuevo(pin, c, [tuple(c[i] for i in t) for t in geo.triangular(pol2d)])
+        self.mallas.append(m)
+        return m
+
+    def malla_par(self, hueso, nombre, vertices, caras, pintor, dens=1):
+        """Malla del lado DERECHO (+X) que se copia en espejo a la izquierda (hueso Left...)."""
+        for lado in (1, -1):
+            h = hueso if lado == 1 else ESPEJO_HUESO.get(hueso.split("/")[0], hueso.split("/")[0])
+            if lado == -1 and "/" in hueso:
+                h += "/" + hueso.split("/", 1)[1]
+            vs, cs = (vertices, caras) if lado == 1 else geo.espejo_x((vertices, caras))
+            pint = pintor if lado == 1 or not isinstance(pintor, (list, tuple)) else list(pintor)
+            self.malla(h, f"{nombre}_{'der' if lado == 1 else 'izq'}", vs, cs, pint, lado=lado, dens=dens)
+
+    def huesos_usados(self):
+        return {e.hueso.split("/")[0] for e in list(self.cubos) + list(self.mallas)}
 
     # ------------------------------------------------------------------ construccion
     def cubo(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1, dens=1):
@@ -138,6 +207,10 @@ class Modelo:
                 w, h = tam_cara(c.desde, c.hasta, cara)
                 d = c.dens
                 piezas.append((max(1, math.ceil(h * d - 1e-6)), max(1, math.ceil(w * d - 1e-6)), c, cara))
+        for m in self.mallas:
+            for g in range(len(m.grupos)):
+                w, h = self._medida_grupo(m, g)[:2]
+                piezas.append((max(1, math.ceil(h * m.dens - 1e-6)), max(1, math.ceil(w * m.dens - 1e-6)), m, g))
         piezas.sort(key=lambda p: (-p[0], -p[1]))
         skin = 64 if any(c.uv for c in self.cubos) else 0      # rincon reservado a la skin
 
@@ -158,8 +231,17 @@ class Modelo:
             x += tw
         return max(skin, y + alto_fila), asign
 
+    @staticmethod
+    def _medida_grupo(m, g):
+        """(ancho, alto, s_min, t_min, normal, derecha, arriba) del poligono g de la malla m en su propio plano."""
+        pts = [m.vertices[i] for i in m.grupos[g][1]]
+        n, der, arr = geo.marco(pts)
+        ss = [geo._dot(p, der) for p in pts]
+        ts = [-geo._dot(p, arr) for p in pts]
+        return max(ss) - min(ss), max(ts) - min(ts), min(ss), min(ts), n, der, arr
+
     def pintar(self):
-        """Pinta todas las caras. Devuelve (lienzo, uv por cubo)."""
+        """Pinta todas las caras. Devuelve (lienzo, uv por cubo/malla)."""
         for ancho in (128, 256, 512, 1024, 2048):
             r = self._empaquetar(ancho)
             if r and r[0] <= ancho:
@@ -184,6 +266,7 @@ class Modelo:
                 tl, tr, bl = esquinas(c.desde, c.hasta, cara)
                 ux, uy = min(u1, u2), min(v1, v2)
                 tx.cara, tx.tw, tx.th, tx.f, tx.t, tx.nombre, tx.lado = cara, tw, th, c.desde, c.hasta, c.nombre, c.lado
+                tx.n = NORMAL[cara]
                 for jy in range(th):
                     r = (jy + 0.5) / th
                     if v1 > v2:
@@ -199,6 +282,32 @@ class Modelo:
                         col = c.pintor(tx) if c.pintor else TRANSPARENTE
                         lienzo.poner(ux + ix, uy + jy, col)
             uvs[id(c)] = uvc
+        for m in self.mallas:
+            xs, ys, zs = zip(*m.vertices)
+            tx.f, tx.t, tx.nombre, tx.lado = (min(xs), min(ys), min(zs)), (max(xs), max(ys), max(zs)), m.nombre, m.lado
+            marcos = []
+            for g, (pintor, _) in enumerate(m.grupos):
+                w, h, s0, t0, n, der, arr = self._medida_grupo(m, g)
+                ux, uy, tw, th = asign[(id(m), g)]
+                kx, ky = tw / max(w, 1e-9), th / max(h, 1e-9)
+                marcos.append((ux, uy, kx, ky, s0, t0, der, arr))
+                d = geo._dot(m.vertices[m.grupos[g][1][0]], n)
+                tx.cara, tx.tw, tx.th, tx.n = geo.cara_cercana(n), tw, th, n
+                for jy in range(th):
+                    t = t0 + (jy + 0.5) / ky
+                    for ix in range(tw):
+                        s = s0 + (ix + 0.5) / kx
+                        tx.x = d * n[0] + s * der[0] - t * arr[0]
+                        tx.y = d * n[1] + s * der[1] - t * arr[1]
+                        tx.z = d * n[2] + s * der[2] - t * arr[2]
+                        tx.i, tx.j = ix, jy
+                        lienzo.poner(ux + ix, uy + jy, pintor(tx) if pintor else TRANSPARENTE)
+            uvm = []
+            for cara, g in zip(m.caras, m.grupo):
+                ux, uy, kx, ky, s0, t0, der, arr = marcos[g]
+                uvm.append([(ux + (geo._dot(m.vertices[i], der) - s0) * kx,
+                             uy + (-geo._dot(m.vertices[i], arr) - t0) * ky) for i in cara])
+            uvs[id(m)] = uvm
         return lienzo, uvs
 
     # ------------------------------------------------------------------ exportar
@@ -220,8 +329,9 @@ class Modelo:
             grupos[ruta] = g
             return g
 
+        usados = self.huesos_usados()
         for h in self.pivotes:                             # orden fijo de los huesos en el outliner
-            if any(c.hueso.split("/")[0] == h for c in self.cubos):
+            if h in usados:
                 grupo(h)
 
         elementos = []
@@ -239,6 +349,22 @@ class Modelo:
                 e["rotation"] = [round(r, 3) for r in c.rot]
             elementos.append(e)
             grupo(c.hueso)["children"].append(uid)
+
+        for m in self.mallas:                              # mallas: vertices en coordenadas del modelo
+            uid = str(uuid.uuid4())
+            claves = [f"v{i:03d}" for i in range(len(m.vertices))]
+            caras = {}
+            for k, cara in enumerate(m.caras):
+                caras[f"f{k:03d}"] = {
+                    "uv": {claves[i]: [round(u, 4), round(v, 4)] for i, (u, v) in zip(cara, uvs[id(m)][k])},
+                    "vertices": [claves[i] for i in cara], "texture": 0}
+            elementos.append({
+                "name": m.nombre, "color": abs(hash(m.hueso)) % 8, "origin": [0, 0, 0], "rotation": [0, 0, 0],
+                "export": True, "visibility": True, "locked": False, "render_order": "default",
+                "allow_mirror_modeling": True,
+                "vertices": {k: [round(c, 4) for c in v] for k, v in zip(claves, m.vertices)},
+                "faces": caras, "type": "mesh", "uuid": uid})
+            grupo(m.hueso)["children"].append(uid)
 
         png = lienzo.png()
         nombre_tex = f"{self.nombre}.png"

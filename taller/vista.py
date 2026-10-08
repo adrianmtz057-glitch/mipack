@@ -34,6 +34,12 @@ def _caras_mundo(modelo, uvs):
             u1, v1, u2, v2 = uvs[id(c)][cara]
             UV = np.array([[u1, v1], [u2, v1], [u2, v2], [u1, v2]], dtype=float)
             out.append((P, UV))
+    for m in getattr(modelo, "mallas", []):
+        for k, cara in enumerate(m.caras):
+            orden = (0, 2, 1, 1) if len(cara) == 3 else (0, 3, 2, 1)     # el render quiere horario desde afuera
+            P = np.array([m.vertices[cara[o]] for o in orden], dtype=float)
+            UV = np.array([uvs[id(m)][k][o] for o in orden], dtype=float)
+            out.append((P, UV))
     return out
 
 
