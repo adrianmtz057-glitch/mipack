@@ -35,7 +35,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 
 from taller import ficha as fichas          # noqa: E402
-from taller import ia, objetos, sastre, vista     # noqa: E402
+from taller import ia, objetos, personajes, sastre, vista     # noqa: E402
 
 LORE = os.path.join(AQUI, "lore")
 PERSONAJES = os.path.join(LORE, "personajes")
@@ -99,11 +99,22 @@ def exportar_figura(ficha, ruta_bbmodel, carpeta):
                 "vanilla_model.PLAYER:setVisible(false)\n")
 
 
-def generar(ficha_cruda, guardar_ficha=None):
+def generar(ficha_cruda, guardar_ficha=None, a_mano=True):
     f = fichas.normalizar(ficha_cruda)
     nombre = fichas.slug(f["nombre"])
     f["_id"] = nombre
     os.makedirs(SALIDA, exist_ok=True)
+    modulo = personajes.cargar(nombre) if a_mano else None
+    if modulo:                                       # personaje modelado a mano (taller/personajes/<id>.py)
+        p = modulo.construir()
+        p.nombre = p.m.nombre = nombre
+        ruta, lienzo, uvs = p.guardar(SALIDA)
+        print(f"  Modelo (hecho a mano): {ruta}  ({len(p.m.cubos)} cubos, textura {lienzo.ancho}x{lienzo.alto})")
+        exportar_figura(f, ruta, os.path.join(SALIDA, "figura", nombre))
+        for obj in getattr(modulo, "accesorios", lambda: [])():
+            r_obj, _, _ = obj.guardar(os.path.join(SALIDA, "accesorios"))
+            print(f"  Accesorio: {r_obj}")
+        return ruta
     if guardar_ficha:
         sin_id = {k: v for k, v in f.items() if not k.startswith("_")}
         with open(guardar_ficha, "w", encoding="utf-8") as fh:
@@ -169,7 +180,7 @@ def main():
         destino = os.path.join(PERSONAJES, fichas.slug(crudo.get("nombre") or pedido) + ".json")
         if os.path.exists(destino):
             destino = destino[:-5] + "_nuevo.json"
-    generar(crudo, guardar_ficha=destino)
+    generar(crudo, guardar_ficha=destino, a_mano=False)      # las variantes usan el motor generico
 
 
 if __name__ == "__main__":

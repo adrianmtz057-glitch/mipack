@@ -77,9 +77,10 @@ class Texel:
 
 
 class Cubo:
-    __slots__ = ("nombre", "hueso", "desde", "hasta", "pintor", "rot", "origen", "uv", "caras", "lado")
+    __slots__ = ("nombre", "hueso", "desde", "hasta", "pintor", "rot", "origen", "uv", "caras", "lado", "dens")
 
-    def __init__(self, nombre, hueso, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1):
+    def __init__(self, nombre, hueso, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1,
+                 dens=1):
         self.nombre, self.hueso, self.pintor = nombre, hueso, pintor
         self.desde = [min(desde[i], hasta[i]) for i in range(3)]
         self.hasta = [max(desde[i], hasta[i]) for i in range(3)]
@@ -90,6 +91,7 @@ class Cubo:
         self.uv = uv                     # dict cara -> [u1, v1, u2, v2] (solo cubos del cuerpo base)
         self.caras = caras or CARAS      # caras que existen (las demas quedan sin textura)
         self.lado = lado
+        self.dens = dens                 # texeles por px (1 = normal, 2 = el doble de detalle)
 
 
 class Modelo:
@@ -99,16 +101,21 @@ class Modelo:
         self.pivotes = dict(HUESOS)
 
     # ------------------------------------------------------------------ construccion
-    def cubo(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1):
-        if any(hasta[i] - desde[i] <= 0 for i in range(3)):
+    def cubo(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1, dens=1):
+        """Cubo de 'desde' a 'hasta'. Si un eje mide 0 es un PLANO (solo sus dos caras grandes)."""
+        tam = [abs(hasta[i] - desde[i]) for i in range(3)]
+        ceros = [i for i in range(3) if tam[i] < 1e-6]
+        if len(ceros) > 1:
             return None
+        if ceros and caras is None:
+            caras = {0: ("east", "west"), 1: ("up", "down"), 2: ("north", "south")}[ceros[0]]
         if origen is None and not rot:
             origen = self.pivotes.get(hueso.split("/")[0], (0, 0, 0))
-        c = Cubo(nombre, hueso, desde, hasta, pintor, rot, origen, uv, caras, lado)
+        c = Cubo(nombre, hueso, desde, hasta, pintor, rot, origen, uv, caras, lado, dens)
         self.cubos.append(c)
         return c
 
-    def par(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None):
+    def par(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, caras=None, dens=1):
         """Pieza simetrica: se da la del lado DERECHO (+X) y se refleja a la izquierda."""
         for lado in (1, -1):
             h = hueso if lado == 1 else ESPEJO_HUESO.get(hueso.split("/")[0], hueso.split("/")[0])
@@ -118,7 +125,7 @@ class Modelo:
             r = None if rot is None else (rot[0], rot[1] * lado, rot[2] * lado)
             o = None if origen is None else (origen[0] * lado, origen[1], origen[2])
             self.cubo(h, f"{nombre}_{'der' if lado == 1 else 'izq'}", (x1, desde[1], desde[2]),
-                      (x2, hasta[1], hasta[2]), pintor, r, o, lado=lado)
+                      (x2, hasta[1], hasta[2]), pintor, r, o, caras=caras, lado=lado, dens=dens)
 
     # ------------------------------------------------------------------ textura
     def _empaquetar(self, ancho):
@@ -129,7 +136,8 @@ class Modelo:
                 continue
             for cara in c.caras:
                 w, h = tam_cara(c.desde, c.hasta, cara)
-                piezas.append((max(1, math.ceil(h - 1e-6)), max(1, math.ceil(w - 1e-6)), c, cara))
+                d = c.dens
+                piezas.append((max(1, math.ceil(h * d - 1e-6)), max(1, math.ceil(w * d - 1e-6)), c, cara))
         piezas.sort(key=lambda p: (-p[0], -p[1]))
         skin = 64 if any(c.uv for c in self.cubos) else 0      # rincon reservado a la skin
 
@@ -152,13 +160,13 @@ class Modelo:
 
     def pintar(self):
         """Pinta todas las caras. Devuelve (lienzo, uv por cubo)."""
-        for ancho in (128, 256, 512, 1024):
+        for ancho in (128, 256, 512, 1024, 2048):
             r = self._empaquetar(ancho)
             if r and r[0] <= ancho:
                 usado, asign = r
                 break
         else:
-            raise RuntimeError("El modelo tiene demasiada superficie para un atlas de 1024 px")
+            raise RuntimeError("El modelo tiene demasiada superficie para un atlas de 2048 px")
         lado = ancho
         lienzo = Lienzo(lado, lado)
         uvs = {}

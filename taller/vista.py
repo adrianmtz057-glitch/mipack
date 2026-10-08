@@ -95,7 +95,8 @@ def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro):
     return img
 
 
-def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520):
+def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio=None, vistas=VISTAS):
+    """Vistas del modelo en un PNG. Con centro/radio (en px del modelo) hace zoom a esa zona (ej. la cara)."""
     try:
         import numpy as np
         from PIL import Image
@@ -105,11 +106,12 @@ def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520):
     caras = _caras_mundo(modelo, uvs)
     todos = np.concatenate([P for P, _ in caras])
     lo, hi = todos.min(axis=0), todos.max(axis=0)
-    centro = (lo + hi) / 2
-    radio = float(np.linalg.norm(hi - lo)) / 2
+    zoom = centro is not None
+    centro = (lo + hi) / 2 if centro is None else np.array(centro, dtype=float)
+    radio = float(np.linalg.norm(hi - lo)) / 2 if radio is None else float(radio)
     escala = (alto_px * 0.9) / (2 * radio)
-    ancho = int(alto_px * 0.62)
-    paneles = [_render(caras, tex, yaw, pitch, escala, ancho, alto_px, centro) for _, yaw, pitch in VISTAS]
+    ancho = alto_px if zoom else int(alto_px * 0.62)
+    paneles = [_render(caras, tex, yaw, pitch, escala, ancho, alto_px, centro) for _, yaw, pitch in vistas]
     img = np.concatenate(paneles, axis=1)
     Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).save(ruta_png)
     return ruta_png
