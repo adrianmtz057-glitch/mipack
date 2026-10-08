@@ -79,10 +79,10 @@ class Texel:
 
 
 class Cubo:
-    __slots__ = ("nombre", "hueso", "desde", "hasta", "pintor", "rot", "origen", "uv", "caras", "lado", "dens")
+    __slots__ = ("nombre", "hueso", "desde", "hasta", "pintor", "rot", "origen", "uv", "caras", "lado", "dens", "luz")
 
     def __init__(self, nombre, hueso, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1,
-                 dens=1):
+                 dens=1, luz=True):
         self.nombre, self.hueso, self.pintor = nombre, hueso, pintor
         self.desde = [min(desde[i], hasta[i]) for i in range(3)]
         self.hasta = [max(desde[i], hasta[i]) for i in range(3)]
@@ -94,6 +94,7 @@ class Cubo:
         self.caras = caras or CARAS      # caras que existen (las demas quedan sin textura)
         self.lado = lado
         self.dens = dens                 # texeles por px (1 = normal, 2 = el doble de detalle)
+        self.luz = luz                   # False: la luz horneada no la toca y no hace sombra (detalles planos)
 
 
 class Malla:
@@ -174,7 +175,8 @@ class Modelo:
         return {e.hueso.split("/")[0] for e in list(self.cubos) + list(self.mallas)}
 
     # ------------------------------------------------------------------ construccion
-    def cubo(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1, dens=1):
+    def cubo(self, hueso, nombre, desde, hasta, pintor, rot=None, origen=None, uv=None, caras=None, lado=1, dens=1,
+             luz=True):
         """Cubo de 'desde' a 'hasta'. Si un eje mide 0 es un PLANO (solo sus dos caras grandes)."""
         tam = [abs(hasta[i] - desde[i]) for i in range(3)]
         ceros = [i for i in range(3) if tam[i] < 1e-6]
@@ -184,7 +186,7 @@ class Modelo:
             caras = {0: ("east", "west"), 1: ("up", "down"), 2: ("north", "south")}[ceros[0]]
         if origen is None and not rot:
             origen = self.pivotes.get(hueso.split("/")[0], (0, 0, 0))
-        c = Cubo(nombre, hueso, desde, hasta, pintor, rot, origen, uv, caras, lado, dens)
+        c = Cubo(nombre, hueso, desde, hasta, pintor, rot, origen, uv, caras, lado, dens, luz)
         self.cubos.append(c)
         return c
 
@@ -375,7 +377,7 @@ class Modelo:
                         tx.i, tx.j = int(s * tw), int(r * th)
                         col = c.pintor(tx) if c.pintor else TRANSPARENTE
                         lienzo.poner(ux + ix, uy + jy, col)
-                if self.luz:
+                if self.luz and c.luz:
                     caras_luz.append((self._marco_luz(c, cara, tl, tr, bl) + (th, None), ux, uy, tw, th,
                                       u1 > u2, v1 > v2))
             uvs[id(c)] = uvc

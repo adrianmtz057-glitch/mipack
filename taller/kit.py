@@ -170,8 +170,9 @@ class Personaje:
         return (x1, 0, -self.ld / 2), (x2, self.lh, self.ld / 2)
 
     # ------------------------------------------------------------------ piezas
-    def caja(self, grupo, nombre, desde, hasta, pintor, rot=None, piv=None, dens=1, caras=None):
-        return self.m.cubo(grupo, nombre, desde, hasta, pintor, rot, piv, caras=caras, dens=dens)
+    def caja(self, grupo, nombre, desde, hasta, pintor, rot=None, piv=None, dens=1, caras=None, luz=True):
+        """Caja. luz=False: la luz horneada no la toca ni hace sombra con ella (para detalles planos como un bigote)."""
+        return self.m.cubo(grupo, nombre, desde, hasta, pintor, rot, piv, caras=caras, dens=dens, luz=luz)
 
     def par(self, grupo, nombre, desde, hasta, pintor, rot=None, piv=None, dens=1, caras=None):
         """Pieza del lado DERECHO (+X, hueso Right...) que se copia en espejo a la izquierda."""

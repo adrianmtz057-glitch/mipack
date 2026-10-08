@@ -249,7 +249,7 @@ class Luz:
             if 0 <= x < ancho and 0 <= y < alto:
                 return px[(y * ancho + x) * 4 + 3] > 0
             return True
-        self.piezas = [_Caja(c, opaco) for c in modelo.cubos]
+        self.piezas = [_Caja(c, opaco) for c in modelo.cubos if c.luz]       # luz=False: no hace sombra
         for m in modelo.mallas:
             for k, cara in enumerate(m.caras):
                 vs = [m.vertices[i] for i in cara]
