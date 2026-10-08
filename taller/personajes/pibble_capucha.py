@@ -21,12 +21,13 @@ CX, CY, CZ = 0.0, 22.5, 0.0         # centro del ovalo
 RX, RY, RZ = 8.5, 7.0, 7.0          # semiejes: ancho, alto, fondo
 GROSOR = 0.8                        # grosor de la tela de la capucha
 # columnas (grados desde el frente hacia +X) y filas (grados de altura): mas juntas cerca de la cara
-ALFAS = (0, 27, 72, 126, 180, 234, 288, 333)
-BETAS = (-48, -32, 0, 32, 60, 80)   # abajo queda abierta (ahi se conecta el cuerpo)
+HA, HB = 31, 36                     # medio ancho y medio alto del agujero de la cara (en grados del ovalo)
+ALFAS = (0, HA, 72, 126, 180, 234, 288, 360 - HA)
+BETAS = (-48, -HB, 0, HB, 60, 80)   # abajo queda abierta (ahi se conecta el cuerpo)
 # borde del agujero de la cara: 8 vertices del ovalo (columna, fila)
-BORDE = ((333, -32), (0, -32), (27, -32), (27, 0), (27, 32), (0, 32), (333, 32), (333, 0))
-ESQUINAS = {(333, -32), (27, -32), (27, 32), (333, 32)}
-HUECO = {(a, b) for a in (333, 0) for b in (-32, 0)}       # los 4 paneles del frente que se sacan
+BORDE = ((360 - HA, -HB), (0, -HB), (HA, -HB), (HA, 0), (HA, HB), (0, HB), (360 - HA, HB), (360 - HA, 0))
+ESQUINAS = {(360 - HA, -HB), (HA, -HB), (HA, HB), (360 - HA, HB)}
+HUECO = {(a, b) for a in (360 - HA, 0) for b in (-HB, 0)}  # los 4 paneles del frente que se sacan
 
 CABEZA = 7.0                        # lado del cubo de la cabeza
 CABEZA_Z = -0.7                     # centro del cubo (un poco hacia adelante, para que se vea por el agujero)
@@ -40,7 +41,7 @@ def punto(a, b, enc=0.0):
     ar, br = math.radians(a), math.radians(b)
     p = (CX + rx * math.cos(br) * math.sin(ar), CY + ry * math.sin(br), CZ - rz * math.cos(br) * math.cos(ar))
     if (a, b) in ESQUINAS:                     # esquinas del agujero: se meten hacia el centro -> agujero ovalado
-        x, y = CX + (p[0] - CX) * 0.82, CY + (p[1] - CY) * 0.82
+        x, y = CX + (p[0] - CX) * 0.84, CY + (p[1] - CY) * 0.84
         k = max(0.0, 1 - ((x - CX) / rx) ** 2 - ((y - CY) / ry) ** 2)
         p = (x, y, CZ - rz * math.sqrt(k))     # sigue sobre la superficie del ovalo
     return p
