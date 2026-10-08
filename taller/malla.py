@@ -235,3 +235,84 @@ def espejo_x(malla):
     """Refleja en X (lado derecho -> izquierdo) y da vuelta las caras para que sigan mirando afuera."""
     vs, cs = malla
     return [(-p[0], p[1], p[2]) for p in vs], [tuple(reversed(c)) for c in cs]
+
+
+# ----------------------------------------------------------------------------- piezas armadas
+
+class Armador:
+    """Junta vertices y caras orientando cada cara hacia el lado 'afuera' que se le indica."""
+
+    def __init__(self):
+        self.vs, self.caras, self.tipos = [], [], []
+
+    def v(self, p):
+        self.vs.append(tuple(p))
+        return len(self.vs) - 1
+
+    def centro(self, idx):
+        return tuple(sum(self.vs[i][k] for i in idx) / len(idx) for k in range(3))
+
+    def cara(self, idx, afuera, tipo):
+        partes = _cara(self.vs, tuple(idx)) if len(idx) == 4 else [tuple(idx)]
+        for parte in partes:
+            dirc = afuera(self.centro(parte)) if callable(afuera) else afuera
+            if _dot(normal([self.vs[i] for i in parte]), dirc) < 0:
+                parte = tuple(reversed(parte))
+            self.caras.append(parte)
+            self.tipos.append(tipo)
+
+
+def loft(anillos, lados, giro=0.0, tapa_abajo=True, tapa_arriba=True):
+    """Cuerpo facetado por anillos (y, cx, cz, rx, rz) de ABAJO hacia ARRIBA."""
+    rs = [anillo(cx, y, cz, rx, rz, lados, giro) for y, cx, cz, rx, rz in anillos]
+    return unir(*[tronco(rs[k], rs[k + 1], tapa_abajo=tapa_abajo and k == 0,
+                         tapa_arriba=tapa_arriba and k == len(rs) - 2) for k in range(len(rs) - 1)])
+
+
+def loft_puntos(anillos, tapa_abajo=True, tapa_arriba=True):
+    """Como loft, pero con los anillos ya armados (listas de puntos), de abajo hacia arriba."""
+    return unir(*[tronco(anillos[k], anillos[k + 1], tapa_abajo=tapa_abajo and k == 0,
+                         tapa_arriba=tapa_arriba and k == len(anillos) - 2) for k in range(len(anillos) - 1)])
+
+
+def extruir_x(perfil_zy, x1, x2):
+    """Extruye un perfil (z, y) a lo ancho, de x1 a x2 (para tiras que siguen la panza)."""
+    vs, cs = extruir(perfil_zy, x1, x2)
+    return [(p[2], p[1], p[0]) for p in vs], [tuple(reversed(c)) for c in cs]     # cambiar ejes da vuelta las caras
+
+
+def bipiramide(c, r, alto_arriba, alto_abajo, lados=4, giro=45.0):
+    """Rombo / gota facetada: dos piramides pegadas por la base (colgantes, gemas)."""
+    base = anillo(c[0], c[1], c[2], r, r, lados, giro)
+    arriba = piramide(base, (c[0], c[1] + alto_arriba, c[2]), tapa=False)
+    abajo = piramide(base, (c[0], c[1] - alto_abajo, c[2]), tapa=False)
+    vs, cs = abajo
+    return unir(arriba, (vs, [tuple(reversed(f)) for f in cs]))        # la de abajo mira hacia abajo
+
+
+def aro(r_ext, r_int, grosor, lados=8):
+    """Aro facetado en el plano XY (mira hacia -Z), centrado en el origen (aros, coronas redondas)."""
+    m = Armador()
+    o = [[m.v((r_ext * math.cos(2 * math.pi * k / lados + math.pi / lados),
+               r_ext * math.sin(2 * math.pi * k / lados + math.pi / lados), z)) for k in range(lados)]
+         for z in (-grosor / 2, grosor / 2)]
+    i = [[m.v((r_int * math.cos(2 * math.pi * k / lados + math.pi / lados),
+               r_int * math.sin(2 * math.pi * k / lados + math.pi / lados), z)) for k in range(lados)]
+         for z in (-grosor / 2, grosor / 2)]
+    for k in range(lados):
+        k2 = (k + 1) % lados
+        m.cara((o[0][k], o[0][k2], i[0][k2], i[0][k]), (0, 0, -1), "aro")
+        m.cara((o[1][k], o[1][k2], i[1][k2], i[1][k]), (0, 0, 1), "aro")
+        m.cara((o[0][k], o[0][k2], o[1][k2], o[1][k]), lambda c: (c[0], c[1], 0), "aro")
+        m.cara((i[0][k], i[0][k2], i[1][k2], i[1][k]), lambda c: (-c[0], -c[1], 0), "aro")
+    return m.vs, m.caras
+
+
+def desgirar(p, rot, piv):
+    """Lleva un punto del modelo a las coordenadas propias de una pieza girada con girar."""
+    x, y, z = p[0] - piv[0], p[1] - piv[1], p[2] - piv[2]
+    a, b, c = (math.radians(v) for v in rot)
+    x, y = x * math.cos(c) + y * math.sin(c), -x * math.sin(c) + y * math.cos(c)
+    x, z = x * math.cos(b) - z * math.sin(b), x * math.sin(b) + z * math.cos(b)
+    y, z = y * math.cos(a) + z * math.sin(a), -y * math.sin(a) + z * math.cos(a)
+    return x, y, z

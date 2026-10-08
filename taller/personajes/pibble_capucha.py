@@ -14,6 +14,7 @@ Piezas low-poly independientes, con las mismas reglas:
 import math
 
 from .. import malla as geo
+from ..malla import Armador
 from ..kit import Personaje, tonos
 from ..textura import hex_a_rgba as hex_
 
@@ -49,29 +50,6 @@ def punto(a, b, enc=0.0):
         k = max(0.0, 1 - ((x - CX) / rx) ** 2 - ((y - CY) / ry) ** 2)
         p = (x, y, CZ - rz * math.sqrt(k))     # sigue sobre la superficie del ovalo
     return p
-
-
-class Armador:
-    """Junta vertices y caras orientando cada cara hacia el lado 'afuera' que se le indica."""
-
-    def __init__(self):
-        self.vs, self.caras, self.tipos = [], [], []
-
-    def v(self, p):
-        self.vs.append(tuple(p))
-        return len(self.vs) - 1
-
-    def centro(self, idx):
-        return tuple(sum(self.vs[i][k] for i in idx) / len(idx) for k in range(3))
-
-    def cara(self, idx, afuera, tipo):
-        partes = geo._cara(self.vs, tuple(idx)) if len(idx) == 4 else [tuple(idx)]
-        for parte in partes:
-            dirc = afuera(self.centro(parte)) if callable(afuera) else afuera
-            if geo._dot(geo.normal([self.vs[i] for i in parte]), dirc) < 0:
-                parte = tuple(reversed(parte))
-            self.caras.append(parte)
-            self.tipos.append(tipo)
 
 
 def ovalo():
