@@ -15,7 +15,6 @@ from ..pintura import metal
 from ..textura import TRANSPARENTE, azar, hex_a_rgba
 
 NEGRO = tonos("#1E181A")
-CARBON = tonos("#2C2426")
 MARRON = tonos("#3E2C22")
 CREMA = tonos("#E6DAC2")
 ORO = tonos("#C29A48")
@@ -31,10 +30,10 @@ CARA = dibujo("""
     KKKKKgKoKgKKKKKK
     KKKKKKgGgKKKKKKK
     KKKKKKKgKKKKKKKK
-    KKooKKKKKKKKooKK
-    KKEEEoKKKKoEEEKK
-    KKoEEEoKKoEEEoKK
-    KKKooooKKooooKKK
+    KoooKKKKKKKKoooK
+    oEEEEoKKKKoEEEEo
+    KoEFEEoKKoEEFEoK
+    KKooooKKKKooooKK
     KKKKKKKKKKKKKKKK
     KKKKKKKKKKKKKKKK
     KKKKKKKKKKKKKKKK
@@ -42,7 +41,7 @@ CARA = dibujo("""
     KKKKKKKKKKKKKKKK
     KKKKKKKKKKKKKKKK
 """)
-PAL_CARA = {"K": VACIO, "g": ORO["s"], "G": ORO["h"], "E": "#FFF0C0", "o": "#B08A40"}
+PAL_CARA = {"K": VACIO, "g": ORO["s"], "G": ORO["h"], "E": "#F6C850", "F": "#FFF4C8", "o": "#9A6A20"}
 
 ARO = dibujo("""
     ..GGGG..
@@ -109,7 +108,7 @@ def textil(semilla=0, forro_abajo=0):
     """Tela oscura del abrigo con bandas en zigzag doradas, filas de rombos y forro azul abajo."""
     def p(t):
         if t.cara == "up":
-            return hex_(CARBON["b"])
+            return hex_(NEGRO["b"])
         if t.cara == "down":
             return hex_(NEGRO["s"])
         u, v = _uv(t)
@@ -133,7 +132,7 @@ def textil(semilla=0, forro_abajo=0):
         # sombreado por altura de mundo (no por pieza): sin "anillos" entre rebanadas
         if t.cara in ("east", "west"):
             return hex_(NEGRO["b"] if (u + semilla) % 5 else NEGRO["s"])
-        c = CARBON["l"] if v > 30 else (CARBON["b"] if v > 14 else NEGRO["b"])
+        c = MARRON["s"] if v > 30 else NEGRO["b"]
         if (u + semilla) % 5 == 0:
             c = NEGRO["b"] if c != NEGRO["b"] else NEGRO["s"]
         return hex_(c)
@@ -166,18 +165,18 @@ def crema(cortes=None, semilla=0, borde=MARRON["b"]):
 
 
 def bufanda(semilla=0, cortes=None):
-    """Tela gruesa carbon con pliegues horizontales (se distingue del vacio de la cara)."""
+    """Tela gruesa marron oscuro con pliegues horizontales (se distingue del vacio negro de la cara)."""
     def p(t):
         if t.cara in ("up", "down"):
-            return hex_(CARBON["l"] if t.cara == "up" else NEGRO["s"])
+            return hex_(MARRON["b"] if t.cara == "up" else NEGRO["s"])
         if cortes and t.fila_abajo < cortes[(t.i + semilla) % len(cortes)]:
             return TRANSPARENTE
         fila = (t.j + semilla) % 4
         if fila == 0:
-            return hex_(CARBON["l"])
+            return hex_(MARRON["l"])
         if fila == 3:
-            return hex_(NEGRO["s"])
-        return hex_(CARBON["b"])
+            return hex_(NEGRO["b"])
+        return hex_(MARRON["b"])
     return p
 
 
@@ -301,20 +300,20 @@ def construir():
     losa(p, "Body/manto", "manto_cuello", 0, 0, C - 2.6, C + 0.9, 12.6, 8.6, 2.0, crema(picos(20, prof=4), 3))
     p.caja("Body/manto", "manto_espalda", (-5.6, L + 1.0, 3.9), (5.6, C - 2.0, 4.5),
            crema(picos(21, prof=6), 4), rot=(-6, 0, 0), piv=(0, C - 2, 4.2), dens=2)
-    for s in (1, -1):
-        x1, x2 = sorted((s * 1.4, s * 3.0))
-        p.caja("Body/manto", f"tira_{s}", (x1, L - 5.0, -4.6), (x2, C - 2.0, -4.2),
-               crema([0, 1, 2, 1] if s > 0 else [2, 1, 0, 1], 6 + s), rot=(4, 0, -3 * s),
-               piv=((x1 + x2) / 2, C - 2, -4.4), dens=2)
+    for s in (1, -1):                                   # dos tiras crema que caen adelante, separadas del abrigo
+        x1, x2 = sorted((s * 0.9, s * 3.0))
+        p.caja("Body/manto", f"tira_{s}", (x1, L - 5.5, -5.6), (x2, C - 1.5, -5.1),
+               crema([0, 1, 2, 3, 2, 1] if s > 0 else [3, 2, 1, 0, 1, 2], 6 + s), rot=(6, 0, -2 * s),
+               piv=((x1 + x2) / 2, C - 1.5, -5.3), dens=2)
 
     # ---- bufanda gruesa en dos vueltas que tapa la boca, con nudo y punta
     losa(p, "Body/bufanda", "bufanda_baja", 0, 0, C - 0.6, C + 1.4, 9.6, 6.6, 1.4, bufanda(0))
-    losa(p, "Head/bufanda", "bufanda_alta", 0, -0.2, C + 1.2, C + 3.1, 9.0, 9.4, 1.4, bufanda(1),
-         rot=(0, 0, -4), piv=(0, C + 2, 0))
-    p.caja("Body/bufanda", "nudo", (1.2, C - 2.2, -5.1), (3.6, C + 0.2, -3.9), bufanda(2), rot=(0, 0, 12),
-           piv=(2.4, C - 1, -4.5))
-    p.caja("Body/bufanda", "punta", (1.8, L - 2.0, -4.95), (3.8, C - 2.0, -4.55), bufanda(3, picos(30, prof=2)),
-           rot=(3, 0, -8), piv=(2.8, C - 2, -4.7), dens=2)
+    losa(p, "Head/bufanda", "bufanda_alta", 0, -0.2, C + 1.0, C + 2.5, 9.0, 9.4, 1.4, bufanda(1),
+         rot=(0, 0, -3), piv=(0, C + 1.8, 0))
+    p.caja("Body/bufanda", "nudo", (4.0, C - 2.4, -4.6), (6.0, C + 0.4, -2.6), bufanda(2), rot=(0, 0, 15),
+           piv=(5.0, C - 1, -3.6))
+    p.caja("Body/bufanda", "punta", (4.4, L + 0.5, -4.2), (6.0, C - 2.2, -3.4), bufanda(3, picos(30, prof=2)),
+           rot=(0, 0, 10), piv=(5.2, C - 2.2, -3.8), dens=2)
 
     # ---- mangas gordas con puño azul y manos redondas
     for s in (1, -1):
@@ -354,8 +353,8 @@ def construir():
     # ---- sombrero puntiagudo: niveles irregulares (cada uno con su giro y desplazamiento)
     x, y, z = 0.0, T + 0.4, 0.4
     az = ax = 0.0
-    pasos = [(0, 0, 9.0, 1.6), (2, -3, 8.0, 1.3), (4, -1, 7.2, 1.6), (3, -3, 6.0, 1.2), (8, -2, 5.2, 1.5),
-             (9, 0, 4.0, 1.4), (12, 1, 3.2, 1.6), (14, 0, 2.2, 1.3), (16, 2, 1.4, 1.5), (18, 0, 0.8, 1.6)]
+    pasos = [(0, 0, 9.0, 1.6), (2, -3, 8.0, 1.4), (4, -1, 7.0, 1.8), (5, -3, 5.8, 1.6), (9, -2, 4.8, 2.0),
+             (12, 0, 3.8, 2.2), (15, 1, 2.9, 2.4), (18, 0, 2.0, 2.4), (21, 2, 1.3, 2.4), (24, 0, 0.7, 2.2)]
     centros = []
     for k, (dz, dx, ancho, alto) in enumerate(pasos):
         az += dz
@@ -385,7 +384,8 @@ def construir():
     for k, (xx, largo) in enumerate(((-5.6, 3.0), (-6.8, 1.6), (-4.4, 1.8))):
         rombo(p, "Head/sombrero", f"colgante{k}", xx, T - 3.0 - largo, -2.7, 1.1 + 0.3 * (k == 0), ORO["b"],
               cadena=largo)
-    rombo(p, "Head/sombrero", "colgante_der", 6.0, T - 1.8, -1.8, 1.1, ORO["b"], cadena=1.4)
+    for k, (xx, zz, largo) in enumerate(((6.0, -1.8, 1.4), (6.6, 1.2, 2.6), (4.8, -4.8, 2.0))):
+        rombo(p, "Head/sombrero", f"colgante_der{k}", xx, T - 1.4 - largo, zz, 1.1, ORO["b"], cadena=largo)
     rombo(p, "Body/collar", "colgante_pecho", 0, C - 4.4, -4.85, 1.4, ORO["b"], cadena=1.5)
 
     # ---- cola en media luna: hoja ancha azul y negra con bordes dorados
