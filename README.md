@@ -30,6 +30,7 @@ Modelados a mano con el kit (`taller/personajes/<id>.py`), con sus bocetos en `s
 | Correctar | NSWY de la afirmación: chibi del orden y los colores fríos, el opuesto de Revolthir |
 | Meron | dios de Velkia, estilo de calle (con su máscara aparte) |
 | Anteros | dios de Aseris, hermano de Meron |
+| Khaset | dios del fuego corrompido de Thza: demonio esquelético altísimo, encorvado y al acecho |
 
 ## Instalación
 
