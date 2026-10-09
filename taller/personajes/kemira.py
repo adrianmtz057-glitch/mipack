@@ -279,67 +279,58 @@ def ropa(p, L):
     falda(p, L)
 
 
+CARBON, GRIS_OSCURO, BEIGE = "#1D1D24", "#2C2C36", "#E3D2B4"
+
+
 def falda(p, L):
-    """Falda tribal armada en orden, como se arma en Blockbench: cinturon de cuero con triangulos, una base oscura
-    con el borde roto, tiras negras de distintos tamanos en tres profundidades (largas al medio, cortas a los
-    costados con alguna punta hacia afuera, mas tiras atras) y plumas blancas concentradas en el frente, con la
-    punta escalonada y algunas tiras negras por delante."""
+    """Falda tribal de plumas como la guia: cinturon de cuero con triangulos; base oscura de 3 a 4 de alto con el
+    borde roto; muchas tiras oscuras (carbon y gris) alrededor de toda la cadera en tres profundidades, largas al
+    centro de adelante y de atras, cortas a los costados y algo abiertas hacia afuera, con punta escalonada; plumas
+    beige mas finas mezcladas sobre todo al frente. La silueta es irregular: no es un cono ni termina recta."""
     g = "Body/falda"
-    oscuro = lambda col: (lambda t: hex_(col))
-    # 1. cinturon: banda de cuero con triangulos y una banda mas angosta encima
+    color_ = lambda col: (lambda t: hex_(col))
     p.caja(g, "cinturon", (-4.4, L + 0.8, -2.55), (4.4, L + 1.8, 3.15), tejido, dens=D, luz=False)
-    p.caja(g, "cinturon_alto", (-4.3, L + 1.8, -2.45), (4.3, L + 2.2, 3.05), oscuro(CAFE_OSCURO), dens=D, luz=False)
-    # 2. base oscura alrededor de la cadera, con el borde de abajo roto en bloquecitos
-    p.caja(g, "base", (-4.3, L - 2.2, -2.45), (4.3, L + 0.8, 3.05), oscuro(NEGRO_PURO), dens=D, luz=False)
-    for k in range(10):
-        x = -4.0 + 8.0 * k / 9
-        for lado, z0, z1 in ((-1, -2.5, -2.0), (1, 2.6, 3.1)):
-            baja = 0.4 + 1.0 * _azar(k * 2 + (lado > 0) + 1000)
-            p.caja(g, f"borde{k}_{lado}", (x - 0.4, L - 2.2 - baja, z0), (x + 0.4, L - 2.2, z1), oscuro(NEGRO_PURO),
-                   dens=D, luz=False)
+    p.caja(g, "base", (-4.35, L - 2.6, -2.5), (4.35, L + 0.8, 3.1), color_(CARBON), dens=D, luz=False)
 
-    def tira(nombre, x, z, ancho, grueso, largo, col, giro=0.0, escalon=True):
-        """Una tira colgante (prisma) con la punta escalonada: un bloquecito mas angosto debajo, corrido adentro."""
-        y1 = L + 0.8
-        p.caja(g, nombre, (x - ancho / 2, y1 - largo, z - grueso / 2), (x + ancho / 2, y1, z + grueso / 2), oscuro(col),
-               rot=(0, 0, giro), piv=(x, y1, z), dens=D, luz=False)
-        if escalon:
-            corre = (0.15 if x < 0 else -0.15) * ancho
-            p.caja(g, nombre + "_punta", (x + corre - ancho * 0.25, y1 - largo - 0.8, z - grueso / 2 + 0.1),
-                   (x + corre + ancho * 0.25, y1 - largo, z + grueso / 2 - 0.1), oscuro(col),
-                   rot=(0, 0, giro), piv=(x, y1, z), dens=D, luz=False)
+    def tira(nombre, x, z, ancho, grueso, largo, col, de_lado, abre=0.0):
+        """Tira colgante con punta escalonada. de_lado: el ancho va en Z (tiras de los costados)."""
+        y1 = L + 0.6
+        sx, sz = (grueso, ancho) if de_lado else (ancho, grueso)
+        rot = (abre, 0, 0) if de_lado and False else ((0, 0, abre) if de_lado else (0, 0, 0))
+        p.caja(g, nombre, (x - sx / 2, y1 - largo, z - sz / 2), (x + sx / 2, y1, z + sz / 2), color_(col),
+               rot=rot, piv=(x, y1, z), dens=D, luz=False)
+        px, pz = (sx, sz * 0.5) if de_lado else (sx * 0.5, sz)
+        p.caja(g, nombre + "_p", (x - px / 2, y1 - largo - 0.9, z - pz / 2), (x + px / 2, y1 - largo, z + pz / 2),
+               color_(col), rot=rot, piv=(x, y1, z), dens=D, luz=False)
 
-    negros = (NEGRO_PURO, "#222022")
     k = 0
-    # 3. tiras negras del frente y de atras, en tres profundidades (adentro, al medio y afuera)
-    for lado, zs in ((-1, -2.45), (1, 3.05)):
-        for capa in range(3):
-            for i in range(7 - capa):
-                x = -3.8 + 7.6 * (i + 0.5 * capa + 0.4 * _azar(k + 1100)) / (6.4 - capa)
-                x = max(-3.9, min(3.9, x))
-                if lado < 0 and capa == 2 and abs(x) < 2.3:            # el centro de adelante queda para las blancas
-                    continue
-                centro = 1 - min(1.0, abs(x) / 4.0)
-                largo = 3.0 + 3.0 * _azar(k + 1150) + 3.2 * centro ** 1.4 + (0.8 if lado > 0 else 0.0)
-                tira(f"tira{k}", x, zs + lado * (0.3 + 0.35 * capa), 1.0 + 1.0 * _azar(k + 1200),
-                     0.8 + 0.4 * _azar(k + 1250), largo, negros[k % 2])
-                k += 1
-    # 4. tiras cortas a los costados, alguna con la punta hacia afuera
-    for s in (1, -1):
-        for i in range(4):
-            z = -1.6 + 3.8 * i / 3
-            tira(f"lado{k}", s * 4.5, z, 1.0, 1.0 + 0.6 * _azar(k + 1300), 2.4 + 1.8 * _azar(k + 1350), negros[k % 2],
-                 giro=s * 14 * _azar(k + 1400))
+    for capa in range(3):
+        n = 34 - 6 * capa
+        for i in range(n):
+            a = 2 * math.pi * (i + 0.5 * capa + 0.35 * _azar(k + 1100)) / n
+            ca, sa = math.cos(a), math.sin(a)                       # a = 0 atras, pi adelante
+            de_lado = abs(sa) * 4.4 > abs(ca) * 2.8
+            fuera = 0.35 + 0.4 * capa
+            if de_lado:
+                x = math.copysign(4.3 + 0.25 * capa, sa)
+                z = max(-2.2, min(2.8, 2.9 * ca))
+            else:
+                x = max(-4.1, min(4.1, 4.4 * sa))
+                z = (3.1 + fuera) if ca > 0 else (-2.5 - fuera)
+            if capa == 2 and not de_lado and ca < 0 and abs(x) < 1.9:   # hueco al frente para las beige
+                continue
+            centro = abs(ca) ** 2
+            largo = 2.8 + 1.8 * _azar(k + 1150) + 4.5 * centro * (1 - 0.5 * capa / 2) + 0.6 * (ca > 0)
+            col = GRIS_OSCURO if _azar(k + 1200) < 0.35 else CARBON
+            abre = math.copysign(3 + 5 * _azar(k + 1250), sa) if de_lado else 0.0
+            tira(f"tira{k}", x, z, 1.0 + 1.0 * _azar(k + 1300), 1.0 + 0.5 * _azar(k + 1350), largo, col, de_lado, abre)
             k += 1
-    # 5. plumas blancas concentradas en el frente: una larga al medio, dos medianas, varias cortas entre las negras
-    claras = ((0.0, 9.0, 1.4), (-1.5, 6.6, 1.2), (1.5, 6.6, 1.2), (-2.8, 4.2, 1.0), (2.8, 4.2, 1.0),
-              (-0.8, 3.4, 0.9), (0.8, 3.6, 0.9), (-3.6, 3.0, 0.9), (3.5, 3.2, 0.9))
-    for i, (x, largo, ancho) in enumerate(claras):
-        tira(f"clara{i}", x, -2.45 - 1.15 - 0.2 * (i % 2), ancho, 0.6, largo, BLANCO_PURO)
-    for i, x in enumerate((-2.1, 2.1, -0.4)):                     # tiras negras por delante de las puntas claras
-        tira(f"delante{i}", x, -2.45 - 1.65, 0.7, 0.5, 4.6 + 1.2 * _azar(i + 1500), NEGRO_PURO)
-    for i, x in enumerate((-2.0, 0.0, 2.0)):                      # alguna clara atras, entre las negras
-        tira(f"clara_atras{i}", x, 3.05 + 1.15, 1.0, 0.6, 4.0 + 2.0 * (x == 0.0), BLANCO_PURO)
+    # plumas beige, mas finas, sobre todo al frente y mezcladas entre las oscuras
+    for i, (x, largo, prof) in enumerate(((0.0, 8.0, 1.5), (-1.2, 6.0, 1.3), (1.3, 6.4, 1.3), (-2.4, 4.6, 1.6),
+                                           (2.5, 4.8, 1.6), (-0.6, 3.6, 1.0), (0.7, 3.9, 1.0))):
+        tira(f"beige{i}", x, -2.5 - prof, 0.6 + 0.4 * _azar(i + 1400), 0.6, largo, BEIGE, False)
+    for i, x in enumerate((-1.6, 0.2, 1.9)):
+        tira(f"beige_atras{i}", x, 3.1 + 1.3, 0.7, 0.6, 4.2 + 1.5 * (i == 1), BEIGE, False)
 
 
 BLANCO_PURO, NEGRO_PURO = "#FFFFFF", "#141414"
