@@ -101,7 +101,7 @@ def cabeza(t):
     return cara(t) if t.cara == "north" else piel(t)
 
 
-PELO_TEX = voxel(PELO, claro=0.18)
+PELO_TEX = voxel(PELO, claro=0.3)
 
 
 def oreja_adentro(t):
@@ -150,28 +150,7 @@ def pelo(p, C, T):
             p.caja(g, f"mechon{s}_{k}", (a, abajo, -6.7), (b, T - 1.5, -3.8), PELO_TEX, dens=D)
 
 
-def mechones_2d(t):
-    """Panel de pelo en 2D: rubio con el borde de abajo cortado en mechones de distinto largo (lo demas transparente)."""
-    u = t.x if t.cara in ("north", "south") else t.z
-    k = int((u + 50) // 1.1)
-    if t.y < t.f[1] + (0.0, 0.9, 0.35, 1.3, 0.6)[k % 5]:
-        return TRANSPARENTE
-    return PELO_TEX(t)
-
-
-def paneles(p, C, T):
-    """Volumen pensado con paneles 2D: dos capas atras que se abren un poco hacia afuera y una a cada costado, como
-    mechones que se separan de la melena."""
-    g = "Head/pelo"
-    for k, (x, y0, y1, z, giro) in enumerate(((5.9, C - 1.2, T - 1.6, 6.2, -14), (4.3, C - 2.3, T - 3.2, 6.45, -24))):
-        p.plano(g, f"capa_atras{k}", (-x, y0, z), (x, y1, z), mechones_2d, rot=(giro, 0, 0), piv=(0, y1, z), dens=D)
-    for s in (1, -1):
-        x = s * 6.5
-        p.plano(g, f"capa_costado{s}", (x, C - 0.9, -3.2), (x, T - 1.6, 4.4), mechones_2d, rot=(0, 0, 6 * s),
-                piv=(x, T - 1.6, 0.6), dens=D)
-
-
-PELUSA = {"s": "#F3E9DD", "b": "#FFF8EF", "l": "#FFFFFF"}
+PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
 
 
 def orejas(p, T):
@@ -184,7 +163,7 @@ def orejas(p, T):
         giro = dict(rot=(-8, 0, -32 * s), piv=piv)
         y = T + 0.6
         for k, (ancho, alto) in enumerate(((4.8, 2.0), (4.4, 1.6), (3.6, 1.4), (2.4, 1.0))):
-            p.caja(g, f"oreja{s}_{k}", (cx - ancho / 2, y, -0.2), (cx + ancho / 2, y + alto, 1.4), voxel(OREJA, claro=0.15),
+            p.caja(g, f"oreja{s}_{k}", (cx - ancho / 2, y, -0.2), (cx + ancho / 2, y + alto, 1.4), PELO_TEX,
                    dens=D, **giro)
             y += alto
         p.caja(g, f"adentro{s}", (cx - 1.5, T + 1.4, -0.35), (cx + 1.5, T + 5.0, -0.2), oreja_adentro, dens=D, **giro)
@@ -198,7 +177,7 @@ def orejas(p, T):
                                          (-1.4, 4.9, 1.0), (-2.3, 3.3, 1.1), (-2.5, 1.7, 1.2))):
             x0, y0 = cx + dx, T + dy
             p.caja(g, f"copo{s}_{k}", (x0 - l / 2, y0 - l / 2, -0.05), (x0 + l / 2, y0 + l / 2, 1.25),
-                   voxel(OREJA, claro=0.2), rot=(0, 0, (k * 31) % 50 - 25), piv=(x0, y0, 0.6), dens=D)
+                   PELO_TEX, rot=(0, 0, (k * 31) % 50 - 25), piv=(x0, y0, 0.6), dens=D)
             # los copos giran con la oreja: se arman en su lugar ya inclinado
         for c in p.m.cubos[-7:]:
             _inclinar(c, piv, -32 * s)
@@ -239,7 +218,7 @@ def pestanas(p, C):
                    dens=D_CARA, luz=False)
 
 
-NEGRO = {"s": "#1E181E", "b": "#2C242B", "l": "#3C3239"}
+NEGRO = {"s": "#2C232B", "b": "#3D3340", "l": "#524555"}
 ROJO, CREMA_DIJE = "#C8343A", "#FBF1DE"
 
 
@@ -262,7 +241,10 @@ def ropa(p, C, L):
     g = "Body/ropa"
     p.caja(g, "sudadera", (-3.4, L - 1.6, -2.1), (3.4, C + 0.1, 2.1), sudadera, dens=D)
     p.caja(g, "capucha", (-2.9, C - 2.0, 2.1), (2.9, C + 0.4, 3.2), voxel(NEGRO, claro=0.1), dens=D)   # bajo la melena
-    p.caja(g, "cuello", (-3.6, C - 0.55, -2.35), (3.6, C + 0.1, 2.35), voxel(NEGRO, claro=0.15), dens=D)   # cuellito
+    # cuello envolvente chiquito (como el de la foto): un rollo de tela alrededor y la solapa cruzada adelante
+    p.caja(g, "cuello", (-3.0, C - 1.3, -2.75), (3.0, C, 2.6), voxel(NEGRO, claro=0.2), dens=D)
+    p.caja(g, "solapa", (-2.6, C - 1.9, -3.0), (1.2, C - 0.4, -2.7), voxel(NEGRO, claro=0.25), rot=(0, 0, -22),
+           piv=(-0.7, C - 1.1, -2.85), dens=D)
     for s, largo in ((1, 3.4), (-1, 2.8)):
         x1, x2 = sorted((s * 1.0, s * 1.3))
         p.caja(g, f"cordon{s}", (x1, C - largo, -2.3), (x2, C - 0.1, -2.1), color(ROJO), dens=D)
@@ -289,6 +271,46 @@ def puno(t):
     return hex_(NEGRO["s"] if (u * 4) % 1.0 < 0.3 else NEGRO["b"])
 
 
+# ---------------------------------------------------------------- la cola
+
+CAMINO_COLA = ((0.0, 4.2, 1.8, 0.95), (1.0, 3.6, 4.2, 1.7), (2.2, 4.8, 6.6, 2.4), (2.7, 7.5, 8.0, 2.7),
+               (2.0, 10.4, 7.8, 2.45), (0.8, 12.6, 6.6, 1.85), (0.0, 13.8, 5.3, 1.1))     # (x, y, z, radio)
+COLA_RUBIA = voxel(PELO, claro=0.3)
+COLA_CREMA = voxel({"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}, claro=0.3)        # crema calida
+
+
+def _cola_puntos(pasos=4):
+    out = []
+    for k in range(len(CAMINO_COLA) - 1):
+        a, b = CAMINO_COLA[k], CAMINO_COLA[k + 1]
+        for i in range(pasos):
+            f = i / pasos
+            out.append(tuple(a[j] + (b[j] - a[j]) * f for j in range(4)) + (k + f,))
+    return out + [CAMINO_COLA[-1] + (len(CAMINO_COLA) - 1,)]
+
+
+def cola(p):
+    """Cola esponjosa de muchos cubos: en cada punto de la curva, un cubo grande del medio y seis copos alrededor, cada
+    uno con su tamano y su giro (un patron fijo que va rotando). Rubia en la base y crema en la punta."""
+    import math
+    pts = _cola_puntos()
+    total = len(CAMINO_COLA) - 1
+    for k, (x, y, z, r, f) in enumerate(pts):
+        pint = COLA_RUBIA if f / total < 0.62 else COLA_CREMA
+        lado = r * 1.25
+        p.caja("Body/cola", f"cola{k}", (x - lado / 2, y - lado / 2, z - lado / 2),
+               (x + lado / 2, y + lado / 2, z + lado / 2), pint,
+               rot=((k * 23) % 45 - 22, (k * 31) % 45 - 22, (k * 17) % 45 - 22), dens=D)
+        for i in range(6):
+            a = math.radians(i * 60 + k * 27)
+            d = r * 0.78
+            cx, cy, cz = x + d * math.cos(a), y + d * math.sin(a) * 0.8, z + d * math.sin(a + 1.1) * 0.7
+            l2 = r * (0.62 + 0.18 * ((i + k) % 3) / 2)
+            p.caja("Body/cola", f"copo{k}_{i}", (cx - l2 / 2, cy - l2 / 2, cz - l2 / 2),
+                   (cx + l2 / 2, cy + l2 / 2, cz + l2 / 2), pint,
+                   rot=((i * 37 + k * 11) % 60 - 30, (i * 53 + k * 7) % 60 - 30, (i * 29 + k * 13) % 60 - 30), dens=D)
+
+
 def construir():
     p = Personaje("moles", altura=21, cabeza=CABEZA_ALTO, torso=(5.6, 6, 3.2), brazo=(2.0, 2.0), pierna=(2.4, 2.4))
     C, T, L = p.cuello, p.tope, p.lh                           # 11, 21, 5
@@ -297,7 +319,6 @@ def construir():
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA, luz=False)   # sin sombra en la cara
     pestanas(p, C)
     pelo(p, C, T)
-    paneles(p, C, T)
     orejas(p, T)
 
     p.caja("Body/cuerpo", "torso", (-2.8, L, -1.6), (2.8, C, 1.6), piel, dens=D, luz=False)
@@ -311,4 +332,5 @@ def construir():
         b1, b2 = sorted((s * 0.0, s * 2.8))
         p.caja(f"{hueso}/pata", "pata", (b1, 0.0, -1.8), (b2, 1.4, 1.4), pata, dens=D, luz=False)
     ropa(p, C, L)
+    cola(p)
     return p
