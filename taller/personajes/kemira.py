@@ -14,6 +14,7 @@ from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 from .revolthir import color
 
 D = 4
+PX = 1.0 / D                                                      # un pixel del cuerpo
 
 PIEL = "#A67556"                        # tomado de la paleta de la hoja
 CUELLO = 28.0
@@ -66,8 +67,8 @@ def _puntas(u, base, paso=0.5):
 
 def cabeza(t):
     """La cabeza con el pelo pintado encima, pegado al cubo (nada sobresale y sin sombras): arriba todo crema; a los
-    costados y atras baja en mechones; adelante, cortinas a los lados de la cara y un mechon suelto en cada borde
-    de la frente. El resto, piel."""
+    costados y atras baja en mechones; adelante, mechones en las esquinas de la frente que llegan justo arriba de
+    los ojos. El resto, la cara."""
     v = t.y - CUELLO
     if t.cara == "up":
         return mechones(t.x, t.z, -99)
@@ -75,12 +76,46 @@ def cabeza(t):
         return hex_(PIEL)
     if t.cara == "north":
         u, au = -t.x, abs(-t.x)
-        if v > 7.4 or (au > 2.9 and v > _puntas(u, 2.6)) or (1.9 < au <= 2.9 and v > _puntas(u, 6.3)):
+        if v > 7.4 or (au > 2.9 and v > _puntas(u, 5.4)) or (1.9 < au <= 2.9 and v > _puntas(u, 6.3)):
             return mechones(u, v, -99)
-        return hex_(PIEL)
+        return cara(u, v)
     u = t.z if t.cara in ("east", "west") else t.x
     base = 1.6 if t.cara in ("east", "west") else 1.0
     return mechones(u, v, _puntas(u, base)) if v > _puntas(u, base) else hex_(PIEL)
+
+
+OJO_BLANCO, OJO_BLANCO_S = "#E8E2D8", "#C2B8AC"
+IRIS, IRIS_S, IRIS_C, PUPILA, IRIS_TAPADO = "#5F87AD", "#456C93", "#7FA6C8", "#2A4460", "#34506E"
+PESTANA, CEJA, NARIZ, BOCA = "#1C1515", "#86573E", "#93644A", "#6E4632"
+
+
+def cara(u, v):
+    """La cara de la hoja, pixel a pixel (8 por bloque; u de izquierda a derecha de quien la ve, v desde la barbilla):
+    ojos grandes con el blanco hacia afuera y el iris azul hacia adentro con una pupila chica, mas claro abajo y
+    tapado arriba por la pestana; pestanas negras gruesas que salen en ala hacia las orillas, una rayita de
+    pestana abajo en la orilla, ceja fina apenas mas oscura, nariz de un punto y boca de una linea. Sin sombras."""
+    i, j = math.floor(u * 8), math.floor(v * 8)
+    a = i if i < 0 else -1 - i                               # el ojo derecho es el espejo del izquierdo
+    if -28 <= a <= -11 and 20 <= j <= 29:                    # el ojo
+        if a <= -22:
+            return hex_(OJO_BLANCO_S if j == 29 or (a == -28 and j == 20) else OJO_BLANCO)
+        if j == 29:
+            return hex_(IRIS_TAPADO)
+        if a in (-17, -16) and 23 <= j <= 25:
+            return hex_(PUPILA)
+        return hex_(IRIS_S if j >= 27 else IRIS_C if j == 20 else IRIS)
+    pestana = ((30 <= j <= 33 and -30 <= a <= -11) or (j == 34 and -30 <= a <= -14) or
+               (a == -31 and 32 <= j <= 35) or (a == -32 and 34 <= j <= 36) or (a == -10 and 29 <= j <= 31) or
+               (j == 19 and -28 <= a <= -24) or (a == -29 and 19 <= j <= 20))
+    if pestana:
+        return hex_(PESTANA)
+    if (j == 38 and -27 <= a <= -12) or (a == -11 and j == 37):
+        return hex_(CEJA)
+    if j == 18 and a == -1:
+        return hex_(NARIZ)
+    if j == 10 and -4 <= a <= -1:
+        return hex_(BOCA)
+    return hex_(PIEL)
 
 
 PELO_TONOS = ("#D3C6B0", "#E2D6C2", "#E9DFCD", "#F2EADB")     # sombra, base, medio, luz
@@ -128,7 +163,7 @@ def pelo(p, C, T):
             p.caja(g, f"costado{s}_{n}", (a, C, -h - 0.4), (b, T, h), capa_pelo(1.6 + sube), dens=8, luz=False)
             if capa == 0:
                 a, b = sorted((s * 2.9, s * h))
-                p.caja(g, f"cortina{s}", (a, C, -h - 0.4), (b, T, -h), capa_pelo(2.6), dens=8, luz=False)
+                p.caja(g, f"cortina{s}", (a, C, -h - 0.4), (b, T, -h), capa_pelo(5.4), dens=8, luz=False)
                 a, b = sorted((s * 1.9, s * 2.9))
                 p.caja(g, f"suelto{s}", (a, C, -h - 0.4), (b, T, -h), capa_pelo(6.3), dens=8, luz=False)
     p.caja("Head/pelo", "flequillo", (-1.9, C, -h - 0.4), (1.9, T, -h), capa_pelo(7.4), dens=8, luz=False)
@@ -217,8 +252,84 @@ def penacho(p, T, C):
                      (90 - elev, phi, 0), tono, punta, dobla=12 + 16 * _azar(k + 850))      # la punta cae
 
 
+PIEL_OSC2, PIEL_OSC, PIEL_MEDIO, PIEL_CLARA = "#7C4F3A", "#8E5E46", "#9B6B50", "#B5846A"
+PINTURA = "#D9CBB4"                                                # las marcas claras de la hoja (muslos y brazos)
+ESCALONES = {(0, 0), (1, 0), (2, 0), (2, -1), (3, -1), (4, -1), (4, -2), (5, -2)}     # marca del brazo, en pixeles
+
+
 def piel(t):
-    return hex_(PIEL)
+    """La piel del cuerpo, pixel a pixel (la luz horneada pone encima el volumen, las sombras y los cantos con brillo):
+    claviculas y el hueco del cuello, el canal del busto con brillo arriba de cada capa, ombligo y una linea suave al
+    medio de la panza, columna, omoplatos y hoyuelos atras, un brillo largo al frente de muslos y espinillas, rodillas,
+    codos y dedos; y las marcas claras de la hoja: en cada muslo una raya con un arco y una barrita abajo, atras una
+    raya que sube en diagonal, y escalones en el hombro."""
+    x, y, z, n, c = t.x, t.y, t.z, t.nombre, t.cara
+    s = 1 if (t.f[0] + t.t[0]) > 0 else -1
+    q = lambda v: math.floor(v * D)                               # pixel
+    tono = PIEL
+    if n == "torax":
+        if c == "north":
+            alto = 27.0 if abs(x) < 1.75 else 27.25                 # claviculas: suben hacia los hombros
+            if 0.5 <= abs(x) < 3.0 and alto <= y < alto + PX:
+                tono = PIEL_OSC
+            elif 0.5 <= abs(x) < 3.0 and alto + PX <= y < alto + 2 * PX:
+                tono = PIEL_CLARA
+            elif abs(x) < PX and (y >= 27.5 or y < 26.4):           # hueco del cuello y canal del busto
+                tono = PIEL_OSC
+            elif abs(x) < 3.2 and BUSTO[0][2] <= y < BUSTO[0][2] + 2 * PX:
+                tono = PIEL_CLARA                                    # brillo arriba del busto
+        elif c == "south":
+            if abs(x) < PX:
+                tono = PIEL_OSC                                      # columna
+            elif (1.0 <= abs(x) < 2.75 and 26.25 <= y < 26.5) or (1.0 <= abs(x) < 1.25 and 26.5 <= y < 27.5):
+                tono = PIEL_MEDIO                                    # omoplatos
+    elif n.startswith("busto") and c == "north":
+        tono = PIEL_OSC if abs(x) < PX else PIEL_CLARA if t.j == 0 else PIEL
+    elif n.startswith("cintura"):
+        if c == "north":
+            if abs(x) < PX and 19.5 <= y < 20.0:
+                tono = PIEL_OSC2 if y >= 19.75 else PIEL_OSC         # ombligo
+            elif abs(x) < PX and 20.5 <= y < 22.0:
+                tono = PIEL_MEDIO
+        elif c == "south":
+            if abs(x) < PX:
+                tono = PIEL_OSC
+            elif 0.75 <= abs(x) < 1.0 and 18.4 <= y < 18.65:
+                tono = PIEL_OSC                                      # hoyuelos
+    elif n == "gluteos" and c == "south":
+        tono = PIEL_OSC if abs(x) < PX or t.fila_abajo == 0 else PIEL
+    elif n in ("muslo", "muslo_alto", "rodilla", "pantorrilla"):
+        lx = (x - s * 2.3) * s                                       # 0 al medio del muslo, + hacia afuera
+        if c == "north":
+            marca = ((11.5 <= y < 11.75 and 0.5 <= abs(lx) < 1.75) or (0.5 <= abs(lx) < 0.75 and 11.5 <= y < 12.5) or
+                     (12.25 <= y < 12.5 and abs(lx) < 0.75) or (abs(lx) < 0.25 and 10.5 <= y < 11.25))
+            if marca:
+                tono = PINTURA
+            elif n == "rodilla" and abs(lx) < 0.5:
+                tono = PIEL_CLARA if 9.25 <= y < 9.75 else PIEL_OSC if 9.0 <= y < 9.25 else PIEL
+            elif n != "rodilla" and -0.25 <= lx < (0.75 if n != "pantorrilla" else 0.25) and y > 1.5:
+                tono = PIEL_CLARA                                    # brillo largo al frente
+        elif c == "south" and n == "muslo":
+            dx = q(lx) - q(0.25)
+            if (11.5 <= y < 11.75 and -1.25 <= lx < 0.25) or (0 <= dx <= 2 and q(y) == q(11.75) + dx):
+                tono = PINTURA                                       # raya que sube en diagonal
+    elif n == "gemelo" and c == "south" and t.j == 0:
+        tono = PIEL_CLARA
+    elif n == "pie" and c == "down":
+        tono = PIEL_OSC2
+    elif n in ("hombro", "brazo") and c == ("east" if s > 0 else "west"):
+        if (q(z) - q(-0.75), q(y) - q(25.25)) in ESCALONES:
+            tono = PINTURA                                           # escalones en el hombro, por afuera
+    elif n == "brazo" and c == "south" and t.fila_abajo == 0:
+        tono = PIEL_OSC                                              # codo
+    elif n == "mano":
+        if c == ("east" if s > 0 else "west") and y < 14.35 and q(z) in (-2, 0, 2):
+            tono = PIEL_OSC                                          # dedos
+        elif c == ("east" if s > 0 else "west") and 15.0 <= y < 15.25:
+            tono = PIEL_CLARA                                        # nudillos
+        elif c == "north" and abs(x - s * 4.15) < 0.5 and 14.5 <= y < 15.75:
+            tono = PIEL_OSC if abs(x - s * 4.15) >= 0.25 else PIEL_CLARA     # pulgar
+    return hex_(tono)
 
 
 BUSTO = ((3.7, 22.8, 25.9, -2.1), (3.35, 23.1, 25.4, -2.7), (2.75, 23.5, 24.9, -3.3))   # (medio ancho, abajo, arriba, z de atras)
@@ -231,10 +342,10 @@ BRAZO_ABRE = 8.5                                                   # grados: los
 def cuerpo(p, C, L):
     """La base del cuerpo: hombros y torax anchos, busto en capas, cintura marcada que se abre en escalones a una
     cadera ancha y honda (llena la falda), gluteos, muslos gruesos que se afinan a la rodilla y pantorrillas con
-    volumen. Los brazos cuelgan un poco abiertos para pasar por fuera de la falda. El top va pintado encima del
-    torax y el busto (pegado, como el pelo en la cabeza)."""
+    volumen. Los brazos cuelgan un poco abiertos para pasar por fuera de la falda. La piel lleva su textura (ver
+    piel) y luz horneada; el top va pintado encima del torax y el busto (pegado, como el pelo en la cabeza)."""
     g = "Body/cuerpo"
-    caja = lambda grupo, n, a, b, pintor=piel, **kw: p.caja(grupo, n, a, b, pintor, dens=D, luz=False, **kw)
+    caja = lambda grupo, n, a, b, pintor=piel, **kw: p.caja(grupo, n, a, b, pintor, dens=D, **kw)
     caja(g, "torax", (-4.0, 22.6, -2.1), (4.0, C, 2.1), top)
     for k, (x, y0, y1, z) in enumerate(BUSTO):                     # busto en capas: redondo de perfil
         caja(g, f"busto{k}", (-x, y0, z - 0.6), (x, y1, z), top)
@@ -272,7 +383,6 @@ def cuerpo(p, C, L):
 NEGRO_ROPA, BEIGE_ROPA, TOSTADO = "#262325", "#D8C9AE", "#A8977C"
 TOP_ABAJO, TOP_LADO, TOP_ATRAS = 22.6, 25.9, 25.6                 # alturas del top: abajo, borde de arriba adelante y atras
 V_ANCHO, V_HONDO = 1.75, 1.5                                       # la V del escote al centro del pecho
-PX = 1.0 / D
 
 
 def _corte(x):
@@ -288,12 +398,12 @@ def top(t):
     if t.cara == "down":
         return hex_(NEGRO_ROPA)
     if t.cara == "up" and y >= 27.9:                               # los hombros
-        return hex_(PIEL)
+        return piel(t)
     # que tan atras esta el punto: 0 adelante (pecho), 1 en la espalda
     atras = 1.0 if t.cara == "south" else 0.0 if t.cara in ("north", "up") else min(1.0, max(0.0, (z + 2.1) / 4.2))
     borde = _corte(x) if atras == 0.0 else TOP_LADO + (TOP_ATRAS - TOP_LADO) * atras
     if y > borde:
-        return hex_(PIEL)
+        return piel(t)
     if t.cara == "up":                                             # los escalones del busto: piel o negro, sin linea
         return hex_(NEGRO_ROPA)
     linea = borde - PX if atras == 0.0 else TOP_ABAJO + 3 * PX + (borde - PX - TOP_ABAJO - 3 * PX) * (1 - atras)
@@ -314,7 +424,7 @@ def ropa(p, L):
     """El top va pintado sobre el cuerpo (ver top); aqui va su dobladillo (un canto apenas salido abajo) y la falda
     de plumas como taparrabo."""
     p.caja("Body/ropa", "top_dobladillo", (-4.05, TOP_ABAJO - 0.1, -2.15), (4.05, TOP_ABAJO + 0.3, 2.15),
-           lambda t: hex_(NEGRO_ROPA), dens=D, luz=False)
+           lambda t: hex_(NEGRO_ROPA), dens=D)
     falda(p, L)
 
 
