@@ -271,9 +271,7 @@ def piel(t):
         if c == "north":
             alto = 27.0 if abs(x) < 1.75 else 27.25                 # claviculas: suben hacia los hombros
             if 0.5 <= abs(x) < 3.0 and alto <= y < alto + PX:
-                tono = PIEL_OSC
-            elif 0.5 <= abs(x) < 3.0 and alto + PX <= y < alto + 2 * PX:
-                tono = PIEL_CLARA
+                tono = PIEL_MEDIO
             elif abs(x) < PX and (y >= 27.5 or y < 26.4):           # hueco del cuello y canal del busto
                 tono = PIEL_OSC
             elif abs(x) < 3.2 and BUSTO[0][2] <= y < BUSTO[0][2] + 2 * PX:
@@ -286,7 +284,11 @@ def piel(t):
     elif n.startswith("busto") and c == "north":
         tono = PIEL_OSC if abs(x) < PX else PIEL_CLARA if t.j == 0 else PIEL
     elif n.startswith("cintura"):
-        if c == "north":
+        if c in ("east", "west"):
+            tono = PIEL_MEDIO                                        # los costados, un tono abajo
+        elif c in ("north", "south") and y >= 22.1:
+            tono = PIEL_OSC if y >= 22.35 else PIEL_MEDIO            # la sombra bajo el top
+        elif c == "north":
             if abs(x) < PX and 19.5 <= y < 20.0:
                 tono = PIEL_OSC2 if y >= 19.75 else PIEL_OSC         # ombligo
             elif abs(x) < PX and 20.5 <= y < 22.0:
@@ -309,6 +311,10 @@ def piel(t):
                 tono = PIEL_CLARA if 9.25 <= y < 9.75 else PIEL_OSC if 9.0 <= y < 9.25 else PIEL
             elif n != "rodilla" and -0.25 <= lx < (0.75 if n != "pantorrilla" else 0.25) and y > 1.5:
                 tono = PIEL_CLARA                                    # brillo largo al frente
+        elif c == ("east" if s > 0 else "west") and n == "muslo":
+            if ((11.5 <= y < 11.75 and 0.5 <= abs(z) < 1.75) or (0.5 <= abs(z) < 0.75 and 11.5 <= y < 12.5) or
+                    (12.25 <= y < 12.5 and abs(z) < 0.75) or (abs(z) < 0.25 and 10.5 <= y < 11.25)):
+                tono = PINTURA                                       # la misma marca por el costado del muslo
         elif c == "south" and n == "muslo":
             dx = q(lx) - q(0.25)
             if (11.5 <= y < 11.75 and -1.25 <= lx < 0.25) or (0 <= dx <= 2 and q(y) == q(11.75) + dx):
@@ -350,7 +356,7 @@ def cuerpo(p, C, L):
     for k, (x, y0, y1, z) in enumerate(BUSTO):                     # busto en capas: redondo de perfil
         caja(g, f"busto{k}", (-x, y0, z - 0.6), (x, y1, z), top)
     for k, (y0, y1, x, zf, zb) in enumerate(CINTURA):              # la cintura se abre a la cadera en escalones finos
-        caja(g, f"cintura{k}", (-x, y0, zf), (x, y1, zb))
+        caja(g, f"cintura{k}", (-x, y0, zf), (x, y1, zb), luz=False)       # sombreada a mano: sin rayas por escalon
     caja(g, "cadera", (-CADERA_X, L - 1.2, CADERA_ZF), (CADERA_X, 17.6, CADERA_ZB))
     caja(g, "gluteos", (-4.3, L - 1.8, CADERA_ZB - 0.1), (4.3, 17.6, GLUTEO_ZB))
     for s in (1, -1):
