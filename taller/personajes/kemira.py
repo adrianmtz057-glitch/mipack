@@ -9,7 +9,7 @@ flecos de cuentas colgando adelante.
 import math
 
 from ..kit import Personaje
-from ..textura import hex_a_rgba as hex_
+from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 from .revolthir import color
 
 D = 4
@@ -82,9 +82,38 @@ def cabeza(t):
     return hex_(PELO) if v > _puntas(u, base) else hex_(PIEL)
 
 
+def capa_pelo(base):
+    """Pintor de la capa de pelo: crema liso; por debajo de 'base' (con puntas en mechones) queda transparente."""
+    def p(t):
+        if t.cara not in ("up", "down"):
+            u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
+            if t.y - CUELLO < _puntas(u, base):
+                return TRANSPARENTE
+        return hex_(PELO)
+    return p
+
+
+def pelo(p, C, T, o=0.4):
+    """Pelo en 3D como una sola capa de grosor parejo (o) pegada a la cabeza: arriba, atras, a los costados y las
+    cortinas de adelante, todas unidas, del mismo crema y sin sombras; nada mas gordo ni que sobresalga."""
+    g = "Head/pelo"
+    h = 4.0
+    p.caja(g, "arriba", (-h - o, T, -h - o), (h + o, T + o, h + o), capa_pelo(0), dens=8, luz=False)
+    p.caja(g, "atras", (-h - o, C, h), (h + o, T, h + o), capa_pelo(1.0), dens=8, luz=False)
+    for s in (1, -1):
+        a, b = sorted((s * h, s * (h + o)))
+        p.caja(g, f"costado{s}", (a, C, -h - o), (b, T, h), capa_pelo(1.6), dens=8, luz=False)
+        a, b = sorted((s * 2.9, s * h))
+        p.caja(g, f"cortina{s}", (a, C, -h - o), (b, T, -h), capa_pelo(2.6), dens=8, luz=False)
+        a, b = sorted((s * 1.9, s * 2.9))
+        p.caja(g, f"suelto{s}", (a, C, -h - o), (b, T, -h), capa_pelo(6.3), dens=8, luz=False)
+    p.caja(g, "flequillo", (-1.9, C, -h - o), (1.9, T, -h), capa_pelo(7.4), dens=8, luz=False)
+
+
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
+    pelo(p, C, T)
     diadema(p, T)
     return p
