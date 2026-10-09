@@ -152,36 +152,50 @@ def _pintor_pluma(giro, piv, largo, punta_blanca):
 
 
 def pelo(p, C, T):
+    """Pelo blanco muy largo peinado hacia atras: nace detras de la diadema, cubre arriba y cae por la espalda en
+    mechones de distinto largo; adelante solo unos mechones sueltos sobre la cara."""
     g = "Head/pelo"
-    p.caja(g, "casco", (-5.0, T - 2.2, -5.0), (5.0, T + 0.7, 5.0), PELO_TEX, dens=D)
-    for k, abajo in enumerate((C + 5.0, C + 6.2, C + 5.6, C + 6.4, C + 5.2, C + 6.0, C + 4.6)):
-        x = -4.9 + k * 1.4
-        p.caja(g, f"fleco{k}", (x, abajo, -5.4), (x + 1.4, T - 0.5, -4.6), PELO_TEX, rot=(0, 0, (k % 3 - 1) * 6),
-               piv=(x + 0.7, T - 0.5, -5.0), dens=D)
-    for s in (1, -1):
-        for k, (z0, abajo) in enumerate(((-4.8, C + 0.6), (-2.2, C - 0.6), (0.6, C + 0.2), (3.0, C - 0.2))):
-            a, b = sorted((s * 4.6, s * 5.5))
-            p.caja(g, f"lado{s}_{k}", (a, abajo, z0), (b, T - 1.0, z0 + 2.6), PELO_TEX, rot=(0, 0, s * 5),
-                   piv=(s * 5.0, T - 1.0, z0 + 1.3), dens=D)
-    # melena de atras desordenada: mechones de distinto largo y hondura, algunos un poco girados
-    for k, (abajo, hondo) in enumerate(((C - 1.4, 5.6), (C + 0.6, 5.2), (C - 2.4, 6.0), (C - 0.4, 5.4),
-                                        (C - 2.0, 5.9), (C + 0.8, 5.3), (C - 1.0, 5.7))):
-        x = -5.0 + k * (10.0 / 7)
-        p.caja(g, f"atras{k}", (x, abajo, 4.3), (x + 10.0 / 7, T - 1.0, hondo), PELO_TEX, rot=(-8 - 4 * (k % 2), 0, (k % 3 - 1) * 7),
-               piv=(x + 5.0 / 7, T - 1.0, 4.8), dens=D)
-    # vincha tejida y las cuentas que cuelgan sobre la frente
-    p.caja(g, "vincha", (-5.15, T - 2.9, -5.6), (5.15, T - 1.9, 5.15), tejido, dens=D)
+    p.caja(g, "arriba", (-5.0, T - 1.7, -5.0), (5.0, T + 0.9, 5.2), PELO_TEX, dens=D)
+    p.caja(g, "nuca", (-5.1, C + 1.0, 3.2), (5.1, T - 1.0, 5.6), PELO_TEX, dens=D)
+    for s in (1, -1):                                          # costados que van hacia atras
+        a, b = sorted((s * 4.6, s * 5.5))
+        p.caja(g, f"costado{s}", (a, C + 0.6, -1.4), (b, T - 1.0, 5.4), PELO_TEX, dens=D)
+    # la cola larga hacia atras: mechones que bajan por la espalda, abiertos un poco hacia afuera
+    for k, (largo, giro) in enumerate(((13.0, 10), (15.5, 5), (17.0, 1), (16.0, -3), (14.0, -8), (11.5, -12))):
+        x = -4.6 + k * (9.2 / 6)
+        p.caja(g, f"largo{k}", (x, T - 1.0 - largo, 4.4), (x + 9.2 / 6, T - 0.6, 6.0), PELO_TEX,
+               rot=(-14 - 2 * (k % 2), 0, giro), piv=(x + 4.6 / 6, T - 0.6, 5.2), dens=D)
+    # mechones sueltos sobre la cara, debajo de la diadema
+    for k, (x, abajo, ancho) in enumerate(((-3.9, C + 4.0, 1.3), (-2.0, C + 5.6, 1.1), (1.4, C + 5.2, 1.2),
+                                          (3.0, C + 3.6, 1.4))):
+        p.caja(g, f"mechon{k}", (x, abajo, -5.0), (x + ancho, T - 2.6, -4.55), PELO_TEX,
+               rot=(0, 0, (k % 2 * 2 - 1) * 6), piv=(x + ancho / 2, T - 2.6, -4.8), dens=D)
+    # diadema tejida con las cuentas que cuelgan sobre la frente; el pelo sale por detras de ella
+    p.caja(g, "diadema", (-5.25, T - 2.9, -5.25), (5.25, T - 1.6, 1.0), tejido, dens=D)
     for k, x in enumerate((-1.2, -0.6, 0.0, 0.6, 1.2)):
         largo = 1.6 - abs(x) * 0.6
-        p.caja(g, f"cuenta{k}", (x - 0.12, T - 2.9 - largo, -5.75), (x + 0.12, T - 2.9, -5.55),
+        p.caja(g, f"cuenta{k}", (x - 0.12, T - 2.9 - largo, -5.4), (x + 0.12, T - 2.9, -5.25),
                color(GRIS["l"] if k % 2 else BLANCO), dens=D_CARA)
-    p.caja(g, "gota", (-0.3, T - 5.0, -5.8), (0.3, T - 4.5, -5.55), color(OJO), dens=D_CARA)
+    p.caja(g, "gota", (-0.3, T - 5.0, -5.45), (0.3, T - 4.5, -5.25), color(OJO), dens=D_CARA)
+
+
+def felpa(p, grupo, nombre, centro, rx, rz, n, tam, giro_y=0.0):
+    """Anillo de felpa: cubitos negros y grises girados alrededor de un ovalo (cuello, cintura, brazos)."""
+    cx, cy, cz = centro
+    for k in range(n):
+        a = math.radians(360 * k / n + giro_y)
+        x, z = cx + rx * math.cos(a), cz + rz * math.sin(a)
+        y = cy + 0.35 * math.sin(a * 3)
+        l = tam * (0.85 + 0.25 * (k % 3) / 2)
+        pint = voxel(PLUMA_NEGRA if k % 4 else GRIS, claro=0.12)
+        p.caja(grupo, f"{nombre}{k}", (x - l / 2, y - l / 2, z - l / 2), (x + l / 2, y + l / 2, z + l / 2), pint,
+               rot=((k * 31) % 50 - 25, (k * 17) % 50 - 25, (k * 23) % 50 - 25), dens=D)
 
 
 def baculo(p, L):
     """Baculo largo en la mano derecha, con la empunadura vendada y la cabeza curva en gancho."""
     g = "RightArm/baculo"
-    x, z = 5.4, -2.2
+    x, z = 6.5, -2.4
     p.caja(g, "vara", (x - 0.35, 2.0, z - 0.35), (x + 0.35, 41.0, z + 0.35), voxel(NEGRO, claro=0.1), dens=D)
     p.caja(g, "vendado", (x - 0.5, 34.5, z - 0.5), (x + 0.5, 40.6, z + 0.5), venda, dens=D)
     perfil = [(-3.6, 1.4), (-1.2, 2.6), (1.6, 2.8), (3.8, 1.8), (4.6, 0.0), (3.6, -1.6), (3.0, -0.2),
@@ -198,7 +212,7 @@ def baculo(p, L):
 
 
 def construir():
-    p = Personaje("kemira", altura=TOPE, cabeza=9, torso=(6.0, 10, 3.4), brazo=(2.0, 2.2), pierna=(2.7, 2.9))
+    p = Personaje("kemira", altura=TOPE, cabeza=9, torso=(7.2, 10, 4.0), brazo=(2.6, 2.6), pierna=(3.6, 3.6))
     C, T, L = p.cuello, p.tope, p.lh                       # 27, 36, 17
     assert (C, T) == (CUELLO, TOPE)
 
@@ -206,46 +220,40 @@ def construir():
     pelo(p, C, T)
     penacho(p, T)
 
-    # torso esbelto: cintura angosta, top negro con volumen, faja tejida, flecos y falda
+    # torso relleno: hombros y pecho anchos, cintura marcada pero no de palo, cadera ancha
     g = "Body/cuerpo"
-    p.caja(g, "pecho", (-3.1, 22.4, -1.7), (3.1, C, 1.7), torso, dens=D)
-    p.caja(g, "cintura", (-2.2, L + 1.6, -1.3), (2.2, 22.4, 1.3), PIEL_TEX, dens=D)       # cintura fina
-    p.caja(g, "cadera", (-3.6, L, -1.9), (3.6, L + 2.2, 1.9), PIEL_TEX, dens=D)           # cadera ancha
-    p.caja("Body/ropa", "top", (-3.3, 22.7, -2.9), (3.3, 25.4, 1.9), voxel(NEGRO, claro=0.15), dens=D)
-    p.caja("Body/ropa", "top_medio", (-0.25, 23.0, -2.95), (0.25, 25.1, -2.85), color(NEGRO["s"]), dens=D)
-    p.caja("Body/ropa", "faja", (-2.45, 20.4, -1.5), (2.45, 21.6, 1.5), tejido, dens=D)
-    p.caja("Body/ropa", "flecos", (-3.85, L - 1.8, -2.15), (3.85, L + 1.6, 2.15), flecos, dens=D)
-    p.caja("Body/ropa", "cinto", (-3.8, L + 1.4, -2.1), (3.8, L + 2.1, 2.1), voxel(NEGRO, claro=0.1), dens=D)
+    p.caja(g, "pecho", (-3.6, 22.2, -2.0), (3.6, C, 2.0), torso, dens=D)
+    p.caja(g, "cintura", (-2.9, L + 1.8, -1.7), (2.9, 22.2, 1.7), PIEL_TEX, dens=D)
+    p.caja(g, "cadera", (-4.2, L, -2.2), (4.2, L + 2.4, 2.2), PIEL_TEX, dens=D)
+    p.caja("Body/ropa", "top", (-3.8, 22.5, -3.3), (3.8, 25.5, 2.2), voxel(NEGRO, claro=0.15), dens=D)
+    p.caja("Body/ropa", "top_medio", (-0.25, 22.8, -3.35), (0.25, 25.2, -3.25), color(NEGRO["s"]), dens=D)
+    p.caja("Body/ropa", "faja", (-3.05, 20.2, -1.85), (3.05, 21.6, 1.85), tejido, dens=D)
+    p.caja("Body/ropa", "flecos", (-4.45, L - 1.9, -2.45), (4.45, L + 1.7, 2.45), flecos, dens=D)
+    p.caja("Body/ropa", "cinto", (-4.4, L + 1.5, -2.4), (4.4, L + 2.2, 2.4), voxel(NEGRO, claro=0.1), dens=D)
+    felpa(p, "Body/felpa", "cuello", (0.0, C + 0.1, 0.0), 3.4, 2.2, 12, 1.5)
+    felpa(p, "Body/felpa", "cintura", (0.0, 21.0, 0.0), 3.3, 2.1, 12, 1.2, 15)
 
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        x1, x2 = sorted((s * 3.0, s * 5.0))
-        p.caja(f"{hueso}/brazo", "brazo", (x1, L - 1.0, -1.1), (x2, C - 0.4, 1.1), pintura, dens=D)
-        v1, v2 = sorted((s * 2.9, s * 5.1))
-        p.caja(f"{hueso}/ropa", "venda", (v1, L + 0.6, -1.2), (v2, L + 4.6, 1.2), venda, dens=D)
-        p.caja(f"{hueso}/ropa", "guante", (v1, L - 1.1, -1.2), (v2, L + 0.6, 1.2), voxel(NEGRO, claro=0.1), dens=D)
+        x1, x2 = sorted((s * 3.6, s * 6.2))
+        p.caja(f"{hueso}/brazo", "brazo", (x1, L - 1.2, -1.3), (x2, C - 0.4, 1.3), pintura, dens=D)
+        v1, v2 = sorted((s * 3.5, s * 6.3))
+        p.caja(f"{hueso}/ropa", "venda", (v1, L + 0.6, -1.4), (v2, L + 4.8, 1.4), venda, dens=D)
+        p.caja(f"{hueso}/ropa", "guante", (v1, L - 1.3, -1.4), (v2, L + 0.6, 1.4), voxel(NEGRO, claro=0.1), dens=D)
+        felpa(p, f"{hueso}/ropa", "manga", (s * 4.9, C - 2.6, 0.0), 1.7, 1.6, 9, 1.2, 20 * s)
         hueso = "RightLeg" if s > 0 else "LeftLeg"
-        m1, m2 = sorted((s * 0.0, s * 3.5))                # muslo ancho que se afina a la pantorrilla
-        x1, x2 = sorted((s * 0.3, s * 2.9))
-        p.caja(f"{hueso}/pierna", "muslo", (m1, 9.0, -1.8), (m2, L, 1.8), pintura, dens=D)
-        p.caja(f"{hueso}/pierna", "pantorrilla", (x1, 1.0, -1.4), (x2, 9.0, 1.4), pintura, dens=D)
-        p.caja(f"{hueso}/pierna", "pie", (x1, 0.0, -2.0), (x2, 1.0, 1.4), PIEL_TEX, dens=D)
-        p.caja(f"{hueso}/ropa", "tobillo", (x1 - 0.1, 1.0, -1.5), (x2 + 0.1, 3.2, 1.5), venda, dens=D)
+        m1, m2 = sorted((s * 0.0, s * 4.2))                # muslo ancho que se afina a la pantorrilla
+        x1, x2 = sorted((s * 0.4, s * 3.5))
+        p.caja(f"{hueso}/pierna", "muslo", (m1, 9.0, -2.1), (m2, L, 2.1), pintura, dens=D)
+        p.caja(f"{hueso}/pierna", "pantorrilla", (x1, 1.0, -1.6), (x2, 9.0, 1.6), pintura, dens=D)
+        p.caja(f"{hueso}/pierna", "pie", (x1, 0.0, -2.3), (x2, 1.0, 1.6), PIEL_TEX, dens=D)
+        p.caja(f"{hueso}/ropa", "tobillo", (x1 - 0.1, 1.0, -1.7), (x2 + 0.1, 3.2, 1.7), venda, dens=D)
         if s > 0:                                          # falda larga de este lado; del otro, la abertura
-            p.caja(f"{hueso}/ropa", "falda", (m1 - 0.2, 3.6, -2.0), (m2 + 0.2, L, 2.0), voxel(NEGRO, claro=0.1), dens=D)
+            p.caja(f"{hueso}/ropa", "falda", (m1 - 0.2, 3.6, -2.3), (m2 + 0.2, L, 2.3), voxel(NEGRO, claro=0.1), dens=D)
         else:
-            p.caja(f"{hueso}/ropa", "falda_atras", (m1 - 0.2, 3.6, 0.3), (m2 + 0.2, L, 2.0), voxel(NEGRO, claro=0.1),
+            p.caja(f"{hueso}/ropa", "falda_atras", (m1 - 0.2, 3.6, 0.3), (m2 + 0.2, L, 2.3), voxel(NEGRO, claro=0.1),
                    dens=D)
-            p.caja(f"{hueso}/ropa", "liga", (m1 - 0.12, 11.6, -1.92), (m2 + 0.12, 12.6, 1.92), voxel(NEGRO), dens=D)
-
-    # pelaje de plumas en el hombro izquierdo
-    for k in range(9):
-        a = math.radians(k * 40)
-        cx, cy, cz = -4.2 + 1.3 * math.cos(a), C - 1.2 + 0.7 * math.sin(a), 1.2 * math.sin(a + 0.7)
-        l = 1.5 + 0.3 * (k % 3)
-        p.caja("LeftArm/ropa", f"pelaje{k}", (cx - l / 2, cy - l / 2, cz - l / 2), (cx + l / 2, cy + l / 2, cz + l / 2),
-               voxel(PLUMA_NEGRA if k % 3 else GRIS, claro=0.1), rot=((k * 31) % 50 - 25, (k * 17) % 50 - 25, (k * 23) % 50 - 25),
-               dens=D)
+            p.caja(f"{hueso}/ropa", "liga", (m1 - 0.12, 11.6, -2.22), (m2 + 0.12, 12.6, 2.22), voxel(NEGRO), dens=D)
 
     baculo(p, L)
     return p
