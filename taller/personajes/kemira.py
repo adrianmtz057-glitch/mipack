@@ -29,7 +29,7 @@ def tejido(t):
     return hex_(CREMA if abs(v - (0.3 + 0.4 * tri)) < 0.09 else CAFE)
 
 
-def diadema(p, T, alto=3.0, grosor=0.4):
+def diadema(p, T, alto=3.8, grosor=0.4):
     """Diadema alta encima de la cabeza (sujeta del pelo, no en la frente), vista desde arriba es un trapecio: adelante, de punta a punta de la frente;
     los costados se cierran hacia atras y termina recta en la nuca. Adelante cuelgan flecos de cuentas."""
     g = "Head/diadema"
@@ -93,21 +93,24 @@ def capa_pelo(base):
     return p
 
 
-def pelo(p, C, T, o=0.4):
-    """Pelo en 3D como una sola capa de grosor parejo (o) pegada a la cabeza: arriba, atras, a los costados y las
-    cortinas de adelante, todas unidas, del mismo crema y sin sombras; nada mas gordo ni que sobresalga."""
-    g = "Head/pelo"
+def pelo(p, C, T):
+    """Pelo en capas parejas pegadas a la cabeza: la primera llega mas abajo y cada capa de encima es un poco mas
+    gruesa hacia afuera y mas corta, con sus propias puntas; todas del mismo crema, unidas y sin sombras."""
     h = 4.0
-    p.caja(g, "arriba", (-h - o, T, -h - o), (h + o, T + o, h + o), capa_pelo(0), dens=8, luz=False)
-    p.caja(g, "atras", (-h - o, C, h), (h + o, T, h + o), capa_pelo(1.0), dens=8, luz=False)
-    for s in (1, -1):
-        a, b = sorted((s * h, s * (h + o)))
-        p.caja(g, f"costado{s}", (a, C, -h - o), (b, T, h), capa_pelo(1.6), dens=8, luz=False)
-        a, b = sorted((s * 2.9, s * h))
-        p.caja(g, f"cortina{s}", (a, C, -h - o), (b, T, -h), capa_pelo(2.6), dens=8, luz=False)
-        a, b = sorted((s * 1.9, s * 2.9))
-        p.caja(g, f"suelto{s}", (a, C, -h - o), (b, T, -h), capa_pelo(6.3), dens=8, luz=False)
-    p.caja(g, "flequillo", (-1.9, C, -h - o), (1.9, T, -h), capa_pelo(7.4), dens=8, luz=False)
+    for capa, (o, sube) in enumerate(((0.4, 0.0), (0.8, 1.4), (1.2, 2.8))):
+        g = "Head/pelo"
+        n = f"{capa}"
+        p.caja(g, "arriba" + n, (-h - o, T, -h - o), (h + o, T + 0.4, h + o), capa_pelo(0), dens=8, luz=False) if capa == 0 else None
+        p.caja(g, "atras" + n, (-h - o, C, h), (h + o, T, h + o), capa_pelo(1.0 + sube), dens=8, luz=False)
+        for s in (1, -1):
+            a, b = sorted((s * h, s * (h + o)))
+            p.caja(g, f"costado{s}_{n}", (a, C, -h - 0.4), (b, T, h), capa_pelo(1.6 + sube), dens=8, luz=False)
+            if capa == 0:
+                a, b = sorted((s * 2.9, s * h))
+                p.caja(g, f"cortina{s}", (a, C, -h - 0.4), (b, T, -h), capa_pelo(2.6), dens=8, luz=False)
+                a, b = sorted((s * 1.9, s * 2.9))
+                p.caja(g, f"suelto{s}", (a, C, -h - 0.4), (b, T, -h), capa_pelo(6.3), dens=8, luz=False)
+    p.caja("Head/pelo", "flequillo", (-1.9, C, -h - 0.4), (1.9, T, -h), capa_pelo(7.4), dens=8, luz=False)
 
 
 NEGRO = {"s": "#1E1C1E", "b": "#2B2829", "l": "#3B3637"}
@@ -152,25 +155,40 @@ def _azar(k):
 
 
 def penacho(p, T, C):
-    """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan, cortas y desparejas: salen
-    adentro de la diadema (sin pisarla), casi paradas y apenas hacia atras, cada una con su lugar, largo y giro.
-    Desde el borde de atras de la diadema bajan otras figuras hasta la nuca."""
-    n = 48
+    """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan, desparejas y de tamanos distintos:
+    llenan toda la diadema (sin pisarla), casi paradas; las de atras se abren hacia los costados. Donde no hay
+    diadema (las esquinas de atras de la cabeza) salen figuras que caen hacia atras y abajo, abiertas a los lados.
+    Desde el borde de atras de la diadema bajan otras hasta la nuca."""
+    n = 70
     for k in range(n):
-        f = (k + 0.5) / n                                          # de adelante hacia atras, mezclado abajo
-        z = FZ + 0.6 + 7.0 * (0.55 * f + 0.45 * _azar(k))          # desde el frente de la diadema
+        f = (k + 0.5) / n
+        z = FZ + 0.5 + (BZ - FZ - 1.0) * (0.6 * f + 0.4 * _azar(k))
         t = (z - FZ) / (BZ - FZ)
-        mitad = FX + (BX - FX) * t - 0.45
-        ancho = 1.3 + 1.9 * _azar(k + 50)                           # tamanos muy distintos
-        x = (2 * ((k * 0.618 + 0.3 * _azar(k + 100)) % 1.0) - 1) * max(0.0, mitad - ancho / 2)   # repartidas a lo ancho
-        largo = 2.6 + 5.0 * _azar(k + 150) ** 1.5 + 1.2 * (z - FZ) / 8.0
-        inclina = 2 + 16 * (z - FZ) / 8.0 + 10 * (_azar(k + 200) - 0.5)
-        abre = -x * 5 + 16 * (_azar(k + 250) - 0.5)
+        mitad = FX + (BX - FX) * t - 0.4
+        ancho = 1.3 + 1.9 * _azar(k + 50)
+        q = 2 * ((k * 0.618 + 0.3 * _azar(k + 100)) % 1.0) - 1
+        x = q * max(0.0, mitad - ancho / 2)
+        largo = 2.6 + 5.0 * _azar(k + 150) ** 1.5 + 1.0 * t
+        inclina = 2 + 12 * t + 10 * (_azar(k + 200) - 0.5)
+        abre = -q * (6 + 34 * t) + 14 * (_azar(k + 250) - 0.5)        # atras se abren hacia los costados
         crema = _azar(k + 300) < 0.2
         tono = CREMA_PLUMA if crema else NEGRO
         punta = None if crema or _azar(k + 350) < 0.6 else CREMA_PLUMA["s"]
         poner_figura(p, f"figura{k}", (x, T + 0.4, z), largo, ancho, (inclina, 0, abre), tono, punta,
                      dobla=10 + 18 * _azar(k + 400))
+    # las esquinas de atras, fuera de la diadema: caen hacia atras y abajo, abiertas a los costados
+    k = 0
+    for s in (1, -1):
+        for i in range(9):
+            z = -0.5 + 4.6 * i / 8
+            t = (z - FZ) / (BZ - FZ)
+            borde = FX + (BX - FX) * t + 0.5                         # justo afuera de la pared de la diadema
+            x = s * (borde + (3.9 - borde) * _azar(k + 600))
+            largo = 4.0 + 3.0 * _azar(k + 650)
+            tono = CREMA_PLUMA if _azar(k + 700) < 0.2 else NEGRO
+            poner_figura(p, f"cae{k}", (x, T + 0.4, z), largo, 1.4 + 1.2 * _azar(k + 750),
+                         (110 + 30 * _azar(k + 800), 0, -s * (20 + 25 * _azar(k + 850))), tono, dobla=15)
+            k += 1
     # del borde de atras de la diadema bajan figuras hacia la nuca, pegadas a la cabeza
     for k, x in enumerate((-2.6, -1.3, 0.0, 1.3, 2.6)):
         largo = 6.5 + 1.5 * _azar(k + 500)
