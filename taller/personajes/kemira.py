@@ -158,7 +158,7 @@ def penacho(p, T, C):
     """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan, desparejas y de tamanos distintos:
     llenan toda la diadema (sin pisarla), casi paradas; las de atras se abren hacia los costados. Donde no hay
     diadema (las esquinas de atras de la cabeza) salen figuras que caen hacia atras y abajo, abiertas a los lados.
-    Desde el borde de atras de la diadema bajan otras hasta la nuca."""
+    Desde el borde de atras de la diadema bajan otras hasta la nuca, abiertas hacia los costados."""
     n = 70
     for k in range(n):
         f = (k + 0.5) / n
@@ -179,21 +179,23 @@ def penacho(p, T, C):
     # las esquinas de atras, fuera de la diadema: caen hacia atras y abajo, abiertas a los costados
     k = 0
     for s in (1, -1):
-        for i in range(9):
-            z = -0.5 + 4.6 * i / 8
+        for i in range(16):
+            z = -0.8 + 5.0 * i / 15
             t = (z - FZ) / (BZ - FZ)
             borde = FX + (BX - FX) * t + 0.5                         # justo afuera de la pared de la diadema
             x = s * (borde + (3.9 - borde) * _azar(k + 600))
             largo = 4.0 + 3.0 * _azar(k + 650)
             tono = CREMA_PLUMA if _azar(k + 700) < 0.2 else NEGRO
             poner_figura(p, f"cae{k}", (x, T + 0.4, z), largo, 1.4 + 1.2 * _azar(k + 750),
-                         (110 + 30 * _azar(k + 800), 0, -s * (20 + 25 * _azar(k + 850))), tono, dobla=15)
+                         (95 + 45 * _azar(k + 800), 0, -s * (30 + 40 * _azar(k + 850))), tono, dobla=15)
             k += 1
     # del borde de atras de la diadema bajan figuras hacia la nuca, pegadas a la cabeza
-    for k, x in enumerate((-2.6, -1.3, 0.0, 1.3, 2.6)):
-        largo = 6.5 + 1.5 * _azar(k + 500)
-        poner_figura(p, f"nuca{k}", (x, T + 1.2, BZ + 0.2), largo, 1.9, (176, 0, -x * 3), NEGRO if k % 2 == 0 else CREMA_PLUMA,
-                     dobla=6)
+    for k in range(13):
+        x = -3.6 + 7.2 * k / 12
+        largo = 5.5 + 3.0 * _azar(k + 500)
+        tono = CREMA_PLUMA if _azar(k + 550) < 0.25 else NEGRO
+        poner_figura(p, f"nuca{k}", (x, T + 1.2 - 0.6 * _azar(k + 560), BZ + 0.2), largo, 1.5 + 1.0 * _azar(k + 570),
+                     (150 + 20 * _azar(k + 580), 0, -x * 9), tono, dobla=8)
 
 
 def construir():
