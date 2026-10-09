@@ -14,7 +14,7 @@ chiquito y piernas cortas con patas.
 
 from ..kit import Personaje, tonos
 from ..textura import hex_a_rgba as hex_
-from .revolthir import voxel
+from .revolthir import color, voxel
 
 D = 4                                   # texeles por px
 D_CARA = 8                              # la cabeza, con mas detalle para la cara
@@ -55,18 +55,18 @@ def ojo(u, v):
         pico = 0.3 * abs(((u * 2.2) % 1.0) - 0.5) * 2 + 0.2 * max(0.0, (u - 3.0) / 1.5)
         return hex_(PESTANA) if v < arriba + 0.38 + pico and not (u < 1.6 and v > 4.6) else None
     if u < 1.55 or u > 4.0:
-        return hex_(PESTANA) if v > 3.0 else None                       # el borde solo arriba, abajo abierto
+        return hex_(PESTANA) if v > 3.0 else None                       # el borde solo arriba
     if u > 3.35:                                                         # lo blanco, en la esquina de afuera
-        return hex_("#FFFFFF" if v > 2.5 else "#F3E4E4")
+        return hex_("#FFFFFF") if v >= 2.85 else None
     if _en(u, v, 1.75, 2.05, 3.85, 4.15):                               # brillo
         return hex_("#FFFFFF")
     if _en(u, v, 1.55, 2.75, 3.3, arriba):                              # pupila hacia la nariz: bizca
         return hex_(PUPILA)
-    return hex_(AMBAR_CLARO if v < 2.85 else AMBAR)
+    return hex_(AMBAR) if v >= 2.85 else None                          # abajo: cara, sin el naranja claro
 
 
 def boca(u, v):
-    """Boca sonriente de gatito: arriba la w, abierta en D con las comisuras levantadas y la lengua abajo."""
+    """Boca sonriente de gatito: arriba la linea en w y abajo abierta en D, toda rosa."""
     au = abs(u)
     if au > 1.25:
         return None
@@ -74,11 +74,9 @@ def boca(u, v):
     abajo = 0.75 + 0.85 * (au / 1.25) ** 2                             # fondo redondo, comisuras arriba
     if not (abajo <= v <= arriba + 0.12):
         return None
-    if v > arriba - 0.08 or v < abajo + 0.12 or au > 1.25 - 0.15:      # contorno
+    if v > arriba - 0.08:                                              # la linea de arriba (la w)
         return hex_(BOCA)
-    if _en(au, v, 0.45, 0.7, arriba - 0.45, arriba - 0.08):            # colmillito
-        return hex_("#FFFFFF")
-    return hex_(LENGUA if v < abajo + 0.55 else "#B8404E")
+    return hex_(LENGUA)                                                # toda rosa, sin dientes ni sombra
 
 
 def cara(t):
@@ -132,20 +130,24 @@ def pelo(p, C, T):
         for k, (z0, abajo) in enumerate(((-4.4, C - 0.6), (-1.6, C - 1.4), (1.4, C - 0.8))):   # puntas del costado
             a, b = sorted((s * 5.0, s * 6.3))
             p.caja(g, f"punta{s}_{k}", (a, abajo, z0), (b, C + 1.0, z0 + 2.6), PELO_TEX, dens=D)
-    # melena de atras en columnas con puntas de distinto largo
-    for k, abajo in enumerate((C - 1.6, C - 0.6, C - 2.0, C - 1.0, C - 1.8, C - 0.4, C - 1.4, C - 0.8, C - 1.9)):
-        x = -6.1 + k * (12.2 / 9)
-        p.caja(g, f"atras{k}", (x, abajo, 4.0), (x + 12.2 / 9, T - 1.0, 6.1), PELO_TEX, dens=D)
+    # melena de atras: un bloque ancho que llega a la nuca con puntas, y dos mechones largos en las esquinas
+    for k, abajo in enumerate((C + 0.6, C + 1.2, C + 0.3, C + 1.0, C + 0.5, C + 1.3, C + 0.4, C + 1.1, C + 0.7)):
+        x = -6.4 + k * (12.8 / 9)
+        p.caja(g, f"atras{k}", (x, abajo, 3.8), (x + 12.8 / 9, T - 0.6, 6.7), PELO_TEX, dens=D)
+    for s in (1, -1):
+        a, b = sorted((s * 4.6, s * 6.5))
+        p.caja(g, f"cola_pelo{s}", (a, C - 3.4, 4.0), (b, C + 1.5, 6.5), PELO_TEX, dens=D)
     # flequillo: mechones gruesos de distinto largo; un par baja entre los ojos
     ancho = 11.2 / 8
     for k, abajo in enumerate((C + 3.6, C + 5.6, C + 6.1, C + 4.9, C + 5.0, C + 6.2, C + 5.7, C + 3.6)):
         x = -5.6 + k * ancho
-        p.caja(g, f"fleco{k}", (x, abajo, -6.0), (x + ancho, T + 0.2, -5.0), PELO_TEX, dens=D)
+        p.caja(g, f"fleco{k}", (x, abajo, -6.7), (x + ancho, T + 0.2, -5.0), PELO_TEX, dens=D)
+    p.caja(g, "fleco_esponja", (-6.0, T - 1.6, -7.2), (6.0, T + 0.7, -5.0), PELO_TEX, dens=D)   # el copete esponjado
     # mechones largos adelante que enmarcan la cara y bajan hasta el pecho
     for s in (1, -1):
         for k, (x0, x1, abajo) in enumerate(((5.0, 6.5, C - 3.6), (4.2, 5.3, C - 1.2))):
             a, b = sorted((s * x0, s * x1))
-            p.caja(g, f"mechon{s}_{k}", (a, abajo, -6.0), (b, T - 1.5, -3.8), PELO_TEX, dens=D)
+            p.caja(g, f"mechon{s}_{k}", (a, abajo, -6.7), (b, T - 1.5, -3.8), PELO_TEX, dens=D)
 
 
 PELUSA = {"s": "#F3E9DD", "b": "#FFF8EF", "l": "#FFFFFF"}
@@ -195,12 +197,34 @@ def _inclinar(c, piv, rz):
     c.rot = [c.rot[0], c.rot[1], c.rot[2] + rz] if c.rot else [0, 0, rz]
 
 
+def pestanas(p, C):
+    """Las pestanas en 3D: tiras negras chiquitas que salen de la cara sobre cada ojo, de alturas alternadas para que
+    se vean tupidas, y la punta de afuera que baja en diagonal."""
+    g = "Head/pestanas"
+    for lado in (1, -1):                                       # lado 1: a la derecha de quien mira (u > 0)
+        k = 0
+        u = 1.3
+        while u < 4.3:
+            arriba = 4.35 + 0.25 * (u - 1.3) / 3.2
+            alto = 0.45 + (0.28 if k % 2 else 0.08) + 0.2 * max(0.0, (u - 3.0) / 1.3)
+            x1, x2 = sorted((-lado * u, -lado * (u + 0.34)))
+            p.caja(g, f"pestana{lado}_{k}", (x1, C + arriba, -5.32), (x2, C + arriba + alto, -4.98), color(PESTANA),
+                   dens=D_CARA, luz=False)
+            u += 0.32
+            k += 1
+        for i, (du, dv) in enumerate(((0.0, 0.0), (0.3, -0.3), (0.55, -0.6))):   # la punta de afuera
+            x1, x2 = sorted((-lado * (4.3 + du), -lado * (4.65 + du)))
+            p.caja(g, f"punta{lado}_{i}", (x1, C + 4.25 + dv, -5.32), (x2, C + 4.75 + dv, -4.98), color(PESTANA),
+                   dens=D_CARA, luz=False)
+
+
 def construir():
     p = Personaje("moles", altura=21, cabeza=CABEZA_ALTO, torso=(5.6, 6, 3.2), brazo=(2.0, 2.0), pierna=(2.4, 2.4))
     C, T, L = p.cuello, p.tope, p.lh                           # 11, 21, 5
     assert C == CUELLO
 
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA, luz=False)   # sin sombra en la cara
+    pestanas(p, C)
     pelo(p, C, T)
     orejas(p, T)
 
