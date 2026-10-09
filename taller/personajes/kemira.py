@@ -1,8 +1,9 @@
 """
 Kemira, diosa de Thza (avatar). Se arma paso a paso siguiendo la hoja referencias/personajes/kemira_hoja.png.
 
-Paso 1: la cabeza, un cubo liso del color de piel de la hoja (#A67556), y la diadema: cuadrada adelante y a los
-costados, y atras se cierra en triangulo cortado al medio (termina recta), de punta a punta de la cabeza.
+Paso 1: la cabeza, un cubo liso del color de piel de la hoja (#A67556), y la diadema alta sobre la cabeza: vista
+desde arriba es un trapecio (adelante de punta a punta de la frente, se cierra hacia atras y termina recta), con
+flecos de cuentas colgando adelante.
 """
 
 import math
@@ -27,28 +28,34 @@ def tejido(t):
     return hex_(CREMA if abs(v - (0.3 + 0.4 * tri)) < 0.09 else CAFE)
 
 
-def diadema(p, y0, y1, lado=4.0, grosor=0.4, cola=2.6):
-    """Diadema alrededor de la cabeza (de lado 2*lado): frente y costados rectos; atras, dos tramos a 45 grados que
-    se cierran hacia el medio y una punta recta (el triangulo cortado al medio). cola: cuanto sale por detras."""
+def diadema(p, T, alto=3.0, grosor=0.4):
+    """Diadema alta sobre la cabeza, vista desde arriba es un trapecio: adelante, de punta a punta de la frente;
+    los costados se cierran hacia atras y termina recta antes de la nuca. Adelante cuelgan flecos de cuentas."""
     g = "Head/diadema"
-    a = lado + grosor
-    p.caja(g, "frente", (-a, y0, -a), (a, y1, -lado), tejido, dens=D)
+    y0, y1 = T - alto + 0.8, T + 0.8
+    fx, fz = 4.25, -4.25                                         # esquinas de adelante
+    bx, bz = 1.8, 1.5                                            # esquinas de atras
+    p.caja(g, "frente", (-fx - 0.15, y0, fz - grosor), (fx + 0.15, y1, fz), tejido, dens=D)
     for s in (1, -1):
-        x1, x2 = sorted((s * lado, s * a))
-        p.caja(g, f"costado{s}", (x1, y0, -a), (x2, y1, lado), tejido, dens=D)
-        # tramo que se cierra: de la esquina de atras (s*a, lado) hacia (s*(a - cola), lado + cola)
-        largo = cola * math.sqrt(2)
-        cx, cz = s * (a - cola / 2), lado + cola / 2
-        p.caja(g, f"cierre{s}", (cx - largo / 2, y0, cz - grosor / 2), (cx + largo / 2, y1, cz + grosor / 2), tejido,
-               rot=(0, 45 * s, 0), piv=(cx, y0, cz), dens=D)
-    ancho = a - cola                                             # la punta recta de atras
-    p.caja(g, "punta", (-ancho - 0.1, y0, lado + cola - grosor / 2), (ancho + 0.1, y1, lado + cola + grosor / 2),
-           tejido, dens=D)
+        dx, dz = bx - fx, bz - fz
+        largo = math.hypot(dx, dz)
+        ang = math.degrees(math.atan2(dz, abs(dx)))              # giro en Y para que el largo siga el costado
+        cx, cz = s * (fx + bx) / 2, (fz + bz) / 2
+        p.caja(g, f"costado{s}", (cx - largo / 2, y0, cz - grosor / 2), (cx + largo / 2, y1, cz + grosor / 2),
+               tejido, rot=(0, ang * s, 0), piv=(cx, y0, cz), dens=D)
+    p.caja(g, "atras", (-bx - 0.2, y0, bz - grosor / 2), (bx + 0.2, y1, bz + grosor / 2), tejido, dens=D)
+    # flecos de cuentas que cuelgan del frente
+    for k, x in enumerate((-2.4, -1.6, -0.8, 0.0, 0.8, 1.6, 2.4)):
+        largo = (1.4, 2.0, 1.6, 2.4, 1.6, 2.0, 1.4)[k]
+        for i in range(int(largo / 0.4)):
+            y = y0 - 0.4 * (i + 1)
+            p.caja(g, f"cuenta{k}_{i}", (x - 0.15, y, fz - grosor - 0.1), (x + 0.15, y + 0.4, fz - grosor + 0.2),
+                   color(CREMA if (i + k) % 2 else CAFE), dens=D)
 
 
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), color(PIEL), dens=D, luz=False)
-    diadema(p, T - 2.6, T - 1.4)
+    diadema(p, T)
     return p
