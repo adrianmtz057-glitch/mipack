@@ -110,10 +110,22 @@ def pelo(p, C, T, o=0.4):
     p.caja(g, "flequillo", (-1.9, C, -h - o), (1.9, T, -h), capa_pelo(7.4), dens=8, luz=False)
 
 
+def copete(p, T, fx=4.1, fz=-3.9, bx=2.2, bz=4.4, alto=2.3):
+    """La parte de arriba del pelo, dentro de la diadema: un bloque crema con la forma del trapecio (un poco adentro
+    de las paredes), del techo de la capa de pelo hasta casi el borde de la diadema. Liso y sin sombras."""
+    from .. import malla as geo
+    m = 0.3                                                      # separacion de las paredes
+    def anillo(y):
+        return [(bx - m, y, bz - m), (fx - m, y, fz + m), (-fx + m, y, fz + m), (-bx + m, y, bz - m)]
+    malla = geo.loft_puntos([anillo(T + 0.4), anillo(T + alto)])
+    p.malla("Head/pelo", "copete", malla, lambda t: hex_(PELO), dens=8)
+
+
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
     pelo(p, C, T)
+    copete(p, T)
     diadema(p, T)
     return p
