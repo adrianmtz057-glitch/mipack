@@ -273,8 +273,9 @@ def puno(t):
 
 # ---------------------------------------------------------------- la cola
 
-CAMINO_COLA = ((0.0, 4.2, 1.8, 0.95), (1.0, 3.6, 4.2, 1.7), (2.2, 4.8, 6.6, 2.4), (2.7, 7.5, 8.0, 2.7),
-               (2.0, 10.4, 7.8, 2.45), (0.8, 12.6, 6.6, 1.85), (0.0, 13.8, 5.3, 1.1))     # (x, y, z, radio)
+# la curva va hacia atras y hacia su derecha, y termina debajo y detras de la melena: no la toca
+CAMINO_COLA = ((0.0, 4.2, 1.8, 0.95), (1.0, 3.4, 4.4, 1.7), (2.4, 4.4, 7.0, 2.4), (3.4, 6.6, 8.6, 2.7),
+               (3.6, 8.8, 9.0, 2.45), (3.0, 10.6, 8.6, 1.85), (2.2, 11.6, 7.9, 1.1))     # (x, y, z, radio)
 COLA_RUBIA = voxel(PELO, claro=0.3)
 COLA_CREMA = voxel({"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}, claro=0.3)        # crema calida
 
