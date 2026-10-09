@@ -125,37 +125,53 @@ def figura(tono, punta=None):
     return p
 
 
-def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=0.8):
-    """Una figura en bloques (como una pluma): el cuerpo y una punta mas angosta, giradas juntas desde la base."""
+def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=1.2, dobla=22):
+    """Una figura del penacho en bloques cuadrados: un cuerpo ancho y una punta que se dobla 'dobla' grados mas
+    (asi no queda recta). rot = (rx, 0, rz) desde la base."""
     x, y, z = base
     pint = figura(tono, punta)
     g = "Head/penacho"
-    p.caja(g, nombre, (x - ancho / 2, y, z - grosor / 2), (x + ancho / 2, y + largo * 0.75, z + grosor / 2), pint,
+    l1, l2 = largo * 0.62, largo * 0.38
+    rx, _, rz = rot
+    p.caja(g, nombre, (x - ancho / 2, y, z - grosor / 2), (x + ancho / 2, y + l1, z + grosor / 2), pint,
            rot=rot, piv=base, dens=D)
-    p.caja(g, nombre + "_p", (x - ancho * 0.3, y + largo * 0.75, z - grosor / 2 + 0.05),
-           (x + ancho * 0.3, y + largo, z + grosor / 2 - 0.05), pint, rot=rot, piv=base, dens=D)
+    a, c = math.radians(rx), math.radians(rz)                     # la junta, ya girada (orden Z * X)
+    jy, jz = l1 * math.cos(a), l1 * math.sin(a)
+    j = (x - jy * math.sin(c), y + jy * math.cos(c), z + jz)
+    w2 = ancho * 0.7
+    p.caja(g, nombre + "_p", (j[0] - w2 / 2, j[1], j[2] - grosor / 2 + 0.05), (j[0] + w2 / 2, j[1] + l2, j[2] + grosor / 2 - 0.05),
+           pint, rot=(rx + dobla, 0, rz), piv=j, dens=D)
 
 
-def penacho(p, T):
-    """El pelo de arriba como un penacho de figuras 3D: nace en la mitad de la frente (adentro de la diadema) y va
-    hacia atras en filas, todas peinadas hacia atras; las de adelante mas cortas, las de atras mas largas, un
-    poco abiertas a los costados y vencidas hasta caer por la espalda. Casi todas negras, algunas crema."""
-    filas = 6
+FX, FZ, BX, BZ = 4.1, -3.9, 2.2, 4.4                          # el trapecio de la diadema
+
+
+def penacho(p, T, C):
+    """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan: nace en la mitad de la frente,
+    adentro de la diadema (no la pisa), y va hacia atras en filas; las de adelante mas cortas y paradas, las de
+    atras mas largas y algo vencidas. Ademas, de la nuca sale otra tanda que cae hacia abajo."""
+    filas = 5
     for r in range(filas):
         f = r / (filas - 1)                                        # 0 adelante, 1 atras
-        z = -2.6 + 6.4 * f
-        mitad = 1.6 + 0.9 * f * 0 + (4.1 - 1.9 * f) * 0.55         # medio ancho del trapecio a esa altura, adentro
-        n = 3 + r
-        abre = 12 + 38 * f
+        z = -1.6 + 5.0 * f
+        t = (z - FZ) / (BZ - FZ)
+        mitad = FX + (BX - FX) * t - 0.45                          # medio ancho del trapecio adentro de las paredes
+        n = 3 + (r + 1) // 2
+        ancho = 2.4 + 0.6 * f
         for k in range(n):
-            a = -abre + 2 * abre * k / max(1, n - 1) if n > 1 else 0.0
-            x = mitad * (a / abre if abre else 0) * 0.8
-            largo = (7.5 + 6.5 * f) * (1.0 - 0.12 * abs(a) / 90)
-            crema = (r >= 2 and (k + r) % 5 == 0) or (r == filas - 1 and k == n // 2)
+            q = -1 + 2 * k / (n - 1)
+            x = q * max(0.0, mitad - ancho / 2)
+            a = q * (8 + 22 * f)
+            largo = (6.5 + 5.0 * f) * (1.0 - 0.1 * abs(q))
+            crema = (r >= 2 and (k + r) % 4 == 0)
             tono = CREMA_PLUMA if crema else NEGRO
             punta = None if crema or (k + r) % 3 else CREMA_PLUMA["s"]
-            poner_figura(p, f"figura{r}_{k}", (x, T + 0.5, z), largo, 2.4 + 0.8 * f, (30 + 50 * f, 0, -a),
-                         tono, punta)
+            poner_figura(p, f"figura{r}_{k}", (x, T + 0.4, z), largo, ancho, (12 + 26 * f, 0, -a), tono, punta)
+    # de la nuca: figuras que caen hacia abajo y un poco hacia atras
+    for k, x in enumerate((-3.0, -1.5, 0.0, 1.5, 3.0)):
+        largo = 6.0 + 1.5 * (1 - abs(x) / 3.0)
+        poner_figura(p, f"nuca{k}", (x, T - 1.2, 4.9), largo, 2.0, (172, 0, -x * 4), NEGRO if k % 2 == 0 else CREMA_PLUMA,
+                     dobla=10)
 
 
 def construir():
@@ -163,6 +179,6 @@ def construir():
     C, T = p.cuello, p.tope                                # 28, 36
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
     pelo(p, C, T)
-    penacho(p, T)
+    penacho(p, T, C)
     diadema(p, T)
     return p
