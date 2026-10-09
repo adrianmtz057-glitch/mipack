@@ -279,72 +279,89 @@ def ropa(p, L):
     falda(p, L)
 
 
-CARBON, GRIS_OSCURO, BEIGE = "#1D1D24", "#2C2C36", "#E3D2B4"
+OSCUROS = ("#1C1D26", "#272935")                               # negro azulado de la hoja, en dos tonos
+BEIGES = ("#E0D0B4", "#D2C1A3")
+CARBON = OSCUROS[0]
+
+# silueta de una pluma: (desde que fraccion del largo, medio ancho / ancho), de arriba hacia la punta.
+# Cada tramo es recto y entre tramos hay un escalon: bordes de pixel, con muescas a los costados.
+NIVELES = ((0.00, 0.30), (0.06, 0.50), (0.28, 0.38), (0.34, 0.50), (0.52, 0.36), (0.60, 0.44), (0.74, 0.30),
+           (0.85, 0.18), (0.94, 0.08))
+
+
+def perfil_pluma(ancho, largo, k):
+    """Contorno 2D (x, y) de una pluma colgando desde (0, 0) hasta la punta en (0, -largo), con escalones. Los
+    dos lados tienen las muescas un poco corridas (k), asi ninguna pluma es igual a otra."""
+    lados = []
+    for s in (1, -1):
+        corre = 0.05 * (_azar(k * 2 + (s > 0) + 2000) - 0.5)
+        pts = []
+        niveles = [(f if i in (0, 1) else min(0.97, f + corre), hw) for i, (f, hw) in enumerate(NIVELES)]
+        for i, (f, hw) in enumerate(niveles):
+            f2 = niveles[i + 1][0] if i + 1 < len(niveles) else 1.0
+            pts += [(s * hw * ancho, -f * largo), (s * hw * ancho, -f2 * largo)]
+        lados.append(pts)
+    derecha, izquierda = lados
+    return derecha + [(0.0, -largo)] + izquierda[::-1]
+
+
+def pluma_3d(base, ancho, largo, k, angulo, abre, abanico=0.0, grosor=0.45):
+    """Malla de una pluma: el contorno extruido (grosor), colgando desde 'base'. angulo: donde esta alrededor de la
+    cadera (180 adelante, 0 atras, 90 a su derecha); abre: cuanto se separa la punta del cuerpo; abanico: giro en
+    su propio plano (las de arriba en las caderas se abren en abanico)."""
+    from .. import malla as geo
+    m = geo.extruir(perfil_pluma(ancho, largo, k), -grosor / 2, grosor / 2)
+    if abanico:
+        m = geo.girar(m, (0, 0, abanico))
+    m = geo.girar(m, (abre, angulo - 180, 0))
+    return geo.mover(m, base)
+
+
+def borde_cadera(t):
+    """Punto del borde del cinturon y su angulo para t de 0 a 1 (vuelta entera: empieza adelante al medio)."""
+    ang = 180 + 360 * t
+    a = math.radians(ang)
+    sx, sz = math.sin(a), math.cos(a)
+    r = 1.0 / max(abs(sx) / 4.45, abs(sz) / (3.2 if sz > 0 else 2.6))      # rectangulo de la cadera
+    return (r * sx, r * sz), ang
 
 
 def falda(p, L):
-    """Falda tribal de plumas como la guia: cinturon de cuero con triangulos; base oscura de 3 a 4 de alto con el
-    borde roto; muchas tiras oscuras (carbon y gris) alrededor de toda la cadera en tres profundidades, largas al
-    centro de adelante y de atras, cortas a los costados y algo abiertas hacia afuera, con punta escalonada; plumas
-    beige mas finas mezcladas sobre todo al frente. La silueta es irregular: no es un cono ni termina recta."""
+    """Falda tribal de plumas como la hoja y la guia: cinturon de cuero con triangulos y una base oscura; debajo,
+    tres hileras de plumas con silueta escalonada (anchas, con muescas, en punta) que se enciman: atras las negras
+    largas, que bajan en punta al centro de adelante y de atras; al medio, medianas negras y beige; arriba, cortas
+    que en las caderas se abren en abanico. Las beige van por delante, sobre todo al frente. A los costados son mas
+    cortas y dejan ver el muslo."""
     g = "Body/falda"
     color_ = lambda col: (lambda t: hex_(col))
     p.caja(g, "cinturon", (-4.4, L + 0.8, -2.55), (4.4, L + 1.8, 3.15), tejido, dens=D, luz=False)
-    p.caja(g, "base", (-4.35, L - 2.6, -2.5), (4.35, L + 0.8, 3.1), color_(CARBON), dens=D, luz=False)
-
-    def tira(nombre, x, z, ancho, grueso, largo, col, de_lado, abre=0.0):
-        """Tira colgante con punta escalonada. de_lado: el ancho va en Z (tiras de los costados)."""
-        y1 = L + 0.6
-        sx, sz = (grueso, ancho) if de_lado else (ancho, grueso)
-        rot = (abre, 0, 0) if de_lado and False else ((0, 0, abre) if de_lado else (0, 0, 0))
-        p.caja(g, nombre, (x - sx / 2, y1 - largo, z - sz / 2), (x + sx / 2, y1, z + sz / 2), color_(col),
-               rot=rot, piv=(x, y1, z), dens=D, luz=False)
-        px, pz = (sx, sz * 0.5) if de_lado else (sx * 0.5, sz)
-        p.caja(g, nombre + "_p", (x - px / 2, y1 - largo - 0.9, z - pz / 2), (x + px / 2, y1 - largo, z + pz / 2),
-               color_(col), rot=rot, piv=(x, y1, z), dens=D, luz=False)
-
+    p.caja(g, "base", (-4.3, L - 1.4, -2.45), (4.3, L + 0.8, 3.05), color_(CARBON), dens=D, luz=False)
+    y0 = L + 1.0
+    hileras = (                                                    # (cuantas, fuera, largo centro, largo costado, abre, beige)
+        (22, 0.05, 11.0, 4.4, 4, 0.0),
+        (18, 0.40, 7.4, 3.8, 10, 0.45),
+        (16, 0.75, 4.4, 3.0, 20, 0.5),
+    )
     k = 0
-    for capa in range(3):
-        n = 34 - 6 * capa
+    for h, (n, fuera, l_centro, l_lado, abre, beige) in enumerate(hileras):
         for i in range(n):
-            a = 2 * math.pi * (i + 0.5 * capa + 0.35 * _azar(k + 1100)) / n
-            ca, sa = math.cos(a), math.sin(a)                       # a = 0 atras, pi adelante
-            de_lado = abs(sa) * 4.4 > abs(ca) * 2.8
-            fuera = 0.35 + 0.4 * capa
-            if de_lado:
-                x = math.copysign(4.3 + 0.25 * capa, sa)
-                z = max(-2.2, min(2.8, 2.9 * ca))
-            else:
-                x = max(-4.1, min(4.1, 4.4 * sa))
-                z = (3.1 + fuera) if ca > 0 else (-2.5 - fuera)
-            if capa == 2 and not de_lado and ca < 0 and abs(x) < 1.9:   # hueco al frente para las beige
+            t = (i + 0.5 * h + 0.3 * _azar(k + 2100)) / n
+            (x, z), ang = borde_cadera(t)
+            a = math.radians(ang)
+            centro = abs(math.cos(a)) ** 1.6                      # 1 al centro de adelante/atras, 0 a los costados
+            if h == 0 and centro < 0.08 and i % 2:                # aberturas a los costados
                 continue
-            centro = abs(ca) ** 2
-            largo = 2.8 + 1.8 * _azar(k + 1150) + 4.5 * centro * (1 - 0.5 * capa / 2) + 0.6 * (ca > 0)
-            col = GRIS_OSCURO if _azar(k + 1200) < 0.35 else CARBON
-            abre = math.copysign(3 + 5 * _azar(k + 1250), sa) if de_lado else 0.0
-            tira(f"tira{k}", x, z, 1.0 + 1.0 * _azar(k + 1300), 1.0 + 0.5 * _azar(k + 1350), largo, col, de_lado, abre)
+            largo = l_lado + (l_centro - l_lado) * centro + (2.6 if h == 0 else 1.2) * (_azar(k + 2200) - 0.5)
+            adelante = math.cos(a) < 0
+            es_beige = _azar(k + 2300) < beige * ((1.5 if centro > 0.3 else 0.9) if adelante else 0.45)
+            col = BEIGES[k % 2] if es_beige else OSCUROS[k % 2]
+            # las de la hilera de arriba en las caderas se abren en abanico hacia el costado
+            abanico = -math.sin(a) * (25 + 15 * _azar(k + 2400)) * (1 - centro) if h == 2 else 0.0
+            base = (x + math.sin(a) * fuera, y0 - 0.15 * h, z + math.cos(a) * fuera)
+            ancho = 2.0 + 0.6 * _azar(k + 2500) - 0.2 * h
+            malla = pluma_3d(base, ancho, largo, k, ang, abre + 4 * _azar(k + 2600), abanico)
+            p.malla(g, f"pluma{h}_{k}", malla, color_(col), dens=D)
             k += 1
-    # plumas beige, mas finas, sobre todo al frente y mezcladas entre las oscuras
-    for i, (x, largo, prof) in enumerate(((0.0, 8.0, 1.5), (-1.2, 6.0, 1.3), (1.3, 6.4, 1.3), (-2.4, 4.6, 1.6),
-                                           (2.5, 4.8, 1.6), (-0.6, 3.6, 1.0), (0.7, 3.9, 1.0))):
-        tira(f"beige{i}", x, -2.5 - prof, 0.6 + 0.4 * _azar(i + 1400), 0.6, largo, BEIGE, False)
-    for i, x in enumerate((-1.6, 0.2, 1.9)):
-        tira(f"beige_atras{i}", x, 3.1 + 1.3, 0.7, 0.6, 4.2 + 1.5 * (i == 1), BEIGE, False)
-
-
-BLANCO_PURO, NEGRO_PURO = "#FFFFFF", "#141414"
-
-
-def pluma_plana(col):
-    """Pluma 2D de color puro: un plano recortado con la punta hacia abajo (se angosta en el ultimo tramo)."""
-    def p(t):
-        f = (t.j + 0.5) / t.th                                       # 0 arriba, 1 en la punta de abajo
-        u = abs((t.i + 0.5) / t.tw * 2 - 1)
-        if u > 1.0 - max(0.0, f - 0.55) / 0.45:
-            return TRANSPARENTE
-        return hex_(col)
-    return p
 
 
 def construir():
