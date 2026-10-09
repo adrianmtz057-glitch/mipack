@@ -146,32 +146,36 @@ def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=1.
 FX, FZ, BX, BZ = 4.1, -3.9, 2.2, 4.4                          # el trapecio de la diadema
 
 
+def _azar(k):
+    """Numero fijo entre 0 y 1 para la figura k (siempre el mismo: el penacho no cambia de un armado a otro)."""
+    return (math.sin(k * 12.9898 + 4.1414) * 43758.5453) % 1.0
+
+
 def penacho(p, T, C):
-    """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan: nace en la mitad de la frente,
-    adentro de la diadema (no la pisa), y va hacia atras en filas; las de adelante mas cortas y paradas, las de
-    atras mas largas y algo vencidas. Ademas, de la nuca sale otra tanda que cae hacia abajo."""
-    filas = 5
-    for r in range(filas):
-        f = r / (filas - 1)                                        # 0 adelante, 1 atras
-        z = -1.6 + 5.0 * f
+    """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan, cortas y desparejas: salen
+    adentro de la diadema (sin pisarla), casi paradas y apenas hacia atras, cada una con su lugar, largo y giro.
+    Desde el borde de atras de la diadema bajan otras figuras hasta la nuca."""
+    n = 30
+    for k in range(n):
+        f = (k + 0.5) / n                                          # de adelante hacia atras, mezclado abajo
+        z = -2.0 + 5.6 * (0.55 * f + 0.45 * _azar(k))
         t = (z - FZ) / (BZ - FZ)
-        mitad = FX + (BX - FX) * t - 0.45                          # medio ancho del trapecio adentro de las paredes
-        n = 3 + (r + 1) // 2
-        ancho = 2.4 + 0.6 * f
-        for k in range(n):
-            q = -1 + 2 * k / (n - 1)
-            x = q * max(0.0, mitad - ancho / 2)
-            a = q * (8 + 22 * f)
-            largo = (6.5 + 5.0 * f) * (1.0 - 0.1 * abs(q))
-            crema = (r >= 2 and (k + r) % 4 == 0)
-            tono = CREMA_PLUMA if crema else NEGRO
-            punta = None if crema or (k + r) % 3 else CREMA_PLUMA["s"]
-            poner_figura(p, f"figura{r}_{k}", (x, T + 0.4, z), largo, ancho, (12 + 26 * f, 0, -a), tono, punta)
-    # de la nuca: figuras que caen hacia abajo y un poco hacia atras
-    for k, x in enumerate((-3.0, -1.5, 0.0, 1.5, 3.0)):
-        largo = 6.0 + 1.5 * (1 - abs(x) / 3.0)
-        poner_figura(p, f"nuca{k}", (x, T - 1.2, 4.9), largo, 2.0, (172, 0, -x * 4), NEGRO if k % 2 == 0 else CREMA_PLUMA,
-                     dobla=10)
+        mitad = FX + (BX - FX) * t - 0.45
+        ancho = 2.0 + 0.9 * _azar(k + 50)
+        x = (2 * ((k * 0.618 + 0.3 * _azar(k + 100)) % 1.0) - 1) * max(0.0, mitad - ancho / 2)   # repartidas a lo ancho
+        largo = 3.8 + 3.0 * _azar(k + 150) + 1.2 * (z + 2.0) / 5.6
+        inclina = 4 + 16 * (z + 2.0) / 5.6 + 10 * (_azar(k + 200) - 0.5)
+        abre = -x * 5 + 16 * (_azar(k + 250) - 0.5)
+        crema = _azar(k + 300) < 0.2
+        tono = CREMA_PLUMA if crema else NEGRO
+        punta = None if crema or _azar(k + 350) < 0.6 else CREMA_PLUMA["s"]
+        poner_figura(p, f"figura{k}", (x, T + 0.4, z), largo, ancho, (inclina, 0, abre), tono, punta,
+                     dobla=10 + 18 * _azar(k + 400))
+    # del borde de atras de la diadema bajan figuras hacia la nuca, pegadas a la cabeza
+    for k, x in enumerate((-2.6, -1.3, 0.0, 1.3, 2.6)):
+        largo = 6.5 + 1.5 * _azar(k + 500)
+        poner_figura(p, f"nuca{k}", (x, T + 1.2, BZ + 0.2), largo, 1.9, (176, 0, -x * 3), NEGRO if k % 2 == 0 else CREMA_PLUMA,
+                     dobla=6)
 
 
 def construir():
