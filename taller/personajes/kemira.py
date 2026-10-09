@@ -69,27 +69,47 @@ def cabeza(t):
     de la frente. El resto, piel."""
     v = t.y - CUELLO
     if t.cara == "up":
-        return hex_(PELO)
+        return mechones(t.x, t.z, -99)
     if t.cara == "down":
         return hex_(PIEL)
     if t.cara == "north":
         u, au = -t.x, abs(-t.x)
         if v > 7.4 or (au > 2.9 and v > _puntas(u, 2.6)) or (1.9 < au <= 2.9 and v > _puntas(u, 6.3)):
-            return hex_(PELO_SOMBRA if 2.85 < au < 3.0 or 1.85 < au < 1.95 else PELO)
+            return mechones(u, v, -99)
         return hex_(PIEL)
     u = t.z if t.cara in ("east", "west") else t.x
     base = 1.6 if t.cara in ("east", "west") else 1.0
-    return hex_(PELO) if v > _puntas(u, base) else hex_(PIEL)
+    return mechones(u, v, _puntas(u, base)) if v > _puntas(u, base) else hex_(PIEL)
+
+
+PELO_TONOS = ("#D3C6B0", "#E2D6C2", "#E9DFCD", "#F2EADB")     # sombra, base, medio, luz
+
+
+def mechones(u, v, borde):
+    """Textura de mechones del pelo blanco: tiras verticales de 0.5 px con su tono (un patron fijo), una linea mas
+    oscura entre mechon y mechon, y las puntas un poco mas oscuras cerca del borde de abajo."""
+    k = int((u + 50) // 0.5)
+    tono = (1, 2, 1, 3, 2, 1, 2, 0)[k % 8]
+    if ((u + 50) % 0.5) < 0.07:
+        tono = 0
+    if v - borde < 0.5:
+        tono = max(0, tono - 1)
+    elif (v * 1.3 + k * 0.37) % 2.2 < 0.12:                       # un brillo cortito suelto en algunos mechones
+        tono = 3
+    return hex_(PELO_TONOS[tono])
 
 
 def capa_pelo(base):
-    """Pintor de la capa de pelo: crema liso; por debajo de 'base' (con puntas en mechones) queda transparente."""
+    """Pintor de una capa de pelo: mechones crema; por debajo de 'base' (con puntas) queda transparente."""
     def p(t):
-        if t.cara not in ("up", "down"):
-            u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
-            if t.y - CUELLO < _puntas(u, base):
-                return TRANSPARENTE
-        return hex_(PELO)
+        if t.cara in ("up", "down"):
+            return mechones(t.x, t.z, -99)
+        u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
+        v = t.y - CUELLO
+        borde = _puntas(u, base)
+        if v < borde:
+            return TRANSPARENTE
+        return mechones(u, v, borde)
     return p
 
 
