@@ -270,21 +270,28 @@ def top_v(t):
 
 
 def ropa(p, L):
-    """Un top negro con escote en V que rodea el pecho y la espalda, y una falda de plumas gruesas en V (largas
-    al medio de adelante y de atras, cortas a los costados)."""
+    """Un top negro con escote en V que rodea el pecho y la espalda, y una falda de plumas como taparrabo (paneles
+    adelante y atras en capas, en V; los costados sin plumas)."""
     g = "Body/ropa"
     p.caja(g, "top", (-3.9, 22.3, -2.1), (3.9, 26.0, 2.1), top_v, dens=D, luz=False)
     for k, (x, y0, y1, z) in enumerate(BUSTO):
         p.caja(g, f"top_busto{k}", (-x - 0.1, y0 - 0.1, z - 0.7), (x + 0.1, y1 + 0.1, z - 0.05), top_v, dens=D, luz=False)
-    n = 26
-    for k in range(n):
-        a = 2 * math.pi * k / n
-        x, z = 4.3 * math.sin(a), (3.0 if math.cos(a) > 0 else 2.5) * math.cos(a)
-        centro = abs(math.cos(a))                                  # 1 al medio de adelante y atras, 0 a los costados
-        largo = 3.6 + 7.0 * centro ** 1.5 + 0.8 * (_azar(k + 900) - 0.5)
-        phi = math.degrees(math.atan2(x, z))
-        poner_figura(p, f"falda{k}", (x, L + 1.6, z), largo, 1.5 + 0.5 * _azar(k + 950), (177, phi, 0),
-                     NEGRO, None, grosor=0.7, dobla=3, grupo="Body/falda", luz=False)
+    # falda como taparrabo: un panel adelante y otro atras de plumas en tres capas que se enciman (la de arriba
+    # por fuera), mas largas al medio (en V); a los costados solo el cinto
+    p.caja(g, "cinto", (-4.35, L + 0.8, -2.35), (4.35, L + 1.9, 2.95), lambda t: hex_(NEGRO_ROPA), dens=D, luz=False)
+    k = 0
+    for lado, zs, phi in ((-1, -2.35, 180.0), (1, 2.95, 0.0)):
+        for capa in range(3):
+            y = L + 1.7 - capa * 1.7
+            n = 7 - (capa == 0)
+            for i in range(n):
+                x = -3.5 + 7.0 * (i + 0.5 * (capa % 2)) / (n - 1 + 0.5 * (capa % 2))
+                x = max(-3.6, min(3.6, x))
+                largo = 3.0 + 0.6 * capa + 3.4 * (1 - abs(x) / 3.6) ** 1.3 + 0.5 * (_azar(k + 900) - 0.5)
+                z = zs + lado * (0.25 + 0.3 * (2 - capa))
+                poner_figura(p, f"pluma_falda{k}", (x, y, z), largo, 1.3 + 0.5 * _azar(k + 950), (176, phi, 0),
+                             NEGRO, None, grosor=0.5, dobla=4, grupo="Body/falda", luz=False)
+                k += 1
 
 
 def construir():
