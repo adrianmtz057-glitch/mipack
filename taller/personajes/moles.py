@@ -13,7 +13,7 @@ chiquito y piernas cortas con patas.
 """
 
 from ..kit import Personaje, tonos
-from ..textura import hex_a_rgba as hex_
+from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 from .revolthir import color, voxel
 
 D = 4                                   # texeles por px
@@ -118,38 +118,57 @@ def pata(t):
 
 
 def pelo(p, C, T):
-    """Pelo con mucho volumen, como el boceto: una masa mas ancha y mas honda que la cabeza."""
     g = "Head/pelo"
-    # casco: tres escalones que se angostan hacia arriba, bastante mas grandes que la cabeza
-    for k, (ancho, y0, y1, z0, z1) in enumerate(((7.0, T - 3.4, T + 0.8, -6.4, 7.2), (6.4, T + 0.8, T + 1.8, -5.9, 6.6),
-                                                 (5.2, T + 1.8, T + 2.4, -4.8, 5.4))):
-        p.caja(g, f"casco{k}", (-ancho, y0, z0), (ancho, y1, z1), PELO_TEX, dens=D)
-    # costados con volumen: bloques anchos que bajan en escalon
+    # casco redondeado: tres escalones que se angostan hacia arriba
+    for k, (ancho, y0, y1) in enumerate(((6.1, T - 2.6, T + 0.6), (5.5, T + 0.6, T + 1.4), (4.4, T + 1.4, T + 1.9))):
+        p.caja(g, f"casco{k}", (-ancho, y0, -ancho + 0.1), (ancho, y1, ancho), PELO_TEX, dens=D)
+    # volumen a los costados: bloques que bajan en escalon
     for s in (1, -1):
-        for k, (x0, x1, y0, z0, z1) in enumerate(((5.0, 7.2, C + 0.6, -4.6, 6.8), (6.4, 7.8, C + 2.6, -3.6, 5.6))):
+        for k, (x0, x1, y0, z0, z1) in enumerate(((5.0, 6.4, C + 1.0, -4.4, 4.8), (5.8, 6.9, C + 3.2, -3.6, 3.6))):
             a, b = sorted((s * x0, s * x1))
-            p.caja(g, f"costado{s}_{k}", (a, y0, z0), (b, T - 0.8, z1), PELO_TEX, dens=D)
-        for k, (z0, abajo) in enumerate(((-4.6, C - 0.8), (-1.6, C - 1.8), (1.6, C - 1.0), (4.4, C - 1.6))):   # puntas
-            a, b = sorted((s * 5.0, s * 7.0))
-            p.caja(g, f"punta{s}_{k}", (a, abajo, z0), (b, C + 0.8, z0 + 2.8), PELO_TEX, dens=D)
-    # melena de atras: bloque ancho y hondo hasta la nuca con puntas, y dos mechones largos en las esquinas
-    for k, abajo in enumerate((C + 0.4, C + 1.1, C + 0.1, C + 0.9, C + 0.3, C + 1.2, C + 0.2, C + 1.0, C + 0.5)):
-        x = -7.0 + k * (14.0 / 9)
-        p.caja(g, f"atras{k}", (x, abajo, 3.6), (x + 14.0 / 9, T - 0.4, 7.4), PELO_TEX, dens=D)
+            p.caja(g, f"costado{s}_{k}", (a, y0, z0), (b, T - 1.0, z1), PELO_TEX, dens=D)
+        for k, (z0, abajo) in enumerate(((-4.4, C - 0.6), (-1.6, C - 1.4), (1.4, C - 0.8))):   # puntas del costado
+            a, b = sorted((s * 5.0, s * 6.3))
+            p.caja(g, f"punta{s}_{k}", (a, abajo, z0), (b, C + 1.0, z0 + 2.6), PELO_TEX, dens=D)
+    # melena de atras: un bloque ancho que llega a la nuca con puntas, y dos mechones largos en las esquinas
+    for k, abajo in enumerate((C + 0.6, C + 1.2, C + 0.3, C + 1.0, C + 0.5, C + 1.3, C + 0.4, C + 1.1, C + 0.7)):
+        x = -6.4 + k * (12.8 / 9)
+        p.caja(g, f"atras{k}", (x, abajo, 3.8), (x + 12.8 / 9, T - 0.6, 6.7), PELO_TEX, dens=D)
     for s in (1, -1):
-        a, b = sorted((s * 4.8, s * 7.2))
-        p.caja(g, f"cola_pelo{s}", (a, C - 3.8, 3.8), (b, C + 1.5, 7.0), PELO_TEX, dens=D)
-    # flequillo grueso de mechones de distinto largo y el copete esponjado arriba
-    ancho = 11.6 / 8
-    for k, abajo in enumerate((C + 3.4, C + 5.6, C + 6.1, C + 4.9, C + 5.0, C + 6.2, C + 5.7, C + 3.4)):
-        x = -5.8 + k * ancho
-        p.caja(g, f"fleco{k}", (x, abajo, -7.0), (x + ancho, T + 0.4, -5.0), PELO_TEX, dens=D)
-    p.caja(g, "fleco_esponja", (-6.6, T - 1.8, -7.6), (6.6, T + 1.0, -5.0), PELO_TEX, dens=D)
-    # mechones largos adelante, por fuera de la cara, hasta el pecho
+        a, b = sorted((s * 4.6, s * 6.5))
+        p.caja(g, f"cola_pelo{s}", (a, C - 3.4, 4.0), (b, C + 1.5, 6.5), PELO_TEX, dens=D)
+    # flequillo: mechones gruesos de distinto largo; un par baja entre los ojos
+    ancho = 11.2 / 8
+    for k, abajo in enumerate((C + 3.6, C + 5.6, C + 6.1, C + 4.9, C + 5.0, C + 6.2, C + 5.7, C + 3.6)):
+        x = -5.6 + k * ancho
+        p.caja(g, f"fleco{k}", (x, abajo, -6.7), (x + ancho, T + 0.2, -5.0), PELO_TEX, dens=D)
+    p.caja(g, "fleco_esponja", (-6.0, T - 1.6, -7.2), (6.0, T + 0.7, -5.0), PELO_TEX, dens=D)   # el copete esponjado
+    # mechones largos adelante que enmarcan la cara y bajan hasta el pecho
     for s in (1, -1):
-        for k, (x0, x1, abajo) in enumerate(((5.6, 7.4, C - 3.8), (4.4, 5.8, C - 1.4))):
+        for k, (x0, x1, abajo) in enumerate(((5.0, 6.5, C - 3.6), (4.2, 5.3, C - 1.2))):
             a, b = sorted((s * x0, s * x1))
-            p.caja(g, f"mechon{s}_{k}", (a, abajo, -7.0), (b, T - 1.2, -3.8), PELO_TEX, dens=D)
+            p.caja(g, f"mechon{s}_{k}", (a, abajo, -6.7), (b, T - 1.5, -3.8), PELO_TEX, dens=D)
+
+
+def mechones_2d(t):
+    """Panel de pelo en 2D: rubio con el borde de abajo cortado en mechones de distinto largo (lo demas transparente)."""
+    u = t.x if t.cara in ("north", "south") else t.z
+    k = int((u + 50) // 1.1)
+    if t.y < t.f[1] + (0.0, 0.9, 0.35, 1.3, 0.6)[k % 5]:
+        return TRANSPARENTE
+    return PELO_TEX(t)
+
+
+def paneles(p, C, T):
+    """Volumen pensado con paneles 2D: dos capas atras que se abren un poco hacia afuera y una a cada costado, como
+    mechones que se separan de la melena."""
+    g = "Head/pelo"
+    for k, (x, y0, y1, z, giro) in enumerate(((5.9, C - 1.2, T - 1.6, 6.2, -14), (4.3, C - 2.3, T - 3.2, 6.45, -24))):
+        p.plano(g, f"capa_atras{k}", (-x, y0, z), (x, y1, z), mechones_2d, rot=(giro, 0, 0), piv=(0, y1, z), dens=D)
+    for s in (1, -1):
+        x = s * 6.5
+        p.plano(g, f"capa_costado{s}", (x, C - 0.9, -3.2), (x, T - 1.6, 4.4), mechones_2d, rot=(0, 0, 6 * s),
+                piv=(x, T - 1.6, 0.6), dens=D)
 
 
 PELUSA = {"s": "#F3E9DD", "b": "#FFF8EF", "l": "#FFFFFF"}
@@ -160,24 +179,24 @@ def orejas(p, T):
     el adentro rosa con pelusa blanca y copos de pelo en el borde."""
     g = "Head/orejas"
     for s in (1, -1):
-        cx = s * 4.8
-        piv = (cx, T + 1.8, 0.6)
+        cx = s * 4.1
+        piv = (cx, T + 1.0, 0.6)
         giro = dict(rot=(-8, 0, -32 * s), piv=piv)
-        y = T + 1.4
+        y = T + 0.6
         for k, (ancho, alto) in enumerate(((4.8, 2.0), (4.4, 1.6), (3.6, 1.4), (2.4, 1.0))):
             p.caja(g, f"oreja{s}_{k}", (cx - ancho / 2, y, -0.2), (cx + ancho / 2, y + alto, 1.4), voxel(OREJA, claro=0.15),
                    dens=D, **giro)
             y += alto
-        p.caja(g, f"adentro{s}", (cx - 1.5, T + 2.2, -0.35), (cx + 1.5, T + 5.8, -0.2), oreja_adentro, dens=D, **giro)
+        p.caja(g, f"adentro{s}", (cx - 1.5, T + 1.4, -0.35), (cx + 1.5, T + 5.0, -0.2), oreja_adentro, dens=D, **giro)
         # pelusa blanca que sale de adentro, abajo
         for k, (dx, dy, l) in enumerate(((-0.9, 1.2, 1.3), (0.3, 1.0, 1.5), (1.1, 1.6, 1.1), (-0.3, 2.2, 1.0))):
-            x0, y0 = cx + dx, T + 0.8 + dy
+            x0, y0 = cx + dx, T + dy
             p.caja(g, f"pelusa{s}_{k}", (x0 - l / 2, y0 - l / 2, -0.9), (x0 + l / 2, y0 + l / 2, -0.15),
                    voxel(PELUSA, claro=0.2), rot=(0, 0, (k * 27) % 40 - 20 - 32 * s), piv=(x0, y0, -0.5), dens=D)
         # copos de pelo en el borde de afuera: lo vuelven redondo y esponjoso
         for k, (dx, dy, l) in enumerate(((2.4, 1.8, 1.2), (2.2, 3.4, 1.1), (1.5, 4.8, 1.0), (0.2, 5.9, 1.1),
                                          (-1.4, 4.9, 1.0), (-2.3, 3.3, 1.1), (-2.5, 1.7, 1.2))):
-            x0, y0 = cx + dx, T + 0.8 + dy
+            x0, y0 = cx + dx, T + dy
             p.caja(g, f"copo{s}_{k}", (x0 - l / 2, y0 - l / 2, -0.05), (x0 + l / 2, y0 + l / 2, 1.25),
                    voxel(OREJA, claro=0.2), rot=(0, 0, (k * 31) % 50 - 25), piv=(x0, y0, 0.6), dens=D)
             # los copos giran con la oreja: se arman en su lugar ya inclinado
@@ -228,6 +247,7 @@ def construir():
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA, luz=False)   # sin sombra en la cara
     pestanas(p, C)
     pelo(p, C, T)
+    paneles(p, C, T)
     orejas(p, T)
 
     p.caja("Body/cuerpo", "torso", (-2.8, L, -1.6), (2.8, C, 1.6), piel, dens=D, luz=False)
