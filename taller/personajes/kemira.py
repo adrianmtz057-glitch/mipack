@@ -270,8 +270,8 @@ def top_v(t):
 
 
 def ropa(p, L):
-    """Un top negro con escote en V que rodea el pecho y la espalda, y una falda de plumas como taparrabo (paneles
-    adelante y atras en capas, en V; los costados sin plumas)."""
+    """Un top negro con escote en V que rodea el pecho y la espalda, y una falda de plumas como taparrabo: plumas 2D
+    chicas de blanco y negro puros, en capas adelante y atras, en V; los costados sin plumas."""
     g = "Body/ropa"
     p.caja(g, "top", (-3.9, 22.3, -2.1), (3.9, 26.0, 2.1), top_v, dens=D, luz=False)
     for k, (x, y0, y1, z) in enumerate(BUSTO):
@@ -280,34 +280,32 @@ def ropa(p, L):
     # por fuera), mas largas al medio (en V); a los costados solo el cinto
     p.caja(g, "cinto", (-4.35, L + 0.8, -2.35), (4.35, L + 1.9, 2.95), lambda t: hex_(NEGRO_ROPA), dens=D, luz=False)
     k = 0
-    for lado, zs, phi in ((-1, -2.4, 180.0), (1, 3.0, 0.0)):
-        for capa in range(4):
-            y = L + 1.8 - capa * 1.4
-            n = 9
+    for lado, zs in ((-1, -2.4), (1, 3.0)):
+        for capa in range(5):
+            y = L + 1.7 - capa * 1.15
+            n = 11
             for i in range(n):
-                x = -3.6 + 7.2 * (i + 0.5 * (capa % 2)) / (n - 0.5)
-                largo = 3.0 + 0.5 * capa + 3.2 * (1 - min(1.0, abs(x) / 3.8)) ** 1.3 + 0.6 * (_azar(k + 900) - 0.5)
-                z = zs + lado * 0.2 * (3 - capa)                       # pegadas: la capa de arriba apenas por fuera
-                tono = CREMA_PLUMA if _azar(k + 920) < 0.35 else NEGRO
-                poner_figura(p, f"pluma_falda{k}", (x, y, z), largo, 1.9 + 0.7 * _azar(k + 950), (179, phi, 0),
-                             tono, None, grosor=0.8, dobla=2, grupo="Body/falda", luz=False, pintor=pluma_tex(tono))
+                x = -3.7 + 7.4 * (i + 0.5 * (capa % 2)) / (n - 0.5)
+                largo = 2.4 + 0.3 * capa + 2.2 * (1 - min(1.0, abs(x) / 3.9)) ** 1.3 + 0.5 * (_azar(k + 900) - 0.5)
+                ancho = 1.0 + 0.4 * _azar(k + 950)
+                z = zs + lado * (0.06 * (4 - capa) + 0.02 * (i % 2))   # planos encimados: la capa de arriba por fuera
+                color_p = BLANCO_PURO if _azar(k + 920) < 0.35 else NEGRO_PURO
+                p.caja("Body/falda", f"pluma_falda{k}", (x - ancho / 2, y - largo, z), (x + ancho / 2, y, z),
+                       pluma_plana(color_p), dens=8, luz=False)
                 k += 1
 
 
-def pluma_tex(tono):
-    """Textura de pluma: raquis claro al medio, barbas en diagonal un poco mas oscuras y el canto mas claro."""
+BLANCO_PURO, NEGRO_PURO = "#FFFFFF", "#141414"
+
+
+def pluma_plana(col):
+    """Pluma 2D de color puro: un plano recortado con la punta hacia abajo (se angosta en el ultimo tramo)."""
     def p(t):
-        v = (t.fila_abajo + 0.5) / t.th
-        u = (t.i + 0.5) / t.tw * 2 - 1
-        if t.cara in ("up", "down"):
-            return hex_(tono["s"])
-        if abs(u) < 0.12:
-            return hex_(tono["l"])
-        if abs(u) > 0.85:
-            return hex_(tono["l"])
-        if ((v * 7 + abs(u) * 2.5) % 1.0) < 0.22:
-            return hex_(tono["s"])
-        return hex_(tono["b"])
+        f = (t.j + 0.5) / t.th                                       # 0 arriba, 1 en la punta de abajo
+        u = abs((t.i + 0.5) / t.tw * 2 - 1)
+        if u > 1.0 - max(0.0, f - 0.55) / 0.45:
+            return TRANSPARENTE
+        return hex_(col)
     return p
 
 
