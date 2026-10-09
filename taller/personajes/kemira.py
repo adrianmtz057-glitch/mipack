@@ -148,21 +148,22 @@ def figura(tono, punta=None):
     return p
 
 
-def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=1.2, dobla=22):
+def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=1.2, dobla=22, grupo="Head/penacho",
+                 luz=True):
     """Una figura del penacho en bloques cuadrados: un cuerpo ancho y una punta que se dobla 'dobla' grados mas
     (asi no queda recta). rot = (rx, 0, rz) desde la base."""
     x, y, z = base
     pint = figura(tono, punta)
-    g = "Head/penacho"
+    g = grupo
     l1, l2 = largo * 0.62, largo * 0.38
     rx, ry, rz = rot
     p.caja(g, nombre, (x - ancho / 2, y, z - grosor / 2), (x + ancho / 2, y + l1, z + grosor / 2), pint,
-           rot=rot, piv=base, dens=D)
+           rot=rot, piv=base, dens=D, luz=luz)
     from .. import malla as geo
     j = geo.girar(([(x, y + l1, z)], []), rot, base)[0][0]      # la junta, ya girada
     w2 = ancho * 0.7
     p.caja(g, nombre + "_p", (j[0] - w2 / 2, j[1], j[2] - grosor / 2 + 0.05), (j[0] + w2 / 2, j[1] + l2, j[2] + grosor / 2 - 0.05),
-           pint, rot=(rx + dobla, ry, rz), piv=j, dens=D)
+           pint, rot=(rx + dobla, ry, rz), piv=j, dens=D, luz=luz)
 
 
 FX, FZ, BX, BZ = 4.1, -3.9, 2.2, 4.4                          # el trapecio de la diadema
@@ -219,13 +220,17 @@ def piel(t):
     return hex_(PIEL)
 
 
+BUSTO = ((3.5, 22.8, 25.9, -2.0), (3.2, 23.1, 25.4, -2.6), (2.6, 23.5, 24.9, -3.2))   # (medio ancho, abajo, arriba, z de atras)
+
+
 def cuerpo(p, C, L):
     """La base del cuerpo, sin ropa: hombros y torax anchos, busto, cintura marcada, cadera ancha con gluteos,
     muslos gruesos que se afinan a la rodilla, pantorrillas con volumen y brazos de hombro redondo. Piel lisa."""
     g = "Body/cuerpo"
     caja = lambda grupo, n, a, b: p.caja(grupo, n, a, b, piel, dens=D, luz=False)
     caja(g, "torax", (-3.8, 22.6, -2.0), (3.8, C, 2.0))
-    caja(g, "busto", (-3.4, 23.0, -2.85), (3.4, 25.8, -2.0))
+    for k, (x, y0, y1, z) in enumerate(BUSTO):                     # busto en capas: redondo de perfil
+        caja(g, f"busto{k}", (-x, y0, z - 0.6), (x, y1, z))
     caja(g, "cintura", (-2.9, 19.4, -1.7), (2.9, 22.6, 1.7))
     caja(g, "cadera_alta", (-3.6, 18.2, -2.0), (3.6, 19.4, 2.0))
     caja(g, "cadera", (-4.2, L - 0.6, -2.2), (4.2, 18.2, 2.2))
@@ -254,24 +259,32 @@ def cuerpo(p, C, L):
 NEGRO_ROPA = "#262325"
 
 
-def falda_v(y_punta, y_lado):
-    """Falda negra con el borde de abajo en V: larga en el medio (y_punta) y corta a los costados (y_lado)."""
-    def p(t):
-        if t.cara in ("up", "down"):
-            return hex_(NEGRO_ROPA)
-        u = t.x if abs(t.n[2]) >= abs(t.n[0]) else 4.4
-        borde = y_punta + (y_lado - y_punta) * min(1.0, abs(u) / 4.4)
-        return TRANSPARENTE if t.y < borde else hex_(NEGRO_ROPA)
-    return p
+def top_v(t):
+    """Top negro con el escote en V: el borde de arriba baja al medio del pecho; atras rodea la espalda derecho."""
+    if t.cara in ("up", "down"):
+        return hex_(NEGRO_ROPA)
+    if t.n[2] < -0.5:                                              # adelante: la V
+        corte = 24.5 + 1.5 * min(1.0, abs(t.x) / 3.4)
+        return TRANSPARENTE if t.y > corte else hex_(NEGRO_ROPA)
+    return hex_(NEGRO_ROPA) if t.y < 25.4 else TRANSPARENTE
 
 
 def ropa(p, L):
-    """Solo un top negro sobre el busto y una falda negra en V hacia abajo."""
+    """Un top negro con escote en V que rodea el pecho y la espalda, y una falda de plumas gruesas en V (largas
+    al medio de adelante y de atras, cortas a los costados)."""
     g = "Body/ropa"
-    negro = lambda t: hex_(NEGRO_ROPA)
-    p.caja(g, "top", (-3.9, 22.4, -2.1), (3.9, 26.0, 2.1), negro, dens=D, luz=False)
-    p.caja(g, "top_busto", (-3.5, 22.8, -2.95), (3.5, 26.0, -2.1), negro, dens=D, luz=False)
-    p.caja(g, "falda", (-4.35, 7.0, -2.35), (4.35, L + 1.6, 3.0), falda_v(7.0, 13.2), dens=D, luz=False)
+    p.caja(g, "top", (-3.9, 22.3, -2.1), (3.9, 26.0, 2.1), top_v, dens=D, luz=False)
+    for k, (x, y0, y1, z) in enumerate(BUSTO):
+        p.caja(g, f"top_busto{k}", (-x - 0.1, y0 - 0.1, z - 0.7), (x + 0.1, y1 + 0.1, z - 0.05), top_v, dens=D, luz=False)
+    n = 26
+    for k in range(n):
+        a = 2 * math.pi * k / n
+        x, z = 4.3 * math.sin(a), (3.0 if math.cos(a) > 0 else 2.5) * math.cos(a)
+        centro = abs(math.cos(a))                                  # 1 al medio de adelante y atras, 0 a los costados
+        largo = 3.6 + 7.0 * centro ** 1.5 + 0.8 * (_azar(k + 900) - 0.5)
+        phi = math.degrees(math.atan2(x, z))
+        poner_figura(p, f"falda{k}", (x, L + 1.6, z), largo, 1.5 + 0.5 * _azar(k + 950), (177, phi, 0),
+                     NEGRO, None, grosor=0.7, dobla=3, grupo="Body/falda", luz=False)
 
 
 def construir():
