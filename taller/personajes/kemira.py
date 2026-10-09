@@ -15,6 +15,7 @@ from .revolthir import color
 D = 4
 
 PIEL = "#A67556"                        # tomado de la paleta de la hoja
+CUELLO = 28.0
 CAFE, CAFE_OSCURO, CREMA = "#54443A", "#3E3128", "#E4D8C4"
 
 
@@ -53,30 +54,37 @@ def diadema(p, T, alto=3.0, grosor=0.4):
                    color(CREMA if (i + k) % 2 else CAFE), dens=D)
 
 
-PELO = {"s": "#C9BCA6", "b": "#E2D6C2", "l": "#F1E9DA"}
+PELO, PELO_SOMBRA = "#E2D6C2", "#D3C6B0"
 
 
-def pelo(p, C, T):
-    """Pelo crema como la hoja: arriba bajo la diadema, cortinas de mechones a los costados de la cara hasta la
-    mandibula, unos mechones sueltos en el borde de la frente y atras hasta la nuca."""
-    from .revolthir import voxel
-    tex = voxel(PELO, claro=0.25)
-    g = "Head/pelo"
-    p.caja(g, "arriba", (-4.3, T - 1.0, -4.3), (4.3, T + 0.2, 4.3), tex, dens=D)
-    p.caja(g, "atras", (-4.3, C + 1.0, 4.0), (4.3, T, 4.6), tex, dens=D)
-    for s in (1, -1):
-        for k, (x0, x1, abajo, z0) in enumerate(((2.9, 3.8, C + 2.2, -4.6), (3.7, 4.6, C + 1.2, -4.4),
-                                                (4.0, 4.6, C + 1.8, -2.2), (4.0, 4.6, C + 2.4, 0.8))):
-            a, b = sorted((s * x0, s * x1))
-            p.caja(g, f"cortina{s}_{k}", (a, abajo, z0), (b, T - 0.6, z0 + 3.0), tex, dens=D)
-        a, b = sorted((s * 1.8, s * 2.9))                       # mechon suelto en el borde de la frente
-        p.caja(g, f"suelto{s}", (a, T - 2.2, -4.5), (b, T - 0.6, -4.15), tex, dens=D)
+def _puntas(u, base, paso=0.5):
+    """Borde de abajo del pelo en mechones: cada columna de 'paso' baja un poco distinto."""
+    k = int((u + 50) // paso)
+    return base - (0.0, 0.6, 0.25, 0.9, 0.4)[k % 5]
+
+
+def cabeza(t):
+    """La cabeza con el pelo pintado encima, pegado al cubo (nada sobresale y sin sombras): arriba todo crema; a los
+    costados y atras baja en mechones; adelante, cortinas a los lados de la cara y un mechon suelto en cada borde
+    de la frente. El resto, piel."""
+    v = t.y - CUELLO
+    if t.cara == "up":
+        return hex_(PELO)
+    if t.cara == "down":
+        return hex_(PIEL)
+    if t.cara == "north":
+        u, au = -t.x, abs(-t.x)
+        if v > 7.4 or (au > 2.9 and v > _puntas(u, 2.6)) or (1.9 < au <= 2.9 and v > _puntas(u, 6.3)):
+            return hex_(PELO_SOMBRA if 2.85 < au < 3.0 or 1.85 < au < 1.95 else PELO)
+        return hex_(PIEL)
+    u = t.z if t.cara in ("east", "west") else t.x
+    base = 1.6 if t.cara in ("east", "west") else 1.0
+    return hex_(PELO) if v > _puntas(u, base) else hex_(PIEL)
 
 
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
-    p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), color(PIEL), dens=D, luz=False)
-    pelo(p, C, T)
+    p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
     diadema(p, T)
     return p
