@@ -110,15 +110,52 @@ def pelo(p, C, T, o=0.4):
     p.caja(g, "flequillo", (-1.9, C, -h - o), (1.9, T, -h), capa_pelo(7.4), dens=8, luz=False)
 
 
-def copete(p, T, fx=4.1, fz=-3.9, bx=2.2, bz=4.4, alto=2.3):
-    """La parte de arriba del pelo, dentro de la diadema: un bloque crema con la forma del trapecio (un poco adentro
-    de las paredes), del techo de la capa de pelo hasta casi el borde de la diadema. Liso y sin sombras."""
-    from .. import malla as geo
-    m = 0.3                                                      # separacion de las paredes
-    def anillo(y):
-        return [(bx - m, y, bz - m), (fx - m, y, fz + m), (-fx + m, y, fz + m), (-bx + m, y, bz - m)]
-    malla = geo.loft_puntos([anillo(T + 0.4), anillo(T + alto)])
-    p.malla("Head/pelo", "copete", malla, lambda t: hex_(PELO), dens=8)
+NEGRO = {"s": "#1E1C1E", "b": "#2B2829", "l": "#3B3637"}
+CREMA_PLUMA = {"s": "#CDBFA8", "b": "#E4D8C4", "l": "#F2EADB"}
+
+
+def figura(tono, punta=None):
+    """Pintor de una figura del penacho: el tono con el canto un poco mas claro; con punta, el ultimo tramo crema."""
+    def p(t):
+        v = (t.fila_abajo + 0.5) / t.th
+        if punta and v > 0.78 and t.cara not in ("up", "down"):
+            return hex_(punta)
+        u = abs((t.i + 0.5) / t.tw * 2 - 1)
+        return hex_(tono["l"] if u > 0.78 else tono["b"])
+    return p
+
+
+def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=0.8):
+    """Una figura en bloques (como una pluma): el cuerpo y una punta mas angosta, giradas juntas desde la base."""
+    x, y, z = base
+    pint = figura(tono, punta)
+    g = "Head/penacho"
+    p.caja(g, nombre, (x - ancho / 2, y, z - grosor / 2), (x + ancho / 2, y + largo * 0.75, z + grosor / 2), pint,
+           rot=rot, piv=base, dens=D)
+    p.caja(g, nombre + "_p", (x - ancho * 0.3, y + largo * 0.75, z - grosor / 2 + 0.05),
+           (x + ancho * 0.3, y + largo, z + grosor / 2 - 0.05), pint, rot=rot, piv=base, dens=D)
+
+
+def penacho(p, T):
+    """El pelo de arriba como un penacho de figuras 3D: nace en la mitad de la frente (adentro de la diadema) y va
+    hacia atras en filas; adelante figuras cortas y paradas, atras mas largas, mas abiertas hacia los costados y
+    vencidas hacia atras hasta caer por la espalda. Casi todas negras, algunas crema."""
+    filas = 6
+    for r in range(filas):
+        f = r / (filas - 1)                                        # 0 adelante, 1 atras
+        z = -2.6 + 6.4 * f
+        mitad = 1.6 + 0.9 * f * 0 + (4.1 - 1.9 * f) * 0.55         # medio ancho del trapecio a esa altura, adentro
+        n = 3 + r
+        abre = 18 + 70 * f
+        for k in range(n):
+            a = -abre + 2 * abre * k / max(1, n - 1) if n > 1 else 0.0
+            x = mitad * (a / abre if abre else 0) * 0.8
+            largo = (7.5 + 6.5 * f) * (1.0 - 0.12 * abs(a) / 90)
+            crema = (r >= 2 and (k + r) % 5 == 0) or (r == filas - 1 and k == n // 2)
+            tono = CREMA_PLUMA if crema else NEGRO
+            punta = None if crema or (k + r) % 3 else CREMA_PLUMA["s"]
+            poner_figura(p, f"figura{r}_{k}", (x, T + 0.5, z), largo, 2.4 + 0.8 * f, (-8 - 45 * f, 0, -a),
+                         tono, punta)
 
 
 def construir():
@@ -126,6 +163,6 @@ def construir():
     C, T = p.cuello, p.tope                                # 28, 36
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
     pelo(p, C, T)
-    copete(p, T)
+    penacho(p, T)
     diadema(p, T)
     return p
