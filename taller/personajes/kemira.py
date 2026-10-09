@@ -1,9 +1,10 @@
 """
 Kemira, diosa de Thza (avatar). Se arma paso a paso siguiendo la hoja referencias/personajes/kemira_hoja.png.
 
-Paso 1: la cabeza, un cubo liso del color de piel de la hoja (#A67556), y la diadema alta sobre la cabeza: vista
-desde arriba es un trapecio (adelante de punta a punta de la frente, se cierra hacia atras y termina recta), con
-flecos de cuentas colgando adelante.
+Hasta ahora: la cabeza (cubo liso del color de piel de la hoja, #A67556, con el pelo crema pintado y en capas), la
+diadema alta en trapecio sobre la cabeza con flecos de cuentas, el penacho y la melena de figuras 3D, el cuerpo
+(cintura marcada que se abre a una cadera ancha y honda donde se sienta la falda, muslos gruesos, brazos un poco
+abiertos), el top negro con escote en V pintado sobre el busto y la falda tribal de plumas.
 """
 
 import math
@@ -220,62 +221,100 @@ def piel(t):
     return hex_(PIEL)
 
 
-BUSTO = ((3.5, 22.8, 25.9, -2.0), (3.2, 23.1, 25.4, -2.6), (2.6, 23.5, 24.9, -3.2))   # (medio ancho, abajo, arriba, z de atras)
+BUSTO = ((3.7, 22.8, 25.9, -2.1), (3.35, 23.1, 25.4, -2.7), (2.75, 23.5, 24.9, -3.3))   # (medio ancho, abajo, arriba, z de atras)
+CADERA_X, CADERA_ZF, CADERA_ZB, GLUTEO_ZB = 4.7, -2.6, 2.7, 3.4     # la cadera donde se sienta la falda
+CINTURA = ((21.4, 22.6, 3.3, -1.95, 1.95), (20.0, 21.4, 3.15, -1.9, 1.9), (19.4, 20.0, 3.35, -2.0, 2.0),
+           (18.9, 19.4, 3.65, -2.15, 2.2), (18.4, 18.9, 3.95, -2.3, 2.35), (17.6, 18.4, 4.3, -2.45, 2.55))
+BRAZO_ABRE = 8.5                                                   # grados: los brazos cuelgan por fuera de la falda
 
 
 def cuerpo(p, C, L):
-    """La base del cuerpo, sin ropa: hombros y torax anchos, busto, cintura marcada, cadera ancha con gluteos,
-    muslos gruesos que se afinan a la rodilla, pantorrillas con volumen y brazos de hombro redondo. Piel lisa."""
+    """La base del cuerpo: hombros y torax anchos, busto en capas, cintura marcada que se abre en escalones a una
+    cadera ancha y honda (llena la falda), gluteos, muslos gruesos que se afinan a la rodilla y pantorrillas con
+    volumen. Los brazos cuelgan un poco abiertos para pasar por fuera de la falda. El top va pintado encima del
+    torax y el busto (pegado, como el pelo en la cabeza)."""
     g = "Body/cuerpo"
-    caja = lambda grupo, n, a, b: p.caja(grupo, n, a, b, piel, dens=D, luz=False)
-    caja(g, "torax", (-3.8, 22.6, -2.0), (3.8, C, 2.0))
+    caja = lambda grupo, n, a, b, pintor=piel, **kw: p.caja(grupo, n, a, b, pintor, dens=D, luz=False, **kw)
+    caja(g, "torax", (-4.0, 22.6, -2.1), (4.0, C, 2.1), top)
     for k, (x, y0, y1, z) in enumerate(BUSTO):                     # busto en capas: redondo de perfil
-        caja(g, f"busto{k}", (-x, y0, z - 0.6), (x, y1, z))
-    caja(g, "cintura", (-2.9, 19.4, -1.7), (2.9, 22.6, 1.7))
-    caja(g, "cadera_alta", (-3.6, 18.2, -2.0), (3.6, 19.4, 2.0))
-    caja(g, "cadera", (-4.2, L - 0.6, -2.2), (4.2, 18.2, 2.2))
-    caja(g, "gluteos", (-3.9, L - 1.2, 2.0), (3.9, 17.6, 2.85))
+        caja(g, f"busto{k}", (-x, y0, z - 0.6), (x, y1, z), top)
+    for k, (y0, y1, x, zf, zb) in enumerate(CINTURA):              # la cintura se abre a la cadera en escalones finos
+        caja(g, f"cintura{k}", (-x, y0, zf), (x, y1, zb))
+    caja(g, "cadera", (-CADERA_X, L - 1.2, CADERA_ZF), (CADERA_X, 17.6, CADERA_ZB))
+    caja(g, "gluteos", (-4.3, L - 1.8, CADERA_ZB - 0.1), (4.3, 17.6, GLUTEO_ZB))
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
         gb = f"{hueso}/brazo"
-        x1, x2 = sorted((s * 3.8, s * 6.4))
-        caja(gb, "hombro", (x1, C - 2.6, -1.45), (x2 + s * 0.15, C + 0.2, 1.45))
-        caja(gb, "brazo", (x1, 20.4, -1.3), (x2, C - 2.6, 1.3))
-        f1, f2 = sorted((s * 3.95, s * 6.25))
-        caja(gb, "antebrazo", (f1, L, -1.15), (f2, 20.4, 1.15))
-        caja(gb, "mano", (f1, L - 2.4, -1.05), (f2, L, 1.05))
+        giro = dict(rot=(0, 0, s * BRAZO_ABRE), piv=(s * 4.0, C - 0.4, 0))
+        x1, x2 = sorted((s * 3.6, s * 6.75))
+        caja(gb, "hombro", (x1, C - 2.6, -1.45), (x2, C + 0.2, 1.45), **giro)
+        x1, x2 = sorted((s * 4.0, s * 6.6))
+        caja(gb, "brazo", (x1, 20.4, -1.3), (x2, C - 2.6, 1.3), **giro)
+        f1, f2 = sorted((s * 4.15, s * 6.45))
+        caja(gb, "antebrazo", (f1, L, -1.15), (f2, 20.4, 1.15), **giro)
+        caja(gb, "mano", (f1, L - 2.4, -1.05), (f2, L, 1.05), **giro)
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         gl = f"{hueso}/pierna"
-        m1, m2 = sorted((s * 0.0, s * 4.2))
-        caja(gl, "muslo", (m1, 9.6, -2.2), (m2, L, 2.2))
-        r1, r2 = sorted((s * 0.3, s * 3.7))
-        caja(gl, "rodilla", (r1, 7.4, -1.85), (r2, 9.6, 1.85))
-        c1, c2 = sorted((s * 0.4, s * 3.6))
-        caja(gl, "pantorrilla", (c1, 1.2, -1.6), (c2, 7.4, 1.7))
-        caja(gl, "gemelo", (c1 + s * 0.2 if s > 0 else c1 + 0.2, 3.6, 1.7), (c2 - 0.2 if s > 0 else c2 - 0.2, 6.6, 2.3))
-        caja(gl, "pie", (c1, 0.0, -2.6), (c2, 1.2, 1.7))
+        lado = lambda a, b: sorted((s * a, s * b))
+        m1, m2 = lado(0.0, CADERA_X + 0.05)
+        caja(gl, "muslo_alto", (m1, 12.8, CADERA_ZF), (m2, L + 0.2, CADERA_ZB))
+        m1, m2 = lado(0.1, 4.45)
+        caja(gl, "muslo", (m1, 10.2, -2.4), (m2, 12.8, 2.5))
+        r1, r2 = lado(0.3, 4.0)
+        caja(gl, "rodilla", (r1, 7.8, -2.0), (r2, 10.2, 2.1))
+        c1, c2 = lado(0.4, 3.8)
+        caja(gl, "pantorrilla", (c1, 1.2, -1.8), (c2, 7.8, 1.9))
+        g1, g2 = lado(0.65, 3.55)
+        caja(gl, "gemelo", (g1, 3.6, 1.9), (g2, 6.8, 2.5))
+        caja(gl, "pie", (c1, 0.0, -2.8), (c2, 1.2, 1.9))
 
 
-NEGRO_ROPA = "#262325"
+NEGRO_ROPA, BEIGE_ROPA, TOSTADO = "#262325", "#D8C9AE", "#A8977C"
+TOP_ABAJO, TOP_LADO, TOP_ATRAS = 22.6, 25.9, 25.6                 # alturas del top: abajo, borde de arriba adelante y atras
+V_ANCHO, V_HONDO = 1.75, 1.5                                       # la V del escote al centro del pecho
+PX = 1.0 / D
 
 
-def top_v(t):
-    """Top negro con el escote en V: el borde de arriba baja al medio del pecho; atras rodea la espalda derecho."""
-    if t.cara in ("up", "down"):
+def _corte(x):
+    """Altura del borde de arriba del top adelante: parejo a los lados y en V al medio del pecho."""
+    return TOP_LADO - V_HONDO * max(0.0, 1.0 - abs(x) / V_ANCHO)
+
+
+def top(t):
+    """Pintor del torax y el busto con el top encima, como la hoja: adelante una banda negra que tapa el busto, con el
+    borde de arriba en V (un pixel negro y debajo una linea beige que sigue la V); atras rodea la espalda derecho, con una banda beige abajo; en los costados la linea beige baja en diagonal
+    de adelante-arriba a atras-abajo. Arriba del top, piel."""
+    x, y, z = t.x, t.y, t.z
+    if t.cara == "down":
         return hex_(NEGRO_ROPA)
-    if t.n[2] < -0.5:                                              # adelante: la V
-        corte = 24.5 + 1.5 * min(1.0, abs(t.x) / 3.4)
-        return TRANSPARENTE if t.y > corte else hex_(NEGRO_ROPA)
-    return hex_(NEGRO_ROPA) if t.y < 25.4 else TRANSPARENTE
+    if t.cara == "up" and y >= 27.9:                               # los hombros
+        return hex_(PIEL)
+    # que tan atras esta el punto: 0 adelante (pecho), 1 en la espalda
+    atras = 1.0 if t.cara == "south" else 0.0 if t.cara in ("north", "up") else min(1.0, max(0.0, (z + 2.1) / 4.2))
+    borde = _corte(x) if atras == 0.0 else TOP_LADO + (TOP_ATRAS - TOP_LADO) * atras
+    if y > borde:
+        return hex_(PIEL)
+    if t.cara == "up":                                             # los escalones del busto: piel o negro, sin linea
+        return hex_(NEGRO_ROPA)
+    linea = borde - PX if atras == 0.0 else TOP_ABAJO + 3 * PX + (borde - PX - TOP_ABAJO - 3 * PX) * (1 - atras)
+    if atras == 1.0:                                               # la espalda: banda beige abajo con marcas
+        if y < TOP_ABAJO + 3 * PX:
+            i = int((x + 50) / PX)
+            return hex_(TOSTADO if (i % 4 == 1 and TOP_ABAJO + PX <= y < TOP_ABAJO + 2 * PX) else BEIGE_ROPA)
+        return hex_(NEGRO_ROPA)
+    if y > borde - PX and atras == 0.0:                            # el canto de arriba, negro
+        return hex_(NEGRO_ROPA)
+    grueso = PX if atras > 0.0 or abs(x) >= V_ANCHO else PX * (1 + V_HONDO / V_ANCHO)   # en diagonal, linea seguida
+    if linea - grueso <= y < linea:
+        return hex_(BEIGE_ROPA)
+    return hex_(NEGRO_ROPA)
 
 
 def ropa(p, L):
-    """Un top negro con escote en V que rodea el pecho y la espalda, y una falda de plumas como taparrabo: plumas 2D
-    chicas de blanco y negro puros, en capas adelante y atras, en V; los costados sin plumas."""
-    g = "Body/ropa"
-    p.caja(g, "top", (-3.9, 22.3, -2.1), (3.9, 26.0, 2.1), top_v, dens=D, luz=False)
-    for k, (x, y0, y1, z) in enumerate(BUSTO):
-        p.caja(g, f"top_busto{k}", (-x - 0.1, y0 - 0.1, z - 0.7), (x + 0.1, y1 + 0.1, z - 0.05), top_v, dens=D, luz=False)
+    """El top va pintado sobre el cuerpo (ver top); aqui va su dobladillo (un canto apenas salido abajo) y la falda
+    de plumas como taparrabo."""
+    p.caja("Body/ropa", "top_dobladillo", (-4.05, TOP_ABAJO - 0.1, -2.15), (4.05, TOP_ABAJO + 0.3, 2.15),
+           lambda t: hex_(NEGRO_ROPA), dens=D, luz=False)
     falda(p, L)
 
 
@@ -317,12 +356,15 @@ def pluma_3d(base, ancho, largo, k, angulo, abre, abanico=0.0, grosor=0.45):
     return geo.mover(m, base)
 
 
+ARO_X, ARO_ZF, ARO_ZB = CADERA_X + 0.15, -CADERA_ZF + 0.15, GLUTEO_ZB + 0.15    # el cinturon, justo sobre la cadera
+
+
 def borde_cadera(t):
     """Punto del borde del cinturon y su angulo para t de 0 a 1 (vuelta entera: empieza adelante al medio)."""
     ang = 180 + 360 * t
     a = math.radians(ang)
     sx, sz = math.sin(a), math.cos(a)
-    r = 1.0 / max(abs(sx) / 4.45, abs(sz) / (3.2 if sz > 0 else 2.6))      # rectangulo de la cadera
+    r = 1.0 / max(abs(sx) / ARO_X, abs(sz) / (ARO_ZB if sz > 0 else ARO_ZF))      # rectangulo de la cadera
     return (r * sx, r * sz), ang
 
 
@@ -334,13 +376,14 @@ def falda(p, L):
     cortas y dejan ver el muslo."""
     g = "Body/falda"
     color_ = lambda col: (lambda t: hex_(col))
-    p.caja(g, "cinturon", (-4.4, L + 0.8, -2.55), (4.4, L + 1.8, 3.15), tejido, dens=D, luz=False)
-    p.caja(g, "base", (-4.3, L - 1.4, -2.45), (4.3, L + 0.8, 3.05), color_(CARBON), dens=D, luz=False)
+    p.caja(g, "cinturon", (-ARO_X, L + 0.8, -ARO_ZF), (ARO_X, L + 1.8, ARO_ZB), tejido, dens=D, luz=False)
+    p.caja(g, "base", (-ARO_X + 0.1, L - 1.4, -ARO_ZF + 0.1), (ARO_X - 0.1, L + 0.8, ARO_ZB - 0.1), color_(CARBON),
+           dens=D, luz=False)
     y0 = L + 1.0
     hileras = (                                                    # (cuantas, fuera, largo centro, largo costado, abre, beige)
-        (22, 0.05, 11.0, 4.4, 4, 0.0),
-        (18, 0.40, 7.4, 3.8, 10, 0.45),
-        (16, 0.75, 4.4, 3.0, 20, 0.5),
+        (22, 0.05, 11.0, 4.4, 2, 0.0),
+        (18, 0.40, 7.4, 3.8, 6, 0.45),
+        (16, 0.75, 4.4, 3.0, 12, 0.5),
     )
     k = 0
     for h, (n, fuera, l_centro, l_lado, abre, beige) in enumerate(hileras):
@@ -356,10 +399,11 @@ def falda(p, L):
             es_beige = _azar(k + 2300) < beige * ((1.5 if centro > 0.3 else 0.9) if adelante else 0.45)
             col = BEIGES[k % 2] if es_beige else OSCUROS[k % 2]
             # las de la hilera de arriba en las caderas se abren en abanico hacia el costado
-            abanico = -math.sin(a) * (25 + 15 * _azar(k + 2400)) * (1 - centro) if h == 2 else 0.0
-            base = (x + math.sin(a) * fuera, y0 - 0.15 * h, z + math.cos(a) * fuera)
+            abanico = -math.sin(a) * (12 + 10 * _azar(k + 2400)) * (1 - centro) if h == 2 else 0.0
+            fuera_ = fuera * (0.3 + 0.7 * centro)                # a los costados las capas van mas pegadas
+            base = (x + math.sin(a) * fuera_, y0 - 0.15 * h, z + math.cos(a) * fuera_)
             ancho = 2.0 + 0.6 * _azar(k + 2500) - 0.2 * h
-            malla = pluma_3d(base, ancho, largo, k, ang, abre + 4 * _azar(k + 2600), abanico)
+            malla = pluma_3d(base, ancho, largo, k, ang, (abre + 4 * _azar(k + 2600)) * (0.35 + 0.65 * centro), abanico)
             p.malla(g, f"pluma{h}_{k}", malla, color_(col), dens=D)
             k += 1
 
