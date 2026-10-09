@@ -447,7 +447,8 @@ class Modelo:
                 return grupos[ruta]
             partes = ruta.split("/")
             hueso = partes[0]
-            g = {"name": partes[-1], "origin": list(self.pivotes.get(hueso, (0, 0, 0))), "color": 0,
+            piv = self.pivotes.get(ruta, self.pivotes.get(hueso, (0, 0, 0)))   # un subgrupo puede tener su pivote
+            g = {"name": partes[-1], "origin": list(piv), "color": 0,
                  "uuid": str(uuid.uuid4()), "export": True, "mirror_uv": False, "isOpen": len(partes) == 1,
                  "locked": False, "visibility": True, "autouv": 0, "children": []}
             (raiz if len(partes) == 1 else grupo("/".join(partes[:-1]))["children"]).append(g)
