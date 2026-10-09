@@ -30,11 +30,11 @@ def tejido(t):
 
 def diadema(p, T, alto=3.0, grosor=0.4):
     """Diadema alta encima de la cabeza (sujeta del pelo, no en la frente), vista desde arriba es un trapecio: adelante, de punta a punta de la frente;
-    los costados se cierran hacia atras y termina recta antes de la nuca. Adelante cuelgan flecos de cuentas."""
+    los costados se cierran hacia atras y termina recta en la nuca. Adelante cuelgan flecos de cuentas."""
     g = "Head/diadema"
     y0, y1 = T - 0.4, T - 0.4 + alto                            # arriba de la cabeza, sujeta del pelo
     fx, fz = 4.1, -3.9                                           # esquinas de adelante: sobresale apenas
-    bx, bz = 1.8, 1.5                                            # esquinas de atras
+    bx, bz = 2.2, 4.4                                            # esquinas de atras: llega hasta la nuca
     p.caja(g, "frente", (-fx - 0.15, y0, fz - grosor), (fx + 0.15, y1, fz), tejido, dens=D)
     for s in (1, -1):
         dx, dz = bx - fx, bz - fz
@@ -53,9 +53,30 @@ def diadema(p, T, alto=3.0, grosor=0.4):
                    color(CREMA if (i + k) % 2 else CAFE), dens=D)
 
 
+PELO = {"s": "#C9BCA6", "b": "#E2D6C2", "l": "#F1E9DA"}
+
+
+def pelo(p, C, T):
+    """Pelo crema como la hoja: arriba bajo la diadema, cortinas de mechones a los costados de la cara hasta la
+    mandibula, unos mechones sueltos en el borde de la frente y atras hasta la nuca."""
+    from .revolthir import voxel
+    tex = voxel(PELO, claro=0.25)
+    g = "Head/pelo"
+    p.caja(g, "arriba", (-4.3, T - 1.0, -4.3), (4.3, T + 0.2, 4.3), tex, dens=D)
+    p.caja(g, "atras", (-4.3, C + 1.0, 4.0), (4.3, T, 4.6), tex, dens=D)
+    for s in (1, -1):
+        for k, (x0, x1, abajo, z0) in enumerate(((2.9, 3.8, C + 2.2, -4.6), (3.7, 4.6, C + 1.2, -4.4),
+                                                (4.0, 4.6, C + 1.8, -2.2), (4.0, 4.6, C + 2.4, 0.8))):
+            a, b = sorted((s * x0, s * x1))
+            p.caja(g, f"cortina{s}_{k}", (a, abajo, z0), (b, T - 0.6, z0 + 3.0), tex, dens=D)
+        a, b = sorted((s * 1.8, s * 2.9))                       # mechon suelto en el borde de la frente
+        p.caja(g, f"suelto{s}", (a, T - 2.2, -4.5), (b, T - 0.6, -4.15), tex, dens=D)
+
+
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), color(PIEL), dens=D, luz=False)
+    pelo(p, C, T)
     diadema(p, T)
     return p
