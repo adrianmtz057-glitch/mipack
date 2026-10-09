@@ -149,11 +149,11 @@ def figura(tono, punta=None):
 
 
 def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=1.2, dobla=22, grupo="Head/penacho",
-                 luz=True):
+                 luz=True, pintor=None):
     """Una figura del penacho en bloques cuadrados: un cuerpo ancho y una punta que se dobla 'dobla' grados mas
     (asi no queda recta). rot = (rx, 0, rz) desde la base."""
     x, y, z = base
-    pint = figura(tono, punta)
+    pint = pintor or figura(tono, punta)
     g = grupo
     l1, l2 = largo * 0.62, largo * 0.38
     rx, ry, rz = rot
@@ -280,18 +280,35 @@ def ropa(p, L):
     # por fuera), mas largas al medio (en V); a los costados solo el cinto
     p.caja(g, "cinto", (-4.35, L + 0.8, -2.35), (4.35, L + 1.9, 2.95), lambda t: hex_(NEGRO_ROPA), dens=D, luz=False)
     k = 0
-    for lado, zs, phi in ((-1, -2.35, 180.0), (1, 2.95, 0.0)):
-        for capa in range(3):
-            y = L + 1.7 - capa * 1.7
-            n = 7 - (capa == 0)
+    for lado, zs, phi in ((-1, -2.4, 180.0), (1, 3.0, 0.0)):
+        for capa in range(4):
+            y = L + 1.8 - capa * 1.4
+            n = 9
             for i in range(n):
-                x = -3.5 + 7.0 * (i + 0.5 * (capa % 2)) / (n - 1 + 0.5 * (capa % 2))
-                x = max(-3.6, min(3.6, x))
-                largo = 3.0 + 0.6 * capa + 3.4 * (1 - abs(x) / 3.6) ** 1.3 + 0.5 * (_azar(k + 900) - 0.5)
-                z = zs + lado * (0.25 + 0.3 * (2 - capa))
-                poner_figura(p, f"pluma_falda{k}", (x, y, z), largo, 1.3 + 0.5 * _azar(k + 950), (176, phi, 0),
-                             NEGRO, None, grosor=0.5, dobla=4, grupo="Body/falda", luz=False)
+                x = -3.6 + 7.2 * (i + 0.5 * (capa % 2)) / (n - 0.5)
+                largo = 3.0 + 0.5 * capa + 3.2 * (1 - min(1.0, abs(x) / 3.8)) ** 1.3 + 0.6 * (_azar(k + 900) - 0.5)
+                z = zs + lado * 0.2 * (3 - capa)                       # pegadas: la capa de arriba apenas por fuera
+                tono = CREMA_PLUMA if _azar(k + 920) < 0.35 else NEGRO
+                poner_figura(p, f"pluma_falda{k}", (x, y, z), largo, 1.9 + 0.7 * _azar(k + 950), (179, phi, 0),
+                             tono, None, grosor=0.8, dobla=2, grupo="Body/falda", luz=False, pintor=pluma_tex(tono))
                 k += 1
+
+
+def pluma_tex(tono):
+    """Textura de pluma: raquis claro al medio, barbas en diagonal un poco mas oscuras y el canto mas claro."""
+    def p(t):
+        v = (t.fila_abajo + 0.5) / t.th
+        u = (t.i + 0.5) / t.tw * 2 - 1
+        if t.cara in ("up", "down"):
+            return hex_(tono["s"])
+        if abs(u) < 0.12:
+            return hex_(tono["l"])
+        if abs(u) > 0.85:
+            return hex_(tono["l"])
+        if ((v * 7 + abs(u) * 2.5) % 1.0) < 0.22:
+            return hex_(tono["s"])
+        return hex_(tono["b"])
+    return p
 
 
 def construir():
