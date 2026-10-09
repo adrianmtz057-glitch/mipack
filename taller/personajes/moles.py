@@ -51,7 +51,9 @@ def ojo(u, v):
         return None
     arriba = 4.35 + 0.25 * (u - 1.3) / 3.2                               # la pestana sube hacia afuera
     if v > arriba or (u > 4.0 and v > 3.7):                              # pestana gruesa con la punta afuera
-        return hex_(PESTANA) if v < arriba + 0.65 and not (u < 1.6 and v > 4.6) else None
+        # el borde de arriba de la pestana en picos suaves: se ve tupida, como pelusa, sin pelos sueltos
+        pico = 0.3 * abs(((u * 2.2) % 1.0) - 0.5) * 2 + 0.2 * max(0.0, (u - 3.0) / 1.5)
+        return hex_(PESTANA) if v < arriba + 0.38 + pico and not (u < 1.6 and v > 4.6) else None
     if u < 1.55 or u > 4.0:
         return hex_(PESTANA) if v > 3.0 else None                       # el borde solo arriba, abajo abierto
     if u > 3.35:                                                         # lo blanco, en la esquina de afuera
@@ -84,8 +86,12 @@ def cara(t):
     c = ojo(abs(u), v) or boca(u, v)
     if c:
         return c
-    if _en(abs(u), v, 1.6, 3.3, 5.6, 5.85):                            # cejitas picaras (debajo del fleco)
-        return hex_(PESTANA)
+    au = abs(u)
+    if 1.5 <= au <= 3.5:                                               # cejas finas y arqueadas; la izquierda
+        x = (au - 2.5) / 1.0                                           # (derecha de quien mira) mas levantada
+        ceja = 5.2 + 0.22 * (1 - x * x) + (0.18 if u > 0 else 0.0)
+        if abs(v - ceja) < 0.09:
+            return hex_(PESTANA)
     if _en(abs(u), v, 2.5, 4.9, 1.2, 2.5):                             # rubor
         return hex_(RUBOR_FUERTE if _en(abs(u), v, 3.0, 4.4, 1.5, 2.2) else RUBOR)
     if _en(u, v, -0.25, 0.25, 2.45, 2.7) or _en(u, v, -0.12, 0.12, 2.3, 2.45):   # naricita
