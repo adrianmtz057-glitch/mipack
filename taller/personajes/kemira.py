@@ -29,11 +29,11 @@ def tejido(t):
 
 
 def diadema(p, T, alto=3.0, grosor=0.4):
-    """Diadema alta sobre la cabeza, vista desde arriba es un trapecio: adelante, de punta a punta de la frente;
+    """Diadema alta encima de la cabeza (sujeta del pelo, no en la frente), vista desde arriba es un trapecio: adelante, de punta a punta de la frente;
     los costados se cierran hacia atras y termina recta antes de la nuca. Adelante cuelgan flecos de cuentas."""
     g = "Head/diadema"
-    y0, y1 = T - alto + 0.8, T + 0.8
-    fx, fz = 4.25, -4.25                                         # esquinas de adelante
+    y0, y1 = T - 0.4, T - 0.4 + alto                            # arriba de la cabeza, sujeta del pelo
+    fx, fz = 4.1, -3.9                                           # esquinas de adelante: sobresale apenas
     bx, bz = 1.8, 1.5                                            # esquinas de atras
     p.caja(g, "frente", (-fx - 0.15, y0, fz - grosor), (fx + 0.15, y1, fz), tejido, dens=D)
     for s in (1, -1):
