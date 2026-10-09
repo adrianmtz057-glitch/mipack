@@ -215,9 +215,46 @@ def penacho(p, T, C):
                      (90 - elev, phi, 0), tono, punta, dobla=12 + 16 * _azar(k + 850))      # la punta cae
 
 
+def piel(t):
+    return hex_(PIEL)
+
+
+def cuerpo(p, C, L):
+    """La base del cuerpo, sin ropa: hombros y torax anchos, busto, cintura marcada, cadera ancha con gluteos,
+    muslos gruesos que se afinan a la rodilla, pantorrillas con volumen y brazos de hombro redondo. Piel lisa."""
+    g = "Body/cuerpo"
+    caja = lambda grupo, n, a, b: p.caja(grupo, n, a, b, piel, dens=D, luz=False)
+    caja(g, "torax", (-3.8, 22.6, -2.0), (3.8, C, 2.0))
+    caja(g, "busto", (-3.4, 23.0, -2.85), (3.4, 25.8, -2.0))
+    caja(g, "cintura", (-2.9, 19.4, -1.7), (2.9, 22.6, 1.7))
+    caja(g, "cadera_alta", (-3.6, 18.2, -2.0), (3.6, 19.4, 2.0))
+    caja(g, "cadera", (-4.2, L - 0.6, -2.2), (4.2, 18.2, 2.2))
+    caja(g, "gluteos", (-3.9, L - 1.2, 2.0), (3.9, 17.6, 2.85))
+    for s in (1, -1):
+        hueso = "RightArm" if s > 0 else "LeftArm"
+        gb = f"{hueso}/brazo"
+        x1, x2 = sorted((s * 3.8, s * 6.4))
+        caja(gb, "hombro", (x1, C - 2.6, -1.45), (x2 + s * 0.15, C + 0.2, 1.45))
+        caja(gb, "brazo", (x1, 20.4, -1.3), (x2, C - 2.6, 1.3))
+        f1, f2 = sorted((s * 3.95, s * 6.25))
+        caja(gb, "antebrazo", (f1, L, -1.15), (f2, 20.4, 1.15))
+        caja(gb, "mano", (f1, L - 2.4, -1.05), (f2, L, 1.05))
+        hueso = "RightLeg" if s > 0 else "LeftLeg"
+        gl = f"{hueso}/pierna"
+        m1, m2 = sorted((s * 0.0, s * 4.2))
+        caja(gl, "muslo", (m1, 9.6, -2.2), (m2, L, 2.2))
+        r1, r2 = sorted((s * 0.3, s * 3.7))
+        caja(gl, "rodilla", (r1, 7.4, -1.85), (r2, 9.6, 1.85))
+        c1, c2 = sorted((s * 0.4, s * 3.6))
+        caja(gl, "pantorrilla", (c1, 1.2, -1.6), (c2, 7.4, 1.7))
+        caja(gl, "gemelo", (c1 + s * 0.2 if s > 0 else c1 + 0.2, 3.6, 1.7), (c2 - 0.2 if s > 0 else c2 - 0.2, 6.6, 2.3))
+        caja(gl, "pie", (c1, 0.0, -2.6), (c2, 1.2, 1.7))
+
+
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
+    cuerpo(p, C, p.lh)
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
     pelo(p, C, T)
     penacho(p, T, C)
