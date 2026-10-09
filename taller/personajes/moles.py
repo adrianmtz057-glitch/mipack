@@ -239,6 +239,46 @@ def pestanas(p, C):
                    dens=D_CARA, luz=False)
 
 
+NEGRO = {"s": "#1E181E", "b": "#2C242B", "l": "#3C3239"}
+ROJO, CREMA_DIJE = "#C8343A", "#FBF1DE"
+
+
+def sudadera(t):
+    """Negra de bloques; adelante, la etiqueta roja con su cuadrito blanco."""
+    if t.cara == "north" and _en(t.x, t.y, -0.75, 0.75, 7.6, 9.6):
+        return hex_("#F4EEE8" if _en(t.x, t.y, -0.3, 0.3, 7.9, 8.8) else ROJO)
+    return voxel(NEGRO, claro=0.05)(t)
+
+
+def calaverita(t):
+    if t.cara == "north" and 4.15 < t.y < 4.5 and any(abs(t.x - c) < 0.17 for c in (-3.95, -3.35)):
+        return hex_(PESTANA)
+    return hex_(CREMA_DIJE)
+
+
+def ropa(p, C, L):
+    """La ropa, en sus propios grupos (aparte del pelo, para prenderla y apagarla en Figura): sudadera negra enorme
+    con capucha atras, cordones rojos de punta blanca, etiqueta, dije de calaverita y mangas anchas."""
+    g = "Body/ropa"
+    p.caja(g, "sudadera", (-3.4, L - 1.6, -2.1), (3.4, C + 0.1, 2.1), sudadera, dens=D)
+    p.caja(g, "capucha", (-2.9, C - 2.0, 2.1), (2.9, C + 0.4, 3.2), voxel(NEGRO, claro=0.1), dens=D)   # bajo la melena
+    p.caja(g, "cuello", (-2.2, C - 0.3, -2.25), (2.2, C + 0.4, 2.1), voxel(NEGRO, claro=0.12), dens=D)
+    for s, largo in ((1, 3.4), (-1, 2.8)):
+        x1, x2 = sorted((s * 1.0, s * 1.3))
+        p.caja(g, f"cordon{s}", (x1, C - largo, -2.3), (x2, C - 0.1, -2.1), color(ROJO), dens=D)
+        p.caja(g, f"punta_cordon{s}", (x1 - 0.05, C - largo - 0.5, -2.35), (x2 + 0.05, C - largo, -2.1),
+               color("#F4EEE8"), dens=D)
+    # dije de calaverita colgado de una tira roja, a su derecha de la cadera
+    p.caja(g, "tira", (-3.75, 4.6, -2.25), (-3.5, L + 0.6, -2.1), color(ROJO), dens=D)
+    p.caja(g, "calaverita", (-4.3, 3.2, -2.6), (-3.0, 4.7, -2.2), calaverita, dens=D)
+    for s in (1, -1):
+        hueso = "RightArm" if s > 0 else "LeftArm"
+        x1, x2 = sorted((s * 2.8, s * 5.2))
+        p.caja(f"{hueso}/ropa", "manga", (x1, L - 0.2, -1.3), (x2, C + 0.1, 1.3), voxel(NEGRO, claro=0.05), dens=D)
+        p.caja(f"{hueso}/ropa", "puno", (x1 - s * 0.1, L - 0.6, -1.4), (x2 + s * 0.1, L - 0.2, 1.4),
+               voxel(NEGRO, claro=0.15), dens=D)
+
+
 def construir():
     p = Personaje("moles", altura=21, cabeza=CABEZA_ALTO, torso=(5.6, 6, 3.2), brazo=(2.0, 2.0), pierna=(2.4, 2.4))
     C, T, L = p.cuello, p.tope, p.lh                           # 11, 21, 5
@@ -260,4 +300,5 @@ def construir():
         p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L, 1.2), piel, dens=D, luz=False)
         b1, b2 = sorted((s * 0.0, s * 2.8))
         p.caja(f"{hueso}/pata", "pata", (b1, 0.0, -1.8), (b2, 1.4, 1.4), pata, dens=D, luz=False)
+    ropa(p, C, L)
     return p
