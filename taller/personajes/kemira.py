@@ -155,16 +155,16 @@ def penacho(p, T, C):
     """El pelo de arriba como un penacho de figuras 3D cuadradas que se doblan, cortas y desparejas: salen
     adentro de la diadema (sin pisarla), casi paradas y apenas hacia atras, cada una con su lugar, largo y giro.
     Desde el borde de atras de la diadema bajan otras figuras hasta la nuca."""
-    n = 30
+    n = 48
     for k in range(n):
         f = (k + 0.5) / n                                          # de adelante hacia atras, mezclado abajo
-        z = -2.0 + 5.6 * (0.55 * f + 0.45 * _azar(k))
+        z = FZ + 0.6 + 7.0 * (0.55 * f + 0.45 * _azar(k))          # desde el frente de la diadema
         t = (z - FZ) / (BZ - FZ)
         mitad = FX + (BX - FX) * t - 0.45
-        ancho = 2.0 + 0.9 * _azar(k + 50)
+        ancho = 1.3 + 1.9 * _azar(k + 50)                           # tamanos muy distintos
         x = (2 * ((k * 0.618 + 0.3 * _azar(k + 100)) % 1.0) - 1) * max(0.0, mitad - ancho / 2)   # repartidas a lo ancho
-        largo = 3.8 + 3.0 * _azar(k + 150) + 1.2 * (z + 2.0) / 5.6
-        inclina = 4 + 16 * (z + 2.0) / 5.6 + 10 * (_azar(k + 200) - 0.5)
+        largo = 2.6 + 5.0 * _azar(k + 150) ** 1.5 + 1.2 * (z - FZ) / 8.0
+        inclina = 2 + 16 * (z - FZ) / 8.0 + 10 * (_azar(k + 200) - 0.5)
         abre = -x * 5 + 16 * (_azar(k + 250) - 0.5)
         crema = _azar(k + 300) < 0.2
         tono = CREMA_PLUMA if crema else NEGRO
