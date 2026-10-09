@@ -251,10 +251,34 @@ def cuerpo(p, C, L):
         caja(gl, "pie", (c1, 0.0, -2.6), (c2, 1.2, 1.7))
 
 
+NEGRO_ROPA = "#262325"
+
+
+def falda_v(y_punta, y_lado):
+    """Falda negra con el borde de abajo en V: larga en el medio (y_punta) y corta a los costados (y_lado)."""
+    def p(t):
+        if t.cara in ("up", "down"):
+            return hex_(NEGRO_ROPA)
+        u = t.x if abs(t.n[2]) >= abs(t.n[0]) else 4.4
+        borde = y_punta + (y_lado - y_punta) * min(1.0, abs(u) / 4.4)
+        return TRANSPARENTE if t.y < borde else hex_(NEGRO_ROPA)
+    return p
+
+
+def ropa(p, L):
+    """Solo un top negro sobre el busto y una falda negra en V hacia abajo."""
+    g = "Body/ropa"
+    negro = lambda t: hex_(NEGRO_ROPA)
+    p.caja(g, "top", (-3.9, 22.4, -2.1), (3.9, 26.0, 2.1), negro, dens=D, luz=False)
+    p.caja(g, "top_busto", (-3.5, 22.8, -2.95), (3.5, 26.0, -2.1), negro, dens=D, luz=False)
+    p.caja(g, "falda", (-4.35, 7.0, -2.35), (4.35, L + 1.6, 3.0), falda_v(7.0, 13.2), dens=D, luz=False)
+
+
 def construir():
     p = Personaje("kemira", altura=36, cabeza=8, torso=(7.4, 12, 4.0), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
     C, T = p.cuello, p.tope                                # 28, 36
     cuerpo(p, C, p.lh)
+    ropa(p, p.lh)
     p.caja("Head/cabeza", "cabeza", (-4, C, -4), (4, T, 4), cabeza, dens=8, luz=False)
     pelo(p, C, T)
     penacho(p, T, C)
