@@ -262,7 +262,7 @@ def ropa(p, C, L):
     g = "Body/ropa"
     p.caja(g, "sudadera", (-3.4, L - 1.6, -2.1), (3.4, C + 0.1, 2.1), sudadera, dens=D)
     p.caja(g, "capucha", (-2.9, C - 2.0, 2.1), (2.9, C + 0.4, 3.2), voxel(NEGRO, claro=0.1), dens=D)   # bajo la melena
-    p.caja(g, "cuello", (-2.2, C - 0.3, -2.25), (2.2, C + 0.4, 2.1), voxel(NEGRO, claro=0.12), dens=D)
+    p.caja(g, "cuello", (-3.6, C - 0.55, -2.35), (3.6, C + 0.1, 2.35), voxel(NEGRO, claro=0.15), dens=D)   # cuellito
     for s, largo in ((1, 3.4), (-1, 2.8)):
         x1, x2 = sorted((s * 1.0, s * 1.3))
         p.caja(g, f"cordon{s}", (x1, C - largo, -2.3), (x2, C - 0.1, -2.1), color(ROJO), dens=D)
@@ -271,12 +271,22 @@ def ropa(p, C, L):
     # dije de calaverita colgado de una tira roja, a su derecha de la cadera
     p.caja(g, "tira", (-3.75, 4.6, -2.25), (-3.5, L + 0.6, -2.1), color(ROJO), dens=D)
     p.caja(g, "calaverita", (-4.3, 3.2, -2.6), (-3.0, 4.7, -2.2), calaverita, dens=D)
+    # mangas con caida: hombro caido y angosto, el globo de tela que se junta abajo y se ensancha, y el puno de
+    # elastico apretado contra la mano
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        x1, x2 = sorted((s * 2.8, s * 5.2))
-        p.caja(f"{hueso}/ropa", "manga", (x1, L - 0.2, -1.3), (x2, C + 0.1, 1.3), voxel(NEGRO, claro=0.05), dens=D)
-        p.caja(f"{hueso}/ropa", "puno", (x1 - s * 0.1, L - 0.6, -1.4), (x2 + s * 0.1, L - 0.2, 1.4),
-               voxel(NEGRO, claro=0.15), dens=D)
+        partes = (("hombro", 2.8, 5.0, C - 2.2, C + 0.1, 1.25, voxel(NEGRO, claro=0.1)),
+                  ("globo", 2.65, 5.55, L + 0.45, C - 1.9, 1.6, voxel(NEGRO, claro=0.02)),
+                  ("puno", 3.0, 4.95, L - 0.5, L + 0.5, 1.1, puno))
+        for nombre, x0, x1, y0, y1, z, pint in partes:
+            a, b = sorted((s * x0, s * x1))
+            p.caja(f"{hueso}/ropa", nombre, (a, y0, -z), (b, y1, z), pint, dens=D)
+
+
+def puno(t):
+    """Puno de elastico: rayitas verticales."""
+    u = t.x if t.cara in ("north", "south") else t.z
+    return hex_(NEGRO["s"] if (u * 4) % 1.0 < 0.3 else NEGRO["b"])
 
 
 def construir():
@@ -294,7 +304,7 @@ def construir():
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
         x1, x2 = sorted((s * 2.8, s * 4.8))
-        p.caja(f"{hueso}/brazo", "brazo", (x1, L - 0.8, -1.0), (x2, C, 1.0), piel, dens=D, luz=False)
+        p.caja(f"{hueso}/brazo", "brazo", (x1, L - 1.9, -1.0), (x2, C, 1.0), piel, dens=D, luz=False)
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         x1, x2 = sorted((s * 0.1, s * 2.5))
         p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L, 1.2), piel, dens=D, luz=False)
