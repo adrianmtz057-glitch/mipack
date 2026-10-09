@@ -12,7 +12,7 @@ Ejes: frente = -Z, derecha del personaje = +X, pies en y = 0. Unidades en px (16
 Huesos: Head, Body, RightArm, LeftArm, RightLeg, LeftLeg (palabras clave de Figura).
 Grupos: "Hueso/subgrupo" (ej. "Head/pelo"), el subgrupo es solo para ordenar.
 
-Ejemplo minimo (ver taller/personajes/_ejemplo.py):
+Ejemplo minimo (personajes completos en taller/personajes/, ej. revolthir.py):
 
     from taller.kit import Personaje, sprite, dibujo, degradado
     p = Personaje("meron")                       # player de 32 px

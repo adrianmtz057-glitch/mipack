@@ -4,10 +4,10 @@ puente.py -- Crea personajes 3D estilo Minecraft con un prompt.
     Groq (disenador)  ->  ficha JSON  ->  motor Python (cubos + textura pintada)  ->  .bbmodel
 
 Uso:
-    python puente.py "crea a meron"                 # personaje del lore (no gasta Groq)
-    python puente.py "meron con armadura de oro"    # variante: Groq modifica la ficha de Meron
+    python puente.py "crea a meron"                 # personaje hecho a mano (no gasta Groq)
+    python puente.py "meron con armadura de oro"    # variante: Groq la disena con el motor generico
     python puente.py "un herrero enano de Thza"     # personaje nuevo: Groq escribe la ficha
-    python puente.py --todos                        # genera los personajes de lore/personajes
+    python puente.py --todos                        # genera todos: los hechos a mano y las fichas de Groq
     python puente.py --ficha mi_ficha.json          # genera desde una ficha escrita a mano
 
 Salida (carpeta 'salida'):
@@ -50,7 +50,13 @@ def _norm(t):
     return unicodedata.normalize("NFKD", t.lower()).encode("ascii", "ignore").decode()
 
 
+def a_mano():
+    """Personajes modelados a mano (taller/personajes/<id>.py): pibble, revolthir, correctar, meron, anteros..."""
+    return personajes.disponibles()
+
+
 def lore_personajes():
+    """Fichas JSON que escribio Groq para personajes nuevos (lore/personajes/<id>.json)."""
     out = {}
     if os.path.isdir(PERSONAJES):
         for n in sorted(os.listdir(PERSONAJES)):
@@ -62,7 +68,7 @@ def lore_personajes():
 def leer_lore():
     ruta = os.path.join(LORE, "mundo.md")
     texto = open(ruta, encoding="utf-8").read() if os.path.exists(ruta) else ""
-    resumen = []
+    resumen = [f"- {clave.capitalize()} (modelado a mano)" for clave in a_mano()]
     for clave, ruta_p in lore_personajes().items():
         try:
             d = json.load(open(ruta_p, encoding="utf-8"))
@@ -75,10 +81,10 @@ def leer_lore():
 
 
 def detectar(prompt):
-    """Devuelve (clave del personaje del lore o None, palabras extra del pedido)."""
+    """Devuelve (clave de un personaje que ya existe o None, palabras extra del pedido)."""
     palabras = [w.strip(".,;:!?¡¿\"'") for w in _norm(prompt).split()]
     palabras = [w for w in palabras if w]
-    claves = lore_personajes()
+    claves = set(a_mano()) | set(lore_personajes())
     encontrado = next((w for w in palabras if w in claves), None)
     extra = [w for w in palabras if w not in PALABRAS_VACIAS and w != encontrado]
     return encontrado, extra
@@ -143,15 +149,19 @@ def generar(ficha_cruda, guardar_ficha=None, a_mano=True):
 def main():
     ap = argparse.ArgumentParser(description="Crea personajes 3D estilo Minecraft con un prompt.")
     ap.add_argument("pedido", nargs="*", help="lo que queres crear")
-    ap.add_argument("--todos", action="store_true", help="genera todos los personajes de lore/personajes")
+    ap.add_argument("--todos", action="store_true", help="genera todos los personajes (a mano y fichas de Groq)")
     ap.add_argument("--ficha", help="genera desde un archivo de ficha JSON")
     ap.add_argument("--ia", action="store_true", help="usa Groq aunque el personaje ya exista en el lore")
     args = ap.parse_args()
 
     if args.todos:
-        for clave, ruta in lore_personajes().items():
+        for clave in a_mano():
             print(f"\n{clave}:")
-            generar(json.load(open(ruta, encoding="utf-8")))
+            generar({"nombre": clave.capitalize()})
+        for clave, ruta in lore_personajes().items():
+            if clave not in a_mano():
+                print(f"\n{clave}:")
+                generar(json.load(open(ruta, encoding="utf-8")))
         return
     if args.ficha:
         generar(json.load(open(args.ficha, encoding="utf-8")))
@@ -161,22 +171,25 @@ def main():
     if not pedido:
         return
     clave, extra = detectar(pedido)
-    base = json.load(open(lore_personajes()[clave], encoding="utf-8")) if clave else None
+    fichas_lore = lore_personajes()
+    base = json.load(open(fichas_lore[clave], encoding="utf-8")) if clave in fichas_lore else None
 
-    if base and not extra and not args.ia:
-        print(f"\nPersonaje del lore: {base['nombre']} (sin Groq; usa --ia para que lo rediseñe)")
-        generar(base)
+    if clave and not extra and not args.ia:
+        nombre = base["nombre"] if base else clave.capitalize()
+        print(f"\nPersonaje: {nombre} (sin Groq; usa --ia para que lo rediseñe)")
+        generar(base or {"nombre": nombre})
         return
 
     key = ia.obtener_clave(AQUI)
     if not key:
         sys.exit("Falta la clave de Groq: define GROQ_API_KEY o crea groq_key.txt al lado de puente.py.")
-    print("\nDiseñando con Groq" + (f" (variante de {base['nombre']})" if base else "") + "...")
+    print("\nDiseñando con Groq" + (f" (variante de {clave.capitalize()})" if clave else "") + "...")
     crudo = ia.disenar(pedido, key, leer_lore(), base)
-    if base:
+    if clave:
         destino = os.path.join(SALIDA, f"{clave}_variante.json")
         os.makedirs(SALIDA, exist_ok=True)
     else:
+        os.makedirs(PERSONAJES, exist_ok=True)
         destino = os.path.join(PERSONAJES, fichas.slug(crudo.get("nombre") or pedido) + ".json")
         if os.path.exists(destino):
             destino = destino[:-5] + "_nuevo.json"

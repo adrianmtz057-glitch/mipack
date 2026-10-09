@@ -10,7 +10,8 @@ Low-poly con paneles usados con moderacion, a la escala de la capucha y pachonci
   - estola azul en 3D sobre la panza, con filetes dorados y runa de rombos, que termina en punta
   - mangas crema con puno negro que nacen de adentro del hombro (no pegadas por fuera)
   - botas facetadas negras con banda y puntera doradas
-  - cola en gancho, gruesa, azul con runas doradas
+  - cola gordita y redonda en gancho: tubo de 8 lados con la punta redondeada, azul con anillos dorados y la
+    punta negra
   - joyas en 3D bien agarradas: aro con gema prendido a la capucha con un broche, y rombos apilados
 """
 
@@ -51,14 +52,66 @@ def frente_tunica(y):
 
 GIRO_COLA = (0, -32, 0)
 BASE_COLA = (2.4, 3.6, 3.4)
-PERFIL_COLA = ((0, -0.5), (4.5, -2.2), (9, -1.0), (12.6, 2.6), (14, 7.5), (13.2, 13.2),      # borde de afuera
-               (11.0, 8.0), (9.6, 4.6), (7.2, 2.7), (3.8, 2.6), (0, 4.0))                    # borde de adentro
+# linea del medio de la cola en su plano (u hacia afuera, v hacia arriba) y su radio en cada punto: gorda en la base
+CENTRO_COLA = ((0.0, 1.8), (4.0, 0.2), (8.0, 0.9), (11.0, 3.6), (12.3, 7.4), (12.5, 10.6))
+RADIO_COLA = (2.1, 2.05, 1.95, 1.8, 1.6, 1.35)
+LADOS_COLA = 8
+ANILLOS_COLA = ((3.2, 3.9), (7.4, 8.1), (11.4, 12.1))     # anillos dorados (tramos del largo de la cola)
+PUNTA_COLA = 15.2                   # desde este largo, la punta va negra
+
+
+def _catmull(p0, p1, p2, p3, s):
+    return tuple(0.5 * (2 * b + (c - a) * s + (2 * a - 5 * b + 4 * c - d) * s * s + (3 * b - a - 3 * c + d) * s ** 3)
+                 for a, b, c, d in zip(p0, p1, p2, p3))
+
+
+def camino_cola(pasos=3):
+    """Puntos (u, v, radio) de la linea del medio de la cola: una curva suave (Catmull-Rom) por CENTRO_COLA."""
+    pts = [(u, v, r) for (u, v), r in zip(CENTRO_COLA, RADIO_COLA)]
+    ext = [tuple(2 * a - b for a, b in zip(pts[0], pts[1]))] + pts
+    ext.append(tuple(2 * a - b for a, b in zip(pts[-1], pts[-2])))
+    camino = [_catmull(ext[k], ext[k + 1], ext[k + 2], ext[k + 3], i / pasos)
+              for k in range(len(pts) - 1) for i in range(pasos)]
+    return camino + [pts[-1]]
+
+
+def _largos(camino):
+    out, total = [0.0], 0.0
+    for a, b in zip(camino, camino[1:]):
+        total += math.hypot(b[0] - a[0], b[1] - a[1])
+        out.append(total)
+    return out
+
+
+FINO_COLA = camino_cola(12)
+LARGO_COLA = _largos(FINO_COLA)
 
 
 def cola():
-    """Gancho grueso: perfil en media luna extruido, sale de atras a la derecha y sube hacia afuera."""
-    m = geo.extruir(list(PERFIL_COLA), -0.9, 0.9)
-    m = geo.girar(m, GIRO_COLA)
+    """Cola gordita y redonda: un tubo de 8 lados que sigue una curva suave en gancho (sale de atras a la derecha y
+    sube hacia afuera), gruesa en la base, apenas mas fina arriba y con la punta redondeada."""
+    camino = camino_cola()
+    anillos = []
+
+    def anillo(c, t, r):
+        n = (t[1], -t[0])                                      # normal en el plano; la otra es +Z (n x t = +Z)
+        return [(c[0] + r * n[0] * math.cos(a), c[1] + r * n[1] * math.cos(a), -r * math.sin(a))
+                for a in (2 * math.pi * k / LADOS_COLA + math.pi / LADOS_COLA for k in range(LADOS_COLA))]
+    for k, (u, v, r) in enumerate(camino):
+        a, b = camino[max(0, k - 1)], camino[min(len(camino) - 1, k + 1)]
+        tu, tv = b[0] - a[0], b[1] - a[1]
+        largo = math.hypot(tu, tv)
+        anillos.append(anillo((u, v), (tu / largo, tv / largo), r))
+    # punta redondeada: dos anillos que se cierran y el remate, siguiendo la direccion del final
+    (u0, v0, r0), (u1, v1, _) = camino[-2], camino[-1]
+    tu, tv = u1 - u0, v1 - v0
+    largo = math.hypot(tu, tv)
+    tu, tv = tu / largo, tv / largo
+    for d, k in ((0.55, 0.8), (1.0, 0.45)):
+        anillos.append(anillo((u1 + tu * d * r0, v1 + tv * d * r0), (tu, tv), r0 * k))
+    tubo = geo.loft_puntos(anillos, tapa_abajo=True, tapa_arriba=False)
+    remate = geo.piramide(anillos[-1], (u1 + tu * 1.2 * r0, v1 + tv * 1.2 * r0, 0.0), tapa=False)
+    m = geo.girar(geo.unir(tubo, remate), GIRO_COLA)
     return geo.mover(m, BASE_COLA)
 
 
@@ -136,17 +189,18 @@ def bota(t):
 
 
 def cola_pintor(t):
-    u, v, w = geo.desgirar((t.x, t.y, t.z), GIRO_COLA, BASE_COLA)
-    if abs(w) < 0.85:                                                      # cantos
+    """Azul con anillos dorados parejos a lo largo de la cola y la punta negra. El largo se mide sobre la linea del
+    medio (el punto mas cercano), asi los anillos dan la vuelta derechos al tubo."""
+    u, v, _ = geo.desgirar((t.x, t.y, t.z), GIRO_COLA, BASE_COLA)
+    k = min(range(len(FINO_COLA)), key=lambda i: (FINO_COLA[i][0] - u) ** 2 + (FINO_COLA[i][1] - v) ** 2)
+    largo = LARGO_COLA[k]
+    if k == len(FINO_COLA) - 1:                                            # pasando el final: la punta redonda
+        largo += math.hypot(u - FINO_COLA[k][0], v - FINO_COLA[k][1])
+    if largo > PUNTA_COLA:
         return hex_(NEGRO["b"])
-    trazos = (((2.0, -0.4), (3.2, 2.0)), ((5.8, -0.9), (7.0, 1.8)), ((2.6, 0.9), (6.4, 0.3)),
-              ((10.0, 1.6), (12.0, 3.0)), ((11.4, 4.2), (12.2, 9.6)), ((10.6, 6.8), (12.8, 6.4)))
-    for (ax, ay), (bx, by) in trazos:
-        dx, dy = bx - ax, by - ay
-        k = max(0.0, min(1.0, ((u - ax) * dx + (v - ay) * dy) / (dx * dx + dy * dy)))
-        if math.hypot(u - ax - k * dx, v - ay - k * dy) < 0.42:
-            return hex_(ORO["b"])
-    return hex_(AZUL["b"] if v < 6 else AZUL["s"])
+    if any(a <= largo <= b for a, b in ANILLOS_COLA):
+        return hex_(ORO["b"])
+    return hex_(AZUL["b"] if largo < 9 else AZUL["s"])
 
 
 def oro_pintor(t):

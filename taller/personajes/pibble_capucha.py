@@ -1,5 +1,5 @@
 """
-Capucha de Pibble sola (para trabajarla aparte antes de ponerla en el personaje).
+Capucha de Pibble: pieza del personaje, la pone pibble.py con poner(p).
 
 Piezas low-poly independientes, con las mismas reglas:
   - ovalo: un ovalo acostado (mas ancho que alto), armado panel a panel: paneles chicos donde hay curva
@@ -15,7 +15,7 @@ import math
 
 from .. import malla as geo
 from ..malla import Armador
-from ..kit import Personaje, tonos
+from ..kit import tonos
 from ..textura import hex_a_rgba as hex_
 
 CREMA = tonos("#DCD3C3")
@@ -143,9 +143,3 @@ def poner(p):
     h = CABEZA / 2
     p.caja("Head/cabeza", "cabeza", (CX - h, CY - h, CABEZA_Z - h), (CX + h, CY + h, CABEZA_Z + h), cabeza, dens=2)
     p.malla_par("Head/capucha", "oreja", oreja(), cono_negro)
-
-
-def construir():
-    p = Personaje("pibble_capucha", altura=27, cabeza=10, torso=(8, 11, 5), brazo=(4, 5))
-    poner(p)
-    return p

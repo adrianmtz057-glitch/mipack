@@ -11,7 +11,7 @@ Pasos por recorte:
 Nada de ruido: los colores salen solo de la rampa y la forma sale de la referencia.
 
 Uso (necesita PIL, numpy y pyxelate; pyxelate se puede usar desde el codigo fuente con PYTHONPATH):
-    PYTHONPATH=ruta/a/pyxelate python -m taller.pixelar correctar
+    PYTHONPATH=ruta/a/pyxelate python -m taller.pixelar meron
 """
 
 import os

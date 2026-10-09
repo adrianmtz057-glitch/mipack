@@ -53,9 +53,10 @@ def color(hexa):
     return lambda t: c
 
 
-def voxel(rampa, claro=0.0):
+def voxel(rampa, claro=0.0, alto=None):
     """Textura de bloques de 1 px: cada bloque toma un tono de la rampa (sombra, base, medio, luz) segun la altura
-    dentro de la pieza (mas claro arriba), unas ondas suaves y una matriz de Bayer. Siempre el mismo patron."""
+    dentro de la pieza (mas claro arriba), unas ondas suaves y una matriz de Bayer. Siempre el mismo patron.
+    alto=(y0, y1): la altura se mide en ese tramo y no en la pieza, para que dos piezas pegadas se vean como una."""
     s, b, l = hex_(rampa["s"]), hex_(rampa["b"]), hex_(rampa["l"])
     medio = tuple((x + y) // 2 for x, y in zip(b, l))
     tonos4 = (s, b, medio, l)
@@ -67,8 +68,8 @@ def voxel(rampa, claro=0.0):
         else:
             u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
             v = t.y
-            alto = max(1e-6, t.t[1] - t.f[1])
-            r = (t.y - t.f[1]) / alto
+            y0, y1 = alto or (t.f[1], t.t[1])
+            r = (t.y - y0) / max(1e-6, y1 - y0)
         cu, cv = math.floor(u + 100), math.floor(v + 100)
         f = 0.5 + 0.2 * math.sin(cu * 0.9 + cv * 0.5) * math.cos(cv * 0.8 - cu * 0.35) + 0.28 * (r - 0.5) + claro
         f += ((BAYER[cv % 4][cu % 4] + 0.5) / 16 - 0.5) * 0.4
@@ -109,7 +110,7 @@ def cara(t):
     return CABEZA_TEX(t)
 
 
-CABEZA_TEX = voxel(NARANJA, claro=0.14)                 # la cabeza mas clara y calida, sin manchas oscuras
+CABEZA_TEX = voxel(NARANJA, claro=0.14, alto=(CABEZA_Y, TOPE))   # mas clara y calida; la placa y el cubo, iguales
 
 
 def cabeza(t):
@@ -245,9 +246,10 @@ def construir():
     assert (C, T, L) == (CABEZA_Y, TOPE, PIERNAS)
 
     # ================================================================ CABEZA-CUBO con OREJITAS
-    p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D)
-    p.caja("Head/cabeza", "placa", (-5, C, -5.02 - HUNDIDO), (5, CORONA_Y[0] + 0.1, -5.02), placa, dens=D)
-    z = -5.02 - HUNDIDO
+    # el cubo empieza HUNDIDO mas atras y la placa queda al ras del frente: no se despega ni se ve una lamina aparte
+    p.caja("Head/cabeza", "cabeza", (-5, C, -5 + HUNDIDO), (5, T, 5), cabeza, dens=D)
+    p.caja("Head/cabeza", "placa", (-5, C, -5), (5, CORONA_Y[0] + 0.1, -5 + HUNDIDO - 0.02), placa, dens=D)
+    z = -5.0
     for k, (u0, u1, v0, v1) in enumerate(BIGOTE):               # en bloques, negro parejo
         p.caja("Head/cabeza", f"bigote{k}", (-u1, C + v0, z - 0.35), (-u0, C + v1, z), color(PUPILA), dens=D,
                luz=False)
