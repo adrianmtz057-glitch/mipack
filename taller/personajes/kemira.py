@@ -138,15 +138,15 @@ def poner_figura(p, nombre, base, largo, ancho, rot, tono, punta=None, grosor=0.
 
 def penacho(p, T):
     """El pelo de arriba como un penacho de figuras 3D: nace en la mitad de la frente (adentro de la diadema) y va
-    hacia atras en filas; adelante figuras cortas y paradas, atras mas largas, mas abiertas hacia los costados y
-    vencidas hacia atras hasta caer por la espalda. Casi todas negras, algunas crema."""
+    hacia atras en filas, todas peinadas hacia atras; las de adelante mas cortas, las de atras mas largas, un
+    poco abiertas a los costados y vencidas hasta caer por la espalda. Casi todas negras, algunas crema."""
     filas = 6
     for r in range(filas):
         f = r / (filas - 1)                                        # 0 adelante, 1 atras
         z = -2.6 + 6.4 * f
         mitad = 1.6 + 0.9 * f * 0 + (4.1 - 1.9 * f) * 0.55         # medio ancho del trapecio a esa altura, adentro
         n = 3 + r
-        abre = 18 + 70 * f
+        abre = 12 + 38 * f
         for k in range(n):
             a = -abre + 2 * abre * k / max(1, n - 1) if n > 1 else 0.0
             x = mitad * (a / abre if abre else 0) * 0.8
@@ -154,7 +154,7 @@ def penacho(p, T):
             crema = (r >= 2 and (k + r) % 5 == 0) or (r == filas - 1 and k == n // 2)
             tono = CREMA_PLUMA if crema else NEGRO
             punta = None if crema or (k + r) % 3 else CREMA_PLUMA["s"]
-            poner_figura(p, f"figura{r}_{k}", (x, T + 0.5, z), largo, 2.4 + 0.8 * f, (-8 - 45 * f, 0, -a),
+            poner_figura(p, f"figura{r}_{k}", (x, T + 0.5, z), largo, 2.4 + 0.8 * f, (30 + 50 * f, 0, -a),
                          tono, punta)
 
 
