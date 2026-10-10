@@ -114,7 +114,7 @@ class _Caja:
         lo, hi, o = tuple(c.desde), tuple(c.hasta), tuple(c.origen)
         R = rot_matriz(*c.rot) if c.rot else None
         self.lo, self.hi, self.R, self.o, self.dueno, self.opaco = lo, hi, R, o, id(c), opaco
-        self.hueso = c.hueso.split("/")[0]
+        self.hueso = c.hueso
         self.caras = {}
         for cara in c.caras:
             tl, tr, bl = esquinas(lo, hi, cara)
@@ -261,12 +261,19 @@ class Luz:
                 uv = uvs[id(m)][k]
                 for j in range(1, len(vs) - 1):
                     t = _Tri(vs[0], vs[j], vs[j + 1], (uv[0], uv[j], uv[j + 1]), id(m), opaco)
-                    t.hueso = m.hueso.split("/")[0]
+                    t.hueso = m.hueso
                     self.piezas.append(t)
         # de que hueso es cada pieza: solo se hacen sombra las del mismo hueso (un brazo, una pierna, la cabeza y
-        # el cuerpo se mueven por separado al caminar; una sombra de una sobre otra quedaria pintada fuera de lugar)
-        self.hueso_de = {id(c): c.hueso.split("/")[0] for c in modelo.cubos}
-        self.hueso_de.update({id(m): m.hueso.split("/")[0] for m in modelo.mallas})
+        # el cuerpo se mueven por separado al caminar; una sombra de una sobre otra quedaria pintada fuera de lugar).
+        # modelo.luz_por = "grupo": cada grupo entero cuenta como hueso aparte (rigs con huesos anidados, ej. GeckoLib)
+        por_grupo = getattr(modelo, "luz_por", "hueso") == "grupo"
+
+        def clave(h):
+            return h if por_grupo else h.split("/")[0]
+        for q in self.piezas:
+            q.hueso = clave(q.hueso)
+        self.hueso_de = {id(c): clave(c.hueso) for c in modelo.cubos}
+        self.hueso_de.update({id(m): clave(m.hueso) for m in modelo.mallas})
 
     # ---------------------------------------------------------- una cara
     def cara(self, pos, n, ancho, alto, dueno, lateral, filas, cruza=None, n_luz=None):

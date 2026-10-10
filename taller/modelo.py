@@ -123,6 +123,7 @@ class Modelo:
         self.pivotes = dict(HUESOS)
         self.luz = True          # luz horneada (taller/luz.py): volumen con sombras y cantos de luz
         self.luz_desde = None    # de donde viene la luz horneada (None: luz.LUZ; luz.LUZ_SIMETRICA: pareja)
+        self.luz_por = "hueso"   # entre que piezas hay sombra: "hueso" (el de player) o "grupo" (cada grupo anidado)
 
     def malla(self, hueso, nombre, vertices, caras, pintor, lado=1, dens=1, luz=True):
         """Malla de caras planas antihorarias vistas desde afuera. Una cara puede tener 3, 4 o mas vertices
