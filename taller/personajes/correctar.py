@@ -67,21 +67,80 @@ def cabeza_pintor():
 
 # la mascara de enfrente (lo demas de la cabeza es plano): las placas que dejan la rendija en T (ojos y nariz) con
 # su ceja y sus bordes salidos: (nombre, desde, hasta)
-CASCO = (("frente", (-4.0, 29.8, -4.75), (4.0, 30.6, -4.0)),
-         ("ceja", (-3.95, 29.6, -5.05), (3.95, 30.15, -4.7)),
-         ("lado_d", (3.55, 27.8, -4.75), (4.0, 29.8, -4.0)),
-         ("lado_i", (-4.0, 27.8, -4.75), (-3.55, 29.8, -4.0)),
-         ("borde_d", (3.55, 27.45, -5.05), (3.95, 30.15, -4.7)),
-         ("borde_i", (-3.95, 27.45, -5.05), (-3.55, 30.15, -4.7)),
-         ("repisa_d", (0.6, 27.45, -5.05), (3.95, 27.9, -4.7)),
-         ("repisa_i", (-3.95, 27.45, -5.05), (-0.6, 27.9, -4.7)),
-         ("mejilla_d", (0.6, 24.0, -4.75), (4.0, 27.8, -4.0)),
-         ("mejilla_i", (-4.0, 24.0, -4.75), (-0.6, 27.8, -4.0)),
-         ("barbilla", (-0.6, 24.0, -4.75), (0.6, 26.2, -4.0)))
+CASCO = (("frente", (-3.75, 29.8, -4.75), (3.75, 30.6, -3.2)),
+         ("ceja", (-3.85, 29.6, -5.05), (3.85, 30.15, -4.7)),
+         ("lado_d", (3.55, 27.8, -4.75), (3.75, 29.8, -3.2)),
+         ("lado_i", (-3.75, 27.8, -4.75), (-3.55, 29.8, -3.2)),
+         ("borde_d", (3.55, 27.45, -5.05), (3.85, 30.15, -4.7)),
+         ("borde_i", (-3.85, 27.45, -5.05), (-3.55, 30.15, -4.7)),
+         ("repisa_d", (0.6, 27.45, -5.05), (3.85, 27.9, -4.7)),
+         ("repisa_i", (-3.85, 27.45, -5.05), (-0.6, 27.9, -4.7)),
+         ("mejilla_d", (0.6, 24.4, -4.75), (3.75, 27.8, -3.2)),
+         ("mejilla_i", (-3.75, 24.4, -4.75), (-0.6, 27.8, -3.2)),
+         ("barbilla", (-0.6, 24.4, -4.75), (0.6, 26.2, -3.2)))
+
+
+RADIO_CABEZA = 1.3                      # lo redondo de las orillas de la cabeza (cubo redondeado poligonal)
+
+
+def caja_redonda(centro, medio, r, pasos=2):
+    """Malla de una caja con las orillas y esquinas redondeadas, poligonal: 'pasos' tramos por cada 45 grados (2:
+    cuatro caras por cada orilla de 90). Se arma con una reja en cada cara y cada punto se empuja a la esquina
+    redonda (lo que cae fuera de la caja de adentro se pone a distancia r de ella)."""
+    adentro = [h - r for h in medio]
+    ejes = []
+    for h, a in zip(medio, adentro):
+        lado = [a + r * math.tan(math.radians(45 * j / pasos)) for j in range(pasos + 1)]
+        ejes.append([-v for v in lado[::-1]] + lado)
+    vs, indice, cs = [], {}, []
+
+    def vertice(p):
+        clave = tuple(round(c, 5) for c in p)
+        if clave not in indice:
+            q = [max(-a, min(a, c)) for c, a in zip(p, adentro)]
+            d = [c - e for c, e in zip(p, q)]
+            largo = math.sqrt(sum(c * c for c in d))
+            if largo > 1e-9:
+                p = [e + c / largo * r for e, c in zip(q, d)]
+            indice[clave] = len(vs)
+            vs.append(tuple(c + o for c, o in zip(p, centro)))
+        return indice[clave]
+
+    for eje in range(3):
+        u, v = [i for i in range(3) if i != eje]
+        for signo in (-1, 1):
+            for i in range(len(ejes[u]) - 1):
+                for j in range(len(ejes[v]) - 1):
+                    cara = []
+                    for a, b in ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)):
+                        p = [0.0, 0.0, 0.0]
+                        p[eje], p[u], p[v] = signo * medio[eje], ejes[u][a], ejes[v][b]
+                        cara.append(vertice(p))
+                    n = geo.normal([vs[k] for k in cara])
+                    if n[eje] * signo < 0:
+                        cara.reverse()
+                    cs.append(tuple(cara))
+    return vs, cs
+
+
+def anillo_redondo(y, mx, mz, r, pasos=2):
+    """Anillo de un rectangulo con las esquinas redondeadas (poligonal), antihorario visto desde arriba."""
+    out = []
+    for k, (cx, cz) in enumerate(((mx - r, -(mz - r)), (-(mx - r), -(mz - r)), (-(mx - r), mz - r), (mx - r, mz - r))):
+        for j in range(2 * pasos + 1):
+            a = math.radians(90 * k + 90 * j / (2 * pasos))
+            out.append((cx + r * math.cos(a), y, cz - r * math.sin(a)))
+    return out
 
 
 def casco(p):
+    """La cabeza como cubo redondeado (poligonal) blanco; adelante, detras de la rendija, la placa con lo oscuro y los
+    ojos (sin luz horneada, asi los ojos se ven limpios), y la mascara salida de enfrente."""
     blanco, borde = voxel(BLANCO, 0.1), voxel(BLANCO, 0.25)
+    p.malla("Head/cabeza", "cabeza", caja_redonda((0.0, 28.0, 0.0), (4.0, 4.0, 4.0), RADIO_CABEZA), voxel(BLANCO, 0.05),
+            dens=D)
+    p.caja("Head/cabeza", "ojos", (-3.55, 26.2, -4.05), (3.55, 29.8, -4.0), cabeza_pintor(), dens=8, luz=False,
+           caras=("north",))
     for nombre, d, h in CASCO:
         p.caja("Head/casco", nombre, d, h, borde if d[2] < -5 else blanco, dens=D)
 
@@ -100,11 +159,12 @@ def corona(p):
 
     def banda(t):                                             # la corona blanca con su filete dorado abajo y arriba
         if t.cara == "up":                                    # arriba: solo un filete de oro en la orilla
-            return oro(t) if max(abs(t.x), abs(t.z)) > 3.9 else blanco(t)
+            return oro(t) if max(abs(t.x), abs(t.z)) > 4.1 else blanco(t)
         b = (t.y - t.f[1]) / max(1e-6, t.t[1] - t.f[1])
         return oro(t) if b < 0.22 or b > 0.82 else blanco(t)
 
-    p.caja("Head/corona", "corona", (-4.75, 30.4, -4.9), (4.75, 32.6, 4.75), banda, dens=D)
+    p.malla("Head/corona", "corona", geo.loft_puntos([anillo_redondo(y, 4.8, 4.85, RADIO_CABEZA + 0.6)
+                                                      for y in (30.4, 32.6)]), banda, dens=D)
     k = 0
     for s in (1, -1):
         for (x0, y0, z0), (x1, y1, z1) in ASTAS:
@@ -314,7 +374,7 @@ def detalles(p):
     cristal = faceta(paleta=CRISTAL, grano=0, simetrico=True)
     g = "Body/ropa"
     # la gema de enfrente de la corona
-    p.caja("Head/corona", "placa_gema", (-0.8, 30.7, -5.0), (0.8, 32.3, -4.88), oro, dens=D)
+    p.caja("Head/corona", "placa_gema", (-0.8, 30.7, -5.0), (0.8, 32.3, -4.78), oro, dens=D)
     p.malla("Head/corona", "gema", geo.bipiramide((0.0, 31.5, -5.1), 0.48, 0.7, 0.7, 4, 45.0), cristal, dens=D,
             luz=False)
     for s in (1, -1):
@@ -356,7 +416,6 @@ def construir():
     p = Personaje("correctar", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
     blanco = voxel(BLANCO, 0.05)
     # la cabeza envuelta, la vuelta de la bufanda (tapa la boca), la corona y los cristales
-    p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=8, luz=False)
     casco(p)
     corona(p)
     # el cuerpo de Steve con la camisa, las mangas abultadas y las botas
