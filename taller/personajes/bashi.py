@@ -34,6 +34,7 @@ que falten (sirve para probar una parte sola).
 """
 
 import importlib
+import importlib.util
 import math
 
 from ..kit import Personaje, tonos
@@ -201,13 +202,56 @@ def maniqui(p, parte):
             p.caja(f"{hp}/maniqui", "pierna", (x1, 0, -PIERNA_Z), (x2, L, PIERNA_Z), gris, dens=1, luz=False)
 
 
+CUELLO_ALTO = 1.5                       # la cabeza y el sombrero suben esto: se ve el cuello de la bata y la bufanda
+
+
+class _Bajado:
+    """Un texel visto dy mas abajo: asi una pieza que se subio se sigue pintando con su pintor de antes."""
+    __slots__ = ("_tx", "_dy")
+
+    def __init__(self, tx, dy):
+        self._tx, self._dy = tx, dy
+
+    def __getattr__(self, k):
+        v = getattr(self._tx, k)
+        if k == "y":
+            return v - self._dy
+        if k in ("f", "t"):
+            return (v[0], v[1] - self._dy, v[2])
+        return v
+
+
+def _bajar(pintor, dy):
+    return (lambda t: pintor(_Bajado(t, dy))) if pintor else pintor
+
+
+def subir_cabeza(p, dy):
+    """Sube todas las piezas de la cabeza (cara, pelo, sombrero...) dy, con sus pivotes; cada una se sigue pintando
+    igual (su pintor la ve donde estaba)."""
+    m = p.m
+    for c in m.cubos:
+        if c.hueso.split("/")[0] == "Head":
+            c.desde[1] += dy
+            c.hasta[1] += dy
+            c.origen[1] += dy
+            c.pintor = _bajar(c.pintor, dy)
+    for ma in m.mallas:
+        if ma.hueso.split("/")[0] == "Head":
+            ma.vertices = [(x, y + dy, z) for x, y, z in ma.vertices]
+            ma.grupos = [(_bajar(pin, dy), poli) for pin, poli in ma.grupos]
+    for k, v in list(m.pivotes.items()):
+        if k.split("/")[0] == "Head":
+            m.pivotes[k] = (v[0], v[1] + dy, v[2])
+
+
 def construir(partes=PARTES):
     p = Personaje("bashi", altura=ALTURA, cabeza=CABEZA, torso=TORSO, brazo=BRAZO, pierna=PIERNA)
     # luz horneada en el sombrero, el pelo, la barba y la ropa; la cara va sombreada a mano (luz=False)
     for parte in PARTES:
-        if parte in partes:
+        if parte in partes and importlib.util.find_spec(f"{__package__}.bashi_{parte}"):
             modulo = importlib.import_module(f"{__package__}.bashi_{parte}")
             getattr(modulo, parte)(p)
-        else:
-            maniqui(p, parte)
+        elif parte not in partes:
+            maniqui(p, parte)                # una parte que se pidio pero no existe todavia (la magia) no se pone
+    subir_cabeza(p, CUELLO_ALTO)
     return p

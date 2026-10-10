@@ -1,5 +1,5 @@
 """
-Bashi: las extremidades (ver bashi.py), con colores lisos por ahora.
+Bashi: las extremidades (ver bashi.py), con su textura (parches, cuero y veta de madera).
 
   MANOS de verdad con cinco dedos GORDITOS de bloque, como la hoja: cada dedo en dos tramos (el de la punta se dobla
     hacia la palma), separados entre si, de largos distintos, y el pulgar grueso adelante, tambien en dos tramos. La
@@ -14,7 +14,8 @@ import math
 
 from .. import malla as geo
 from .bashi import CUERO_OSC, D, MADERA, PIEL, VINO, azar, giro_brazo, girar_brazo
-from .bashi_abrigo import anillo, bloque, caja, oscuro, plano, tira
+from .bashi import MORADO, OSCURO
+from .bashi_abrigo import abajo, anillo, bloque, caja, cuero, madera, parches, plano, tira
 
 PALMA = ((4.85, 17.0, -1.1), (6.15, 18.8, 1.1))         # la palma (sin girar, mano derecha)
 GRUESO_DEDO = 0.82                                       # de canto (hacia los lados)
@@ -66,6 +67,9 @@ ENCAJE = ((8.2, 1.0), (10.0, 1.05))                      # donde entra el muslo,
 CORREA_PALO = (9.15, 9.6, 1.12)
 
 
+PANTALON_TELA = parches(VINO, VINO, MORADO, OSCURO, semilla=19)
+
+
 def escalon(cx, y0, y1, mx, mz, ch):
     return bloque([(y0, mx, mz, ch), (y1, mx, mz, ch)], cx)
 
@@ -76,33 +80,33 @@ def piernas(p):
     # derecha
     g, cx = "RightLeg/pantalon", CENTRO_PIERNA
     for k, (y0, y1, mx, mz, ch) in enumerate(PANTALON):
-        p.malla(g, f"escalon{k}", escalon(cx, y0, y1, mx, mz, ch), plano(VINO), dens=D)
+        p.malla(g, f"escalon{k}", escalon(cx, y0, y1, mx, mz, ch), PANTALON_TELA, dens=D)
     p.malla("RightLeg/pierna", "tobillo", bloque(TOBILLO, cx), plano(PIEL), dens=D)
     (ya, yb), mx, (za, zb), ch = ZAPATO
     zc, mz = (za + zb) / 2, (zb - za) / 2
     zapato = geo.loft_puntos([anillo(cx, ya, mx, mz, ch, zc), anillo(cx, yb, mx, mz, ch, zc)])
-    p.malla("RightLeg/zapato", "zapato", zapato, plano(CUERO_OSC), dens=D)
+    p.malla("RightLeg/zapato", "zapato", zapato, cuero(CUERO_OSC, 20), dens=D)
     # izquierda: el pantalon hasta la rodilla, roto en tiras, y la pata de palo
     g, cx = "LeftLeg/pantalon", -CENTRO_PIERNA
     (y0, y1, mx, mz, ch) = PANTALON[0]
-    p.malla(g, "escalon0", escalon(cx, y0, y1, mx, mz, ch), plano(VINO), dens=D)
+    p.malla(g, "escalon0", escalon(cx, y0, y1, mx, mz, ch), PANTALON_TELA, dens=D)
     (_, y1, mx, mz, ch) = PANTALON[1]
-    p.malla(g, "escalon1", escalon(cx, RODILLA_ROTA, y1, mx, mz, ch), plano(VINO), dens=D)
+    p.malla(g, "escalon1", escalon(cx, RODILLA_ROTA, y1, mx, mz, ch), PANTALON_TELA, dens=D)
     for k in range(9):                                           # las tiras rotas alrededor de la rodilla
         ang = 360.0 * (k + 0.3 * azar(k, 70)) / 9
         a = math.radians(ang)
         x, z = cx + (mx - 0.1) * math.sin(a), (mz - 0.1) * math.cos(a)
         largo = 0.5 + 0.7 * azar(k, 71)
         m = geo.girar(tira(0.85, largo, 400 + k, grueso=0.3), (10 + 6 * azar(k, 72), ang - 180, 0))
-        p.malla(g, f"roto{k}", geo.mover(m, (x, RODILLA_ROTA + 0.25, z)), oscuro(VINO), dens=D)
+        p.malla(g, f"roto{k}", geo.mover(m, (x, RODILLA_ROTA + 0.25, z)), parches(abajo(VINO), semilla=21), dens=D)
     g = "LeftLeg/palo"
     palo = geo.loft_puntos([geo.anillo(cx, y, 0.0, r, r, 8, 22.5) for y, r in PALO])
-    p.malla(g, "palo", palo, plano(MADERA), dens=D)
+    p.malla(g, "palo", palo, madera(MADERA, 22), dens=D)
     encaje = geo.loft_puntos([geo.anillo(cx, y, 0.0, r, r, 8, 22.5) for y, r in ENCAJE])
-    p.malla(g, "encaje", encaje, oscuro(MADERA), dens=D)
+    p.malla(g, "encaje", encaje, madera(abajo(MADERA), 23), dens=D)
     ya, yb, r = CORREA_PALO
     p.malla(g, "correa", geo.loft_puntos([geo.anillo(cx, y, 0.0, r, r, 8, 22.5) for y in (ya, yb)]),
-            plano(CUERO_OSC), dens=D)
+            cuero(CUERO_OSC, 24), dens=D)
 
 
 def extremidades(p):

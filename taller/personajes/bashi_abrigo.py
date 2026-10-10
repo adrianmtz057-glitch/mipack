@@ -20,7 +20,8 @@ import math
 
 from .. import malla as geo
 from ..textura import hex_a_rgba as hex_
-from .bashi import BEIGE, C, CIAN, CUERO, CUERO_OSC, D, MORADO, OLIVO, ORO, OSCURO, PIEL, VIOLETA, azar, giro_brazo
+from .bashi import (BEIGE, C, CIAN, CUERO, CUERO_OSC, D, MORADO, OLIVO, ORO, OSCURO, PIEL, VINO, VIOLETA, azar,
+                    giro_brazo, ladrillos, tiras)
 from .meron import tubo_hueco
 
 
@@ -43,8 +44,46 @@ def oscuro(rampa):
     return plano({**rampa, "b": rampa["s"], "m": rampa["s"]})
 
 
-def caja(p, grupo, nombre, desde, hasta, rampa, **kw):
-    p.caja(grupo, nombre, desde, hasta, plano(rampa), dens=D, **kw)
+def caja(p, grupo, nombre, desde, hasta, rampa, pintor=None, **kw):
+    p.caja(grupo, nombre, desde, hasta, pintor or plano(rampa), dens=D, **kw)
+
+
+# ---------------------------------------------------------------------------------------------- texturas
+def abajo(rampa):
+    """La misma rampa un tono mas oscura (lo de abajo, lo de adentro)."""
+    return {**rampa, "s": rampa["s2"], "b": rampa["s"], "m": rampa["b"], "l": rampa["m"]}
+
+
+def parches(*rampas, semilla=0, w=1.0, h=0.5, celda=(3, 4)):
+    """Tela de parches de ladrillos, como la hoja (ver bashi.ladrillos)."""
+    return ladrillos(rampas, w=w, h=h, celda=celda, semilla=semilla)
+
+
+def cuero(rampa=CUERO, semilla=0):
+    """Cuero: bloques largos con su junta."""
+    return ladrillos((rampa,), w=1.5, h=0.5, celda=(99, 99), semilla=semilla)
+
+
+def tejido(rampa, semilla=0):
+    """Tejido de punto (la bufanda): bloquecitos de medio por un cuarto."""
+    return ladrillos((rampa,), w=0.5, h=0.25, celda=(99, 99), semilla=semilla)
+
+
+def madera(rampa, semilla=0):
+    """Veta de madera: tiras finas a lo largo."""
+    return tiras(rampa, ancho=0.25, semilla=semilla)
+
+
+TUNICA = parches(MORADO, MORADO, VINO, OLIVO, OSCURO, semilla=1)
+COLORES_TIRA = ((MORADO, 0.4), (OLIVO, 0.25), (VINO, 0.2), (BEIGE, 0.08), (OSCURO, 0.07))   # el faldon, con su peso
+
+
+def color_tira(r):
+    for rampa, peso in COLORES_TIRA:
+        if r < peso:
+            return rampa
+        r -= peso
+    return MORADO
 
 
 def anillo(cx, y, mx, mz, ch, cz=0.0):
@@ -86,11 +125,11 @@ def torso(p):
     """La bata sobre el torso, cerrada y en bloque, con la solapa que cruza al medio, el cuello alto y adentro el
     cuello de piel."""
     g = "Body/bata"
-    caja(p, g, "cuerpo", *TORSO, MORADO)
-    caja(p, g, "solapa", (-1.0, 23.0, -2.95), (0.5, C - 0.1, -2.75), MORADO)
+    caja(p, g, "cuerpo", *TORSO, MORADO, pintor=TUNICA)
+    caja(p, g, "solapa", (-1.0, 23.0, -2.95), (0.5, C - 0.1, -2.75), MORADO, pintor=parches(VINO, MORADO, semilla=2))
     (y0, mx0, mz0, c0), (y1, mx1, mz1, c1) = CUELLO
     malla, n_fuera = tubo_hueco(anillo(0.0, y0, mx0, mz0, c0), anillo(0.0, y1, mx1, mz1, c1), grosor=0.25, tapa=False)
-    morado, olivo = plano(MORADO), plano(OLIVO)
+    morado, olivo = parches(MORADO, VINO, semilla=3), parches(OLIVO, semilla=3)
     tela = lambda t: olivo(t) if t.y > y1 - FILO else morado(t)
     p.malla(g, "cuello", malla, [tela] * n_fuera + [oscuro(OSCURO)] * (len(malla[1]) - n_fuera), dens=D)
     p.malla(g, "cuello_piel", bloque([(y0, mx0 - 0.35, mz0 - 0.35, c0), (y1 - 0.2, mx0 - 0.35, mz0 - 0.35, c0)]),
@@ -118,10 +157,11 @@ def brazos(p):
         malla, n_fuera = tubo_hueco(anillo(cx, y0, mx0, mz0, c0), anillo(cx, y1, mx1, mz1, c1), grosor=0.2)
         malla = girar(malla)
         p.malla(f"{hueso}/manga", "manga_corta", malla,
-                [plano(MORADO)] * n_fuera + [oscuro(OSCURO)] * (len(malla[1]) - n_fuera), dens=D)
-        p.malla(f"{hueso}/camisa", "camisa_olivo", girar(bloque(CAMISA_OLIVO, cx)), plano(OLIVO), dens=D)
-        p.malla(f"{hueso}/camisa", "camisa_beige", girar(bloque(CAMISA_BEIGE, cx)), plano(BEIGE), dens=D)
-        p.malla(f"{hueso}/brazal", "brazal", girar(bloque(BRAZAL, cx)), plano(CUERO), dens=D)
+                [parches(MORADO, VINO, OLIVO, MORADO, semilla=4 + s)] * n_fuera
+                + [oscuro(OSCURO)] * (len(malla[1]) - n_fuera), dens=D)
+        p.malla(f"{hueso}/camisa", "camisa_olivo", girar(bloque(CAMISA_OLIVO, cx)), tiras(OLIVO, 0.5, 5), dens=D)
+        p.malla(f"{hueso}/camisa", "camisa_beige", girar(bloque(CAMISA_BEIGE, cx)), tiras(BEIGE, 0.5, 6), dens=D)
+        p.malla(f"{hueso}/brazal", "brazal", girar(bloque(BRAZAL, cx)), cuero(CUERO, 7), dens=D)
         xa, xb = sorted((s * (CENTRO_BRAZO + 1.1), s * (CENTRO_BRAZO + 1.35)))
         caja(p, f"{hueso}/brazal", "hebilla", (xa, 18.9, -0.5), (xb, 19.7, 0.5), ORO, **giro)
 
@@ -138,8 +178,8 @@ def cinturon(p):
     """La faja de la falda (morado oscuro) que aprieta la tunica en la cintura, y encima el cinturon de cuero con la
     hebilla dorada adelante: la faja asoma arriba y abajo del cinturon, asi se ve que el cinturon va encima."""
     g = "Body/cinturon"
-    p.malla(g, "faja", bloque(FAJA), oscuro(MORADO), dens=D)
-    p.malla(g, "cinto", bloque(CINTURON), plano(CUERO), dens=D)
+    p.malla(g, "faja", bloque(FAJA), tiras(abajo(MORADO), 0.5, 8), dens=D)
+    p.malla(g, "cinto", bloque(CINTURON), cuero(CUERO, 9), dens=D)
     zf = -CINTURON[0][2]
     caja(p, g, "hebilla", (-0.8, 21.1, zf - 0.25), (0.8, 23.25, zf + 0.1), ORO)
     caja(p, g, "hebilla_hueco", (-0.42, 21.55, zf - 0.32), (0.42, 22.8, zf - 0.2), CUERO_OSC)
@@ -180,14 +220,13 @@ def faldon(p):
             a = math.radians(ang)
             hasta = RUEDO[0] + (RUEDO[1] - RUEDO[0]) * azar(k, 3) + 0.3 * capa
             largo = TIRA_ARRIBA - hasta
+            rampa = color_tira(azar(k, 6))
             if os:
-                rampa = OSCURO if azar(k, 4) < 0.5 else MORADO
-            else:
-                rampa = OLIVO if azar(k, 6) < 0.3 else MORADO
+                rampa = abajo(rampa)
             m = tira(1.75 if capa == 0 else 1.9, largo, k)
             m = geo.girar(m, (abre + 2 * azar(k, 5), ang - 180, 0))
             m = geo.mover(m, (x + math.sin(a) * fuera, TIRA_ARRIBA, z + math.cos(a) * fuera))
-            p.malla(g, f"tira{capa}_{k}", m, oscuro(rampa) if os else plano(rampa), dens=D)
+            p.malla(g, f"tira{capa}_{k}", m, ladrillos((rampa,), w=0.75, h=0.5, celda=(99, 99), semilla=k), dens=D)
             k += 1
 
 
@@ -196,13 +235,14 @@ def bufanda(p):
     """La bufanda verde: un rollo grueso alrededor del cuello alto, y dos puntas que cuelgan adelante, a su
     derecha, con el final escalonado."""
     g = "Body/bufanda"
-    p.malla(g, "rollo", aro_grueso((C - 0.4, 3.9, 3.45, 0.8), (C + 1.2, 3.7, 3.25, 0.8), 0.9), plano(OLIVO), dens=D)
-    p.malla(g, "rollo_alto", aro_grueso((C + 0.4, 4.1, 3.6, 0.85), (C + 0.9, 4.1, 3.6, 0.85), 0.6), plano(OLIVO),
+    p.malla(g, "rollo", aro_grueso((C - 0.4, 3.9, 3.45, 0.8), (C + 1.2, 3.7, 3.25, 0.8), 0.9), tejido(OLIVO, 10),
+            dens=D)
+    p.malla(g, "rollo_alto", aro_grueso((C + 0.4, 4.1, 3.6, 0.85), (C + 0.9, 4.1, 3.6, 0.85), 0.6), tejido(OLIVO, 11),
             dens=D)
     for k, (x, ancho, largo, z, giro_punta, os) in enumerate(((1.45, 1.6, 4.6, -3.35, 5, False),
                                                              (2.1, 1.3, 3.4, -3.15, -4, True))):
         m = geo.mover(geo.girar(tira(ancho, largo, 300 + k, grueso=0.45), (0, 0, giro_punta)), (x, C + 0.6, z))
-        p.malla(g, f"punta{k}", m, oscuro(OLIVO) if os else plano(OLIVO), dens=D)
+        p.malla(g, f"punta{k}", m, tejido(abajo(OLIVO) if os else OLIVO, 12 + k), dens=D)
 
 
 MOCHILA = ((-2.4, 23.4, 2.78), (2.4, 27.4, 4.6))       # el cuerpo de la mochila (abierta arriba)
@@ -213,15 +253,15 @@ HEBILLA_X = -0.6                                        # la hebilla de oro, en 
 FRASCOS = ((-2.0, 0.9, 1.3, VIOLETA), (0.2, 0.55, 0.8, CIAN), (3.3, 0.7, 1.0, ORO))   # colgando: x, ancho, alto, color
 
 
-def interior(rampa):
-    """Pintor de la mochila: por fuera el cuero; la tapa de arriba es el adentro (oscuro), porque va abierta."""
-    fuera, adentro = plano(rampa), hex_(OSCURO["s"])
+def interior(fuera):
+    """Pintor de la mochila: por fuera 'fuera' (el cuero); la tapa de arriba es el adentro (oscuro): va abierta."""
+    adentro = hex_(OSCURO["s"])
     return lambda t: adentro if t.cara == "up" else fuera(t)
 
 
 def enrollado(centro_arriba, radio):
     """Pintor del pergamino: el papel beige; en la tapa de arriba, el rollo pintado (anillos mas oscuros)."""
-    papel, linea = plano(BEIGE), hex_(BEIGE["s2"])
+    papel, linea = tiras(BEIGE, 0.25, 13), hex_(BEIGE["s2"])
 
     def p(t):
         if t.n[1] > 0.8:
@@ -250,12 +290,12 @@ def mochila(p):
     de distinto tamano."""
     g = "Body/mochila"
     (x0, y0, z0), (x1, y1, z1) = MOCHILA
-    p.caja(g, "cuerpo", (x0, y0, z0), (x1, y1, z1), interior(CUERO), dens=D)
+    p.caja(g, "cuerpo", (x0, y0, z0), (x1, y1, z1), interior(cuero(CUERO, 14)), dens=D)
     for nombre, a, b in (("borde_atras", (x0, y1, z1 - 0.25), (x1, y1 + 0.45, z1)),
                          ("borde_frente", (x0, y1, z0), (x1, y1 + 0.45, z0 + 0.25)),
                          ("borde_der", (x1 - 0.25, y1, z0), (x1, y1 + 0.45, z1)),
                          ("borde_izq", (x0, y1, z0), (x0 + 0.25, y1 + 0.45, z1))):
-        caja(p, g, nombre, a, b, CUERO_OSC)
+        caja(p, g, nombre, a, b, CUERO_OSC, pintor=cuero(CUERO_OSC, 15))
     # el pergamino: un plano enrollado de 12 lados, con la tapa de arriba pintada con el rollo
     (px, pz), r, ya, yb, giro = PERGAMINO
     anillos = [geo.anillo(px, y, pz, r, r, 12, 15) for y in (ya, yb)]
@@ -268,11 +308,11 @@ def mochila(p):
     (ax, ay), (bx, by), ancho, (za, zb) = CORREA
     largo, ang = math.hypot(bx - ax, by - ay), math.degrees(math.atan2(by - ay, bx - ax))
     linea = lambda x: ay + (by - ay) * (x - ax) / (bx - ax)
-    caja(p, g, "correa_frente", (ax, ay - ancho / 2, za), (ax + largo, ay + ancho / 2, zb), CUERO_OSC, rot=(0, 0, ang),
+    caja(p, g, "correa_frente", (ax, ay - ancho / 2, za), (ax + largo, ay + ancho / 2, zb), CUERO_OSC, pintor=cuero(CUERO_OSC, 16), rot=(0, 0, ang),
          piv=(ax, ay, za))
-    caja(p, g, "correa_atras", (ax - 0.55, MOCHILA[1][1] - 0.2, 2.78), (ax + 0.55, C - 0.3, 3.12), CUERO_OSC)
-    caja(p, g, "correa_lado", (4.48, by - 0.5, -2.8), (4.85, by + 0.6, 2.8), CUERO_OSC)
-    caja(p, g, "correa_espalda", (x1, by - 0.5, 2.78), (4.85, by + 0.6, 3.12), CUERO_OSC)
+    caja(p, g, "correa_atras", (ax - 0.55, MOCHILA[1][1] - 0.2, 2.78), (ax + 0.55, C - 0.3, 3.12), CUERO_OSC, pintor=cuero(CUERO_OSC, 16))
+    caja(p, g, "correa_lado", (4.48, by - 0.5, -2.8), (4.85, by + 0.6, 2.8), CUERO_OSC, pintor=cuero(CUERO_OSC, 16))
+    caja(p, g, "correa_espalda", (x1, by - 0.5, 2.78), (4.85, by + 0.6, 3.12), CUERO_OSC, pintor=cuero(CUERO_OSC, 16))
     hy = linea(HEBILLA_X)
     caja(p, g, "hebilla", (HEBILLA_X - 0.6, hy - 0.72, za - 0.22), (HEBILLA_X + 0.6, hy + 0.72, za + 0.05), ORO,
          rot=(0, 0, ang), piv=(HEBILLA_X, hy, za))
