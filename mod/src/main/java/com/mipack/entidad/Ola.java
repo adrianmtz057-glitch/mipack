@@ -42,6 +42,8 @@ public class Ola {
     private static final int MAX_POR_TICK = 110;             // bloques que levanta por tick, como mucho
     private static final int SUBE = 3, BAJA = 4, VIDA = 9;   // ticks: subiendo, bajando y en total
     private static final float DANO = 8f;
+    private static final int SECTORES = 360;                  // la ola no pasa detras de las paredes: se tapa por sector
+    private static final BlockPos PARED = new BlockPos(0, Integer.MIN_VALUE, 0);
 
     private record Levantado(Display.BlockDisplay bloque, int nacio, float alto, Quaternionf giro) {}
 
@@ -55,6 +57,7 @@ public class Ola {
     private final List<Levantado> bloques = new ArrayList<>();
     private final Set<UUID> golpeados = new HashSet<>();
     private final Set<Long> columnas = new HashSet<>();
+    private final boolean[] tapado = new boolean[SECTORES];
 
     public Ola(ServerLevel nivel, CrackatosEntity jefe, Vec3 centro, int radioMax) {
         this.nivel = nivel;
@@ -102,17 +105,25 @@ public class Ola {
 
     private void levantar(double r0, double r1) {
         List<BlockPos> banda = new ArrayList<>();
+        List<double[]> paredes = new ArrayList<>();
         int cx = (int) Math.floor(this.centro.x), cz = (int) Math.floor(this.centro.z), n = (int) Math.ceil(r1) + 1;
         for (int dx = -n; dx <= n; dx++) {
             for (int dz = -n; dz <= n; dz++) {
                 double x = cx + dx + 0.5 - this.centro.x, z = cz + dz + 0.5 - this.centro.z;
                 double d = Math.sqrt(x * x + z * z);
-                if (d < r0 || d >= r1 || !this.columnas.add(BlockPos.asLong(cx + dx, 0, cz + dz)))
+                if (d < r0 || d >= r1 || tapado(x, z) || !this.columnas.add(BlockPos.asLong(cx + dx, 0, cz + dz)))
                     continue;
                 BlockPos piso = piso(cx + dx, cz + dz);
-                if (piso != null)
+                if (piso == PARED)
+                    paredes.add(new double[]{x, z, d});
+                else if (piso != null)
                     banda.add(piso);
             }
+        }
+        for (double[] w : paredes) {                 // lo que queda detras de una pared ya no se mueve
+            double a = Math.atan2(w[1], w[0]), ancho = Math.atan2(0.6, w[2]);
+            for (double b = a - ancho; b <= a + ancho; b += Math.PI / SECTORES)
+                this.tapado[sector(b)] = true;
         }
         float p = Math.min(1f, (float) MAX_POR_TICK / Math.max(1, banda.size())) * 0.8f;
         for (BlockPos b : banda) {
@@ -154,9 +165,17 @@ public class Ola {
             BlockPos arriba = m.above();
             if (this.nivel.getBlockState(arriba).getCollisionShape(this.nivel, arriba).isEmpty())
                 return m.immutable();
-            return null;                          // una pared: ahi no brinca nada
+            return i == 0 ? PARED : null;         // solido hasta arriba: una pared, que tapa la ola
         }
         return null;
+    }
+
+    private boolean tapado(double dx, double dz) {
+        return this.tapado[sector(Math.atan2(dz, dx))];
+    }
+
+    private static int sector(double angulo) {
+        return Math.floorMod((int) Math.floor((angulo + Math.PI) / (2 * Math.PI) * SECTORES), SECTORES);
     }
 
     private void golpear(double r0, double r1) {
@@ -164,7 +183,7 @@ public class Ola {
         for (LivingEntity e : this.nivel.getEntitiesOfClass(LivingEntity.class, zona, Ola::alcanzable)) {
             double dx = e.getX() - this.centro.x, dz = e.getZ() - this.centro.z;
             double d = Math.sqrt(dx * dx + dz * dz);
-            if (d < r0 - 1.0 || d >= r1 + 0.5 || !e.onGround() || Math.abs(e.getY() - this.centro.y) > 3)
+            if (d < r0 - 1.0 || d >= r1 + 0.5 || !e.onGround() || Math.abs(e.getY() - this.centro.y) > 3 || tapado(dx, dz))
                 continue;
             if (!this.golpeados.add(e.getUUID()))
                 continue;

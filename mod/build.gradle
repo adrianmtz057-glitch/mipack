@@ -74,6 +74,10 @@ minecraft {
             // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
             property 'forge.logging.console.level', 'debug'
 
+            // GeckoLib trae mixins: en el entorno de desarrollo hay que traducir sus nombres (en el juego normal no)
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -84,6 +88,9 @@ minecraft {
         client {
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             property 'forge.enabledGameTestNamespaces', mod_id
+            // ./gradlew runClient -Pcaptura=true: fotos automaticas de Crackatos (ver cliente/Captura.java)
+            property 'mipack.captura', project.findProperty('captura') ?: 'false'
+            property 'mipack.prueba', project.findProperty('captura') ?: 'false'
         }
 
         server {
@@ -171,6 +178,7 @@ tasks.named('processResources', ProcessResources).configure {
 
 // Example for how to get properties into the manifest for reading at runtime.
 tasks.named('jar', Jar).configure {
+    exclude 'com/mipack/cliente/Captura*'           // la herramienta de fotos no va en el mod
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,

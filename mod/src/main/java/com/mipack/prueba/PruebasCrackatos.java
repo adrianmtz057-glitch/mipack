@@ -34,23 +34,27 @@ public class PruebasCrackatos {
     private static final Set<Estado> TODOS = EnumSet.of(Estado.RUGIDO, Estado.ACECHAR, Estado.RASCAR, Estado.EMBESTIR,
             Estado.CHOCAR, Estado.ATORADO, Estado.ZAFARSE, Estado.CABEZAZO, Estado.SACUDIDA, Estado.ALZARSE);
 
+    /** La altura del piso de la arena en las coordenadas de la prueba: GameTest pone la estructura un bloque arriba
+     * de su origen, asi que el piso (la capa 0 de arena.nbt) queda en y=1 y se para uno arriba. */
+    private static final int PISO = 2;
+
     private static final class Pelea {
         Husk blanco;
         Estado antes = Estado.QUIETO;
-        int embestidas, puas, bloquesDeOla;
+        int embestidas, atinadas, puas, bloquesDeOla;
         boolean segundaFase;
     }
 
     @GameTest(template = "arena", timeoutTicks = 6000)
     public static void pelea(GameTestHelper h) {
-        CrackatosEntity jefe = h.spawn(Mipack.CRACKATOS.get(), new BlockPos(16, 1, 16));
+        CrackatosEntity jefe = h.spawn(Mipack.CRACKATOS.get(), new BlockPos(16, PISO, 16));
         Pelea p = new Pelea();
-        AABB arena = new AABB(h.absolutePos(new BlockPos(1, 1, 1)), h.absolutePos(new BlockPos(32, 8, 32)));
+        AABB arena = new AABB(h.absolutePos(new BlockPos(1, PISO, 1)), h.absolutePos(new BlockPos(32, PISO + 7, 32)));
         h.onEachTick(() -> {
             if (jefe.isRemoved() || jefe.isDeadOrDying())
                 return;
             if (p.blanco == null || !p.blanco.isAlive()) {
-                p.blanco = h.spawn(EntityType.HUSK, new BlockPos(4 + h.getLevel().random.nextInt(25), 1, 4));
+                p.blanco = h.spawn(EntityType.HUSK, new BlockPos(4 + h.getLevel().random.nextInt(25), PISO, 4));
                 p.blanco.getAttribute(Attributes.MAX_HEALTH).setBaseValue(400.0);
                 p.blanco.setHealth(400f);
                 p.blanco.setPersistenceRequired();
@@ -62,6 +66,8 @@ public class PruebasCrackatos {
                 if (p.embestidas % 2 == 1)
                     esquivar(h, jefe, p.blanco);
             }
+            if (ahora == Estado.CABEZAZO && p.antes == Estado.EMBESTIR)
+                p.atinadas++;
             if (ahora == Estado.SACUDIDA && !p.segundaFase) {
                 p.segundaFase = true;                 // a la mitad de la vida: despues de sacudirse se alza y azota
                 jefe.setHealth(jefe.getMaxHealth() * 0.45f);
@@ -77,12 +83,13 @@ public class PruebasCrackatos {
                 .thenWaitUntil(() -> {
                     Set<Estado> faltan = EnumSet.copyOf(TODOS);
                     faltan.removeAll(jefe.visitados());
-                    if (!faltan.isEmpty() || p.puas == 0 || p.bloquesDeOla == 0)
-                        throw new GameTestAssertException("faltan " + faltan + " puas " + p.puas + " ola " + p.bloquesDeOla);
+                    if (!faltan.isEmpty() || p.atinadas == 0 || p.puas == 0 || p.bloquesDeOla == 0)
+                        throw new GameTestAssertException("faltan " + faltan + " embestidas que pegaron " + p.atinadas
+                                + " puas " + p.puas + " ola " + p.bloquesDeOla);
                 })
                 .thenExecute(() -> {
-                    Mipack.LOGGER.info("[Prueba] hizo todo: {} embestidas, hasta {} puas a la vez, hasta {} bloques de ola",
-                            p.embestidas, p.puas, p.bloquesDeOla);
+                    Mipack.LOGGER.info("[Prueba] hizo todo: {} embestidas ({} pegaron), hasta {} puas a la vez, hasta {} bloques de ola",
+                            p.embestidas, p.atinadas, p.puas, p.bloquesDeOla);
                     jefe.kill();
                 })
                 .thenWaitUntil(() -> {
@@ -98,9 +105,11 @@ public class PruebasCrackatos {
     private static void esquivar(GameTestHelper h, CrackatosEntity jefe, Husk blanco) {
         Vec3 d = blanco.position().subtract(jefe.position());
         Vec3 lado = new Vec3(-d.z, 0, d.x).normalize().scale(8);
-        BlockPos rel = h.relativePos(BlockPos.containing(blanco.position().add(lado)));
-        int x = Math.max(2, Math.min(30, rel.getX())), z = Math.max(2, Math.min(30, rel.getZ()));
-        Vec3 a = Vec3.atBottomCenterOf(h.absolutePos(new BlockPos(x, 1, z)));
+        // (relativePos de GameTest en 1.20.1 voltea x y z: se acota en coordenadas absolutas)
+        BlockPos min = h.absolutePos(new BlockPos(2, PISO, 2)), max = h.absolutePos(new BlockPos(30, PISO, 30));
+        Vec3 q = blanco.position().add(lado);
+        Vec3 a = new Vec3(Math.max(Math.min(min.getX(), max.getX()) + 0.5, Math.min(Math.max(min.getX(), max.getX()) + 0.5, q.x)),
+                min.getY(), Math.max(Math.min(min.getZ(), max.getZ()) + 0.5, Math.min(Math.max(min.getZ(), max.getZ()) + 0.5, q.z)));
         blanco.teleportTo(a.x, a.y, a.z);
         Mipack.LOGGER.info("[Prueba] el husk esquiva");
     }

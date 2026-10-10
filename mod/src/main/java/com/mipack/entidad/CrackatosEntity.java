@@ -28,9 +28,12 @@ import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 import software.bernie.geckolib.animatable.GeoEntity;
@@ -72,7 +75,10 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     private static final int T_ZAFARSE = 16, T_CABEZAZO = 14, T_SACUDIDA = 44, T_SALEN_PUAS = 32, T_ALZARSE = 52;
     private static final int T_AZOTE = 31, T_MUERTE = 50;
     // dano (en medios corazones)
-    private static final float DANO_EMBESTIDA = 14f, DANO_PISOTON = 6f, DANO_AZOTE = 12f;
+    private static final float DANO_EMBESTIDA = 14f, DANO_PISOTON = 6f, DANO_AZOTE = 12f, DANO_CORNADA = 10f;
+    // cada cuanto puede repetir (ticks): el azote y la cornada de cerca
+    private static final int ENFRIAR_ALZARSE = 240, ENFRIAR_CORNADA = 70, T_GOLPE_CORNADA = 4;
+    private static final int MAX_SIN_EMBESTIR = 220;              // si lleva tanto sin embestir, embiste aunque este cerca
 
     /** Cuanto crece el modelo en el juego (el render lo usa; las animaciones van al paso de esta escala). */
     public static final float ESCALA = 2.0f;
@@ -104,6 +110,8 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     private int embestidas;
     private int embestidasAntesDeSacudir = 2;
     private int alzadasPendientes;
+    private int enfriarAlzarse = 100, enfriarCornada, sinEmbestir;
+    private boolean cornada;                       // el cabezazo es la cornada de cerca (no el remate de una embestida)
     private boolean rugioAlEmpezar;
     private final Set<UUID> golpeados = new HashSet<>();
     private final EnumSet<Estado> visitados = EnumSet.noneOf(Estado.class);
@@ -183,6 +191,12 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     protected void customServerAiStep() {
         super.customServerAiStep();
         this.ticksEnEstado++;
+        if (this.enfriarAlzarse > 0)
+            this.enfriarAlzarse--;
+        if (this.enfriarCornada > 0)
+            this.enfriarCornada--;
+        if (getEstado() == Estado.ACECHAR || (getEstado() == Estado.CABEZAZO && cornada))
+            this.sinEmbestir++;
         LivingEntity objetivo = this.getTarget();
         if (!valido(objetivo))
             objetivo = null;
@@ -214,6 +228,11 @@ public class CrackatosEntity extends Monster implements GeoEntity {
                 }
                 if (ticksEnEstado >= T_RASCAR) {
                     golpeados.clear();
+                    sinEmbestir = 0;
+                    if (Mipack.PRUEBA && objetivo != null)
+                        Mipack.LOGGER.info("[Crackatos] embiste: blanco a {} bloques, direccion {}, apunta {}",
+                                String.format("%.1f", this.distanceTo(objetivo)), this.direccion,
+                                String.format("%.2f", objetivo.position().subtract(this.position()).normalize().dot(this.direccion)));
                     this.playSound(SoundEvents.RAVAGER_ROAR, 3.0f, 0.8f);
                     cambiar(Estado.EMBESTIR);
                 }
@@ -241,9 +260,19 @@ public class CrackatosEntity extends Monster implements GeoEntity {
                     terminarEmbestida();
             }
             case CABEZAZO -> {
+                if (cornada && ticksEnEstado < T_GOLPE_CORNADA && objetivo != null) {
+                    Vec3 d = objetivo.position().subtract(this.position());
+                    this.direccion = new Vec3(d.x, 0, d.z).normalize();
+                }
                 girarA(this.direccion);
-                if (ticksEnEstado >= T_CABEZAZO)
-                    terminarEmbestida();
+                if (cornada && ticksEnEstado == T_GOLPE_CORNADA)
+                    cornear();
+                if (ticksEnEstado >= T_CABEZAZO) {
+                    if (cornada)
+                        cambiar(Estado.ACECHAR);
+                    else
+                        terminarEmbestida();
+                }
             }
             case SACUDIDA -> {
                 quieto(objetivo);
@@ -288,22 +317,51 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         this.getLookControl().setLookAt(objetivo, 30f, 30f);
         if (ticksEnEstado % 10 == 0)
             pisoton();
-        if (ticksEnEstado < 30)
+        if (ticksEnEstado < 20)
             return;
         if (embestidas >= embestidasAntesDeSacudir) {
             cambiar(Estado.SACUDIDA);
-        } else if (alzadasPendientes > 0 || (dist < 9 && ticksEnEstado > 50)) {
-            alzadasPendientes = Math.max(0, alzadasPendientes - 1);
-            cambiar(Estado.ALZARSE);
-        } else if (dist > 7 && (ticksEnEstado > 60 || this.random.nextInt(40) == 0)) {
+        } else if (alzadasPendientes > 0 && ticksEnEstado > 30) {
+            alzadasPendientes--;
+            alzarse();
+        } else if (sinEmbestir > MAX_SIN_EMBESTIR) {
+            cambiar(Estado.RASCAR);               // no se queda nomas corneando: tambien embiste de cerca
+        } else if (dist < this.getBbWidth() * 0.5 + 3.5 && enfriarCornada == 0) {
+            // de cerca: la cornada (el cabezazo hacia arriba), que avienta para que no se le pueda pegar nomas
+            this.cornada = true;
+            this.enfriarCornada = ENFRIAR_CORNADA;
+            cambiar(Estado.CABEZAZO);
+        } else if (dist < 10 && enfriarAlzarse == 0 && ticksEnEstado > 50) {
+            alzarse();
+        } else if ((dist > 7 && (ticksEnEstado > 60 || this.random.nextInt(40) == 0)) || ticksEnEstado > 160) {
             cambiar(Estado.RASCAR);
         }
+    }
+
+    private void alzarse() {
+        this.enfriarAlzarse = ENFRIAR_ALZARSE;
+        cambiar(Estado.ALZARSE);
+    }
+
+    /** La cornada: lo que este enfrente de la cabeza sale volando para arriba. */
+    private void cornear() {
+        Vec3 c = this.position().add(this.direccion.scale(this.getBbWidth() * 0.5 + 1.2));
+        AABB zona = new AABB(c.x - 2.5, this.getY() - 0.5, c.z - 2.5, c.x + 2.5, this.getY() + 4.5, c.z + 2.5);
+        boolean pego = false;
+        for (LivingEntity e : this.level().getEntitiesOfClass(LivingEntity.class, zona, this::valido)) {
+            e.hurt(this.damageSources().mobAttack(this), DANO_CORNADA);
+            lanzar(e, this.direccion.scale(0.9), 1.1);
+            pego = true;
+        }
+        this.playSound(pego ? SoundEvents.RAVAGER_ATTACK : SoundEvents.RAVAGER_STEP, 2.5f, 0.7f);
     }
 
     private void embestir() {
         girarA(this.direccion);
         double velocidad = segundaFase() ? 0.85 : 0.68;
+        Vec3 antes = this.position();
         this.move(MoverType.SELF, new Vec3(this.direccion.x * velocidad, 0, this.direccion.z * velocidad));
+        double avance = this.position().subtract(antes).dot(this.direccion);     // si roza una pared se resbala
         if (ticksEnEstado % 5 == 0) {
             this.playSound(SoundEvents.RAVAGER_STEP, 2.5f, 0.5f);
             pisoton();
@@ -315,12 +373,17 @@ public class CrackatosEntity extends Monster implements GeoEntity {
                 e.hurt(this.damageSources().mobAttack(this), segundaFase() ? DANO_EMBESTIDA * 1.25f : DANO_EMBESTIDA);
                 lanzar(e, this.direccion.scale(2.1), 1.3);
                 this.playSound(SoundEvents.RAVAGER_ATTACK, 3.0f, 0.6f);
+                this.cornada = false;
                 cambiar(Estado.CABEZAZO);
                 return;
             }
         }
         // se estrello: los cuernos se atoran en la pared (se ve por la cabeza, que va mas adelante que la caja)
-        if ((this.horizontalCollision || cabezaEnPared()) && ticksEnEstado > 3) {
+        boolean cabeza = cabezaEnPared(), frenado = avance < velocidad * 0.35;
+        if ((cabeza || frenado) && ticksEnEstado > 3) {
+            if (Mipack.PRUEBA)
+                Mipack.LOGGER.info("[Crackatos] choca en el tick {} (cabeza {}, frenado {}) en {}", ticksEnEstado, cabeza,
+                        frenado, this.blockPosition());
             this.playSound(SoundEvents.ANVIL_LAND, 2.5f, 0.5f);
             this.playSound(SoundEvents.GENERIC_EXPLODE, 1.5f, 0.7f);
             BlockPos pared = BlockPos.containing(this.position().add(this.direccion.scale(this.getBbWidth() * 0.5 + 1.0)).add(0, 2, 0));
@@ -372,17 +435,27 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         List<Vec3> blancos = new ArrayList<>();
         for (LivingEntity e : this.level().getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(40), this::valido)) {
             blancos.add(e.position());
-            blancos.add(e.position().add((this.random.nextDouble() - 0.5) * 6, 0, (this.random.nextDouble() - 0.5) * 6));
+            blancos.add(deEsteLado(e.position().add((this.random.nextDouble() - 0.5) * 6, 0, (this.random.nextDouble() - 0.5) * 6)));
         }
         int extra = segundaFase() ? 10 : 6;
         for (int i = 0; i < extra; i++) {
             double ang = this.random.nextDouble() * Math.PI * 2, r = 5 + this.random.nextDouble() * 12;
-            blancos.add(this.position().add(Math.cos(ang) * r, 0, Math.sin(ang) * r));
+            blancos.add(deEsteLado(this.position().add(Math.cos(ang) * r, 0, Math.sin(ang) * r)));
         }
         for (int i = 0; i < blancos.size(); i++) {
             Vec3 b = blancos.get(i);
             sl.addFreshEntity(PuaCayendo.cayendo(sl, this, piso(b), 20 + this.random.nextInt(12)));
         }
+    }
+
+    /** Si una pared queda entre el jefe y el punto, lo trae de este lado (las puas al azar caen dentro de la arena). */
+    private Vec3 deEsteLado(Vec3 p) {
+        Vec3 desde = this.position().add(0, 1.5, 0), hasta = new Vec3(p.x, this.getY() + 1.5, p.z);
+        BlockHitResult r = this.level().clip(new ClipContext(desde, hasta, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        if (r.getType() == HitResult.Type.MISS)
+            return p;
+        Vec3 atras = hasta.subtract(desde).normalize().scale(PuaCayendo.RADIO + 0.5);
+        return new Vec3(r.getLocation().x - atras.x, p.y, r.getLocation().z - atras.z);
     }
 
     /** El piso (lo de arriba del bloque solido) bajo un punto, buscando cerca de la altura del jefe. */
