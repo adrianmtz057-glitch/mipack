@@ -53,7 +53,7 @@ from .. import malla as geo
 from ..kit import Personaje, tonos
 from ..luz import L as LUZ_U, rot_matriz    # LUZ_U: de donde viene la luz (el filo de las garras)
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
-from .revolthir import BAYER, color, tubo, voxel
+from .bloques import BAYER, color, tubo, voxel
 
 D = 3                                   # texeles por px en el cuerpo
 DC = 4                                  # en la cabeza

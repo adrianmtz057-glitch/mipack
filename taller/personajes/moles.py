@@ -14,9 +14,9 @@ chiquito y piernas cortas con patas.
 
 import math
 
-from ..kit import Personaje, tonos
-from ..textura import TRANSPARENTE, hex_a_rgba as hex_
-from .revolthir import BAYER, color, voxel
+from ..kit import Personaje
+from ..textura import hex_a_rgba as hex_
+from .bloques import BAYER, color, voxel
 
 D = 4                                   # texeles por px
 D_CARA = 8                              # la cabeza, con mas detalle para la cara

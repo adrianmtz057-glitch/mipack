@@ -11,7 +11,7 @@ import math
 
 from ..kit import Personaje
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
-from .revolthir import color
+from .bloques import color
 
 D = 4
 PX = 1.0 / D                                                      # un pixel del cuerpo

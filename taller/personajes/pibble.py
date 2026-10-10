@@ -694,7 +694,7 @@ def ropa(p):
         p.malla(f"{hueso}/ropa", "bota", _doble((pie, caras)), bota, dens=4)
     # la cola esponjada como la de Moles: azul marino y la punta negra
     from .moles import cola
-    from .revolthir import voxel
+    from .bloques import voxel
     cola(p, camino=COLA_PIBBLE, base=voxel({"s": "#1F2F42", "b": "#283B50", "l": "#3C556C"}, claro=0.3),
          punta=voxel({"s": "#0B0A0C", "b": "#121014", "l": "#1A171C"}, claro=0.3), corte=0.7)
 

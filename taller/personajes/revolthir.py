@@ -1,324 +1,255 @@
 """
-Revolthir, NSWY de la negacion: chibi de caos y colores calidos. Hecho a mano con el kit segun la imagen que paso el
-usuario (referencias/personajes/revolthir_bufon.jpg) y las formas que marco encima con rayas blancas
-(revolthir_bufon_rayas.jpg). Reglas: no es humano (cabeza-cubo naranja, sin piel), chibi de la misma altura que
-Pibble (nada mas que la altura), estilo propio: carnaval caotico, ni desertico, ni japones, ni de bosque.
-
-Formas (en bloques, como la referencia; cristales, cascabeles y estrella en low-poly):
-  CABEZA-CUBO naranja con orejitas de bloque; una placa en la cara con dos huecos deja los ojos HUNDIDOS (blancos,
-    grandes, con las pupilas hacia adentro: se miran entre si); bigotito de bloques negros sin sombra: jorobita al
-    medio y puntitas levantadas
-  CORONA DE BUFON magenta bien abajo (tapa la cabeza hasta arriba de los ojos) y encima un racimo de CRISTALES de
-    colores; atras, cerca de las esquinas, dos puntas que suben, se quiebran y caen con cascabeles de cristal
-    (uno grande celeste, uno rosa con gotita dorada)
-  TORSO rojo y delgado con el cuello amarillo en punta; FALDA de solapas sueltas de distintos largos y tonos
-  MANGAS amarillas con PUNOS grandes; PIERNAS verdes; BOTAS en bloque
-  VARITA en la mano izquierda: baston con bandas y una estrella morada
-Textura de bloques: cada px es un bloquecito de su rampa, mas claro arriba y mas oscuro abajo, con un patron fijo
-(ondas suaves + una matriz de Bayer), nada al azar. El volumen lo termina la luz horneada.
+Revolthir, rehecho a tamano de jugador (32 de alto, cuerpo de Steve) como el druida del bosque de la referencia que
+paso el usuario: estilo de bloques con detalles.
+  CABEZA: mascara blanca con dos ojos cuadrados negros (abajo, una barba de musgo) y la capucha cubierta de musgo
+  ASTAS de rama en escalera (bloques) que salen de arriba de la cabeza hacia los lados y suben, con musgo, flores
+    blancas y un FAROL encendido colgando de la punta de cada una
+  CAPA verde oliva oscura: la esclavina de musgo sobre los hombros, los lados que caen junto a los brazos y la
+    espalda hasta las pantorrillas, con el ARBOL dorado bordado atras y abajo un galon dorado con rombo; el borde de
+    abajo con jirones de tela blanca; ENREDADERAS de musgo colgando de todas las orillas
+  TUNICA: la camisa crema de un lado y la tunica cafe del otro, la pechera de cuero con su emblema dorado y el
+    CINTURON de cuero con frasquitos colgando; abajo la falda partida: blanca de un lado y verde oscuro del otro
+  BRAZOS con mangas (una cafe y una crema) con musgo arriba y guantes de cuero; PIERNAS verde oscuro; BOTAS cafes
+    con puno de pelaje blanco
+Textura de bloques (voxel). Las flores, el fuego de los faroles y los frascos van sin luz horneada (brillan).
 """
 
 import math
 
-from .. import malla as geo
-from ..kit import Personaje, tonos
-from ..textura import TRANSPARENTE, hex_a_rgba as hex_
+from ..kit import Personaje
+from ..textura import hex_a_rgba as hex_
+from .bloques import color, voxel
 
 D = 4                                   # texeles por px
 
-NARANJA = tonos("#E8762C")              # la cabeza
-OREJA = tonos("#F0A07C")                # orejitas
-MAGENTA = tonos("#C42A86")              # corona
-ROSA = tonos("#E85AA8")                 # falda, cristales, cascabel chico
-ROJO = tonos("#D23A30")                 # torso
-AMARILLO = tonos("#F2C232")             # mangas, cuello, gotita
-VERDE = tonos("#6CC23C")                # piernas, cristales, punta
-GUANTE = tonos("#7A6470")               # punos
-BOTA = tonos("#4A2E2C")                 # botas
-MORADO = tonos("#8A4AE0")               # la estrella, cristales
-CELESTE = tonos("#6AC8F0")              # cascabel grande, cristales
-FUEGO = tonos("#F06A2A")                # cristales
-GRIS = tonos("#6E6A78")                 # baston
-OJO, PUPILA = "#FFF8EE", "#1A1218"
-
-TOPE = 27.0                             # la cabeza va de 17 a 27: la altura de Pibble
-CABEZA_Y = 17.0
-PIERNAS = 9.0                           # la cadera
-
-BAYER = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
+MADERA = {"s": "#4A2E1C", "b": "#6B4428", "l": "#8A5A36"}
+MUSGO = {"s": "#3E6B22", "b": "#5A8C2E", "l": "#7CB042"}
+MUSGO_OSC = {"s": "#2C4C18", "b": "#3F6A22", "l": "#578A30"}   # la capucha
+CAPA = {"s": "#2B2B1C", "b": "#3A3A26", "l": "#4B4A31"}
+MASCARA = {"s": "#CFC8B4", "b": "#E6E0CE", "l": "#F4F0E2"}
+TELA = {"s": "#D6D0C0", "b": "#E9E4D6", "l": "#F7F4EC"}
+TUNICA = {"s": "#55391F", "b": "#74502F", "l": "#906843"}
+CUERO = {"s": "#3F2817", "b": "#583A22", "l": "#72502F"}
+VERDE = {"s": "#1F2B17", "b": "#2B3A1F", "l": "#3A4B2A"}
+ORO, OJO, FUEGO, VIDRIO, CORCHO = "#D2A644", "#140E0A", "#FFD37A", "#A9D8B8", "#8A6A44"
+PETALO, POLEN = "#F4F1E8", "#E8B830"
 
 
-def color(hexa):
-    c = hex_(hexa)
-    return lambda t: c
+def _azar(k):
+    return (math.sin(k * 12.9898 + 4.1414) * 43758.5453) % 1.0
 
 
-def voxel(rampa, claro=0.0, alto=None):
-    """Textura de bloques de 1 px: cada bloque toma un tono de la rampa (sombra, base, medio, luz) segun la altura
-    dentro de la pieza (mas claro arriba), unas ondas suaves y una matriz de Bayer. Siempre el mismo patron.
-    alto=(y0, y1): la altura se mide en ese tramo y no en la pieza, para que dos piezas pegadas se vean como una."""
-    s, b, l = hex_(rampa["s"]), hex_(rampa["b"]), hex_(rampa["l"])
-    medio = tuple((x + y) // 2 for x, y in zip(b, l))
-    tonos4 = (s, b, medio, l)
+def _a_segmento(p, a, b):
+    ex, ey = b[0] - a[0], b[1] - a[1]
+    f = max(0.0, min(1.0, ((p[0] - a[0]) * ex + (p[1] - a[1]) * ey) / (ex * ex + ey * ey)))
+    return math.hypot(p[0] - a[0] - ex * f, p[1] - a[1] - ey * f)
+
+
+# ---------------------------------------------------------------- la cabeza
+
+def cabeza_pintor():
+    """Adelante la mascara blanca con los ojos cuadrados negros, manchas de musgo en sus orillas y la barba de musgo
+    abajo; los otros lados, musgo."""
+    mascara, musgo = voxel(MASCARA, 0.1), manchas_de_musgo(MUSGO_OSC, umbral=0.7)
 
     def p(t):
-        if t.cara in ("up", "down"):
-            u, v = t.x, t.z
-            r = 1.0 if t.cara == "up" else 0.0
-        else:
-            u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
-            v = t.y
-            y0, y1 = alto or (t.f[1], t.t[1])
-            r = (t.y - y0) / max(1e-6, y1 - y0)
-        cu, cv = math.floor(u + 100), math.floor(v + 100)
-        f = 0.5 + 0.2 * math.sin(cu * 0.9 + cv * 0.5) * math.cos(cv * 0.8 - cu * 0.35) + 0.28 * (r - 0.5) + claro
-        f += ((BAYER[cv % 4][cu % 4] + 0.5) / 16 - 0.5) * 0.4
-        return tonos4[0 if f < 0.22 else 1 if f < 0.6 else 2 if f < 0.8 else 3]
+        if t.cara != "north":
+            return musgo(t)
+        u, v = t.x, t.y - 24.0
+        if 1.0 <= abs(u) <= 3.0 and 3.4 <= v <= 5.6:
+            return hex_(OJO)
+        if v < 2.2:
+            return musgo(t)
+        cu, cv = math.floor(u * 2), math.floor(v * 2)
+        if (abs(u) > 3.0 or v > 6.6) and _azar(cu * 7.1 + cv * 3.3) > 0.45:
+            return musgo(t)
+        return mascara(t)
     return p
 
 
-def _trazo(u, v, a, b, grosor):
-    (ax, ay), (bx, by) = a, b
-    dx, dy = bx - ax, by - ay
-    k = max(0.0, min(1.0, ((u - ax) * dx + (v - ay) * dy) / (dx * dx + dy * dy)))
-    return math.hypot(u - ax - k * dx, v - ay - k * dy) <= grosor / 2
+# ---------------------------------------------------------------- las astas, las flores y los faroles
+
+# las ramas de la derecha (la izquierda en espejo): (de, a, grueso); se arman con bloques en escalera
+RAMAS = (((2.6, 32.4, 0.0), (6.5, 35.0, 0.0), 1.7), ((6.5, 35.0, 0.0), (10.5, 37.2, 0.0), 1.5),
+         ((10.5, 37.2, 0.0), (13.2, 40.6, 0.0), 1.3), ((8.4, 36.1, 0.0), (8.9, 39.6, 0.0), 1.1),
+         ((12.0, 39.0, 0.0), (14.6, 39.8, 0.0), 0.9))
+FLORES = ((5.0, 35.9, -0.95), (9.7, 38.3, -0.85), (13.6, 41.3, -0.75), (2.0, 32.9, -4.75), (4.8, 29.0, -4.75),
+          (6.8, 23.6, -2.95))
+FAROL = (13.6, 40.0)                                     # de donde cuelga (la punta de la rama)
+FAROL_ALTO = (31.6, 35.2)                                # de donde a donde va el farol
 
 
-# bigotito de bloques (u0, u1, v0, v1): jorobita al medio, brazos rectos y una puntita levantada en cada extremo
-BIGOTE = ((-0.5, 0.5, 2.9, 3.4),                              # arriba de la jorobita
-          (-1.0, -0.5, 2.4, 2.9), (0.5, 1.0, 2.4, 2.9),        # costados de la jorobita
-          (-2.6, -1.0, 1.9, 2.4), (1.0, 2.6, 1.9, 2.4),        # brazos
-          (-2.6, -2.1, 2.4, 2.9), (2.1, 2.6, 2.4, 2.9))        # puntitas levantadas
-OJOS_V = (3.6, 6.4)                     # alto de los ojos (desde el menton)
-OJOS_U = (1.05, 3.65)                   # de donde a donde va cada ojo, desde el centro de la cara
-HUNDIDO = 0.3                           # cuanto se meten los ojos: lo que mide de grueso la placa de la cara
+def _bloques_rama(a, b, g):
+    """Bloques en escalera a lo largo de una rama."""
+    n = max(1, math.ceil(math.dist(a, b) / (g * 0.7)))
+    return [tuple(a[c] + (b[c] - a[c]) * i / n for c in range(3)) for i in range(n + 1)]
 
 
-def en_ojo(u, v):
-    """Si (u, v) cae en un ojo. u: hacia la derecha de quien mira, v: desde el menton."""
-    return OJOS_U[0] <= abs(u) <= OJOS_U[1] and OJOS_V[0] <= v <= OJOS_V[1]
+def flor(p, grupo, nombre, c):
+    """Florecita blanca de cuatro petalos con el centro amarillo, mirando al frente."""
+    x, y, z = c
+    p.caja(grupo, f"{nombre}_centro", (x - 0.25, y - 0.25, z - 0.3), (x + 0.25, y + 0.25, z + 0.05), color(POLEN),
+           dens=D, luz=False)
+    for i, (dx, dy) in enumerate(((0.5, 0.0), (-0.5, 0.0), (0.0, 0.5), (0.0, -0.5))):
+        p.caja(grupo, f"{nombre}_petalo{i}", (x + dx - 0.28, y + dy - 0.28, z - 0.2), (x + dx + 0.28, y + dy + 0.28, z),
+               color(PETALO), dens=D, luz=False)
 
 
-def cara(t):
-    """El frente de la cabeza, que solo se ve por los huecos de la placa: los ojos blancos con la pupila abajo y
-    hacia adentro (se miran entre si)."""
-    u, v = -t.x, t.y - CABEZA_Y
-    if en_ojo(u, v):
-        if abs(u) <= OJOS_U[0] + 1.25 and v <= OJOS_V[0] + 1.65:
-            return hex_(PUPILA)
-        return hex_(OJO)
-    return CABEZA_TEX(t)
+def farol_pintor(t):
+    """El vidrio encendido con el marco oscuro en las orillas de cada cara."""
+    a = (t.x - t.f[0]) / max(1e-6, t.t[0] - t.f[0]) if t.cara in ("north", "south") else \
+        (t.z - t.f[2]) / max(1e-6, t.t[2] - t.f[2])
+    b = (t.y - t.f[1]) / max(1e-6, t.t[1] - t.f[1])
+    if t.cara in ("up", "down") or min(a, 1 - a) < 0.18 or min(b, 1 - b) < 0.12:
+        return hex_(MADERA["s"])
+    return hex_(FUEGO)
 
 
-CABEZA_TEX = voxel(NARANJA, claro=0.14, alto=(CABEZA_Y, TOPE))   # mas clara y calida; la placa y el cubo, iguales
+def astas(p):
+    madera, musgo = voxel(MADERA, 0.05), voxel(MUSGO, 0.1)
+    k = 0
+    for s in (1, -1):
+        g = "Head/astas"
+        for a, b, grueso in RAMAS:
+            for c in _bloques_rama(a, b, grueso):
+                x, y, z = s * c[0], c[1], c[2]
+                h = grueso / 2
+                pintor = musgo if _azar(k * 1.7) > 0.62 else madera
+                p.caja(g, f"rama{k}", (x - h, y - h, z - h), (x + h, y + h, z + h), pintor, dens=D)
+                if _azar(k * 2.3) > 0.7:                       # musgo encima
+                    p.caja(g, f"musgo{k}", (x - h * 0.8, y + h, z - h * 0.8), (x + h * 0.6, y + h + 0.5, z + h * 0.6),
+                           musgo, dens=D)
+                k += 1
+        for i, (x, y, z) in enumerate(FLORES):
+            flor(p, "Head/flores", f"flor{s}_{i}", (s * x, y, z))
+        # el farol colgando de la punta de la rama
+        fx, fy = FAROL
+        x0, x1 = FAROL_ALTO
+        p.caja(g, f"cadena{s}", (s * fx - 0.15, x1, -0.15), (s * fx + 0.15, fy, 0.15), color(MADERA["s"]), dens=D)
+        p.caja(g, f"techo_farol{s}", (s * fx - 1.0, x1, -1.0), (s * fx + 1.0, x1 + 0.6, 1.0), madera, dens=D)
+        p.caja(g, f"farol{s}", (s * fx - 0.8, x0, -0.8), (s * fx + 0.8, x1, 0.8), farol_pintor, dens=D, luz=False)
+        p.caja(g, f"base_farol{s}", (s * fx - 0.9, x0 - 0.4, -0.9), (s * fx + 0.9, x0, 0.9), madera, dens=D)
 
 
-def cabeza(t):
-    return cara(t) if t.cara == "north" else CABEZA_TEX(t)
+# ---------------------------------------------------------------- el cuerpo y la ropa
 
+def torso_pintor():
+    """Adelante: la camisa crema de un lado y la tunica cafe del otro, la pechera de cuero con su emblema dorado; el
+    cinturon de cuero con la hebilla dorada; los otros lados, tunica."""
+    crema, cafe, cuero = voxel(TELA, 0.05), voxel(TUNICA, 0.05), voxel(CUERO, 0.05)
 
-def placa(t):
-    """La placa de la cara (0.3 de grueso) con dos huecos: por ahi se ven los ojos, hundidos."""
-    if t.cara in ("north", "south") and en_ojo(-t.x, t.y - CABEZA_Y):
-        return TRANSPARENTE
-    return CABEZA_TEX(t)
-
-
-CORONA_Y = (TOPE - 3.1, TOPE + 0.8)     # la corona tapa la cabeza hasta arriba de los ojos
-
-
-def corona(t):
-    """Banda magenta de bloques con una fila de rombos claros y el borde de abajo oscuro."""
-    if t.cara not in ("up", "down"):
-        u = t.x if t.cara in ("north", "south") else t.z
-        y0, y1 = CORONA_Y
-        v = t.y - (y0 + y1) / 2 - 0.2
-        if abs((u % 1.8) - 0.9) + abs(v) * 1.1 < 0.6:
-            return hex_(ROSA["l"])
-        if t.y < y0 + 0.5:
-            return hex_(MAGENTA["s"])
-    return voxel(MAGENTA)(t)
-
-
-def cristal(rampa):
-    """Cristal facetado: las caras que miran a la izquierda de quien mira y arriba con luz, las de atras oscuras,
-    y una veta clara a lo largo de cada cara."""
     def p(t):
-        n = t.n
-        if n[1] > 0.55:
-            return hex_(rampa["h"])
-        if n[2] > 0.5:
-            return hex_(rampa["s"])
-        if n[0] > 0.3:
-            return hex_(rampa["l"])
-        return hex_(rampa["b"])
+        if 14.8 <= t.y <= 16.0:                                 # el cinturon
+            if t.cara == "north" and abs(t.x) < 0.6:
+                return hex_(ORO)
+            return cuero(t)
+        if t.cara != "north":
+            return cafe(t)
+        if abs(t.x) < 1.6 and 18.8 <= t.y <= 23.2:              # la pechera con el emblema
+            u, v = t.x, t.y - 21.0
+            if (abs(u) < 0.2 and -1.6 < v < 1.6) or abs(abs(u) - 0.25 * (v + 1.6)) < 0.18 and v < 0.8:
+                return hex_(ORO)
+            return cuero(t)
+        return crema(t) if t.x > 0 else cafe(t)
     return p
 
 
-def pieza_cristal(x, y, z, r, alto, giro, lados=6):
-    """Cristal: prisma de 'lados' con punta, de radio r y alto 'alto', inclinado 'giro' desde su base."""
-    cuerpo = geo.loft([(y, x, z, r, r), (y + alto * 0.68, x, z, r * 0.92, r * 0.92)], lados, 30, tapa_arriba=False)
-    tope = geo.piramide(geo.anillo(x, y + alto * 0.68, z, r * 0.92, r * 0.92, lados, 30), (x, y + alto, z), tapa=False)
-    return geo.girar(geo.unir(cuerpo, tope), giro, (x, y, z))
+def manchas_de_musgo(base, rampa=MUSGO, umbral=0.68):
+    """Una textura con manchas de musgo (en bloques de medio px)."""
+    tela, musgo = voxel(base, 0.05), voxel(rampa, 0.1)
 
-
-def falda_solapa(t):
-    """Solapa de la falda: rosa de bloques, mas oscura abajo."""
-    return voxel(ROSA)(t)
-
-
-def babero(t):
-    """Cuello amarillo en T, de bloques: una barra arriba y una lengueta cuadrada que baja al centro."""
-    u, v = t.x, t.y - (CABEZA_Y - 0.8)
-    if v > 0 or (abs(u) < 0.75 and v > -1.5):
-        return voxel(AMARILLO)(t)
-    return TRANSPARENTE
-
-
-def bota(t):
-    if t.y < 0.55:
-        return hex_(BOTA["l"] if t.cara != "down" else BOTA["s"])
-    return voxel(BOTA)(t)
-
-
-def baston(t):
-    """Baston gris con dos bandas doradas."""
-    if PIERNAS + 2.5 < t.y < PIERNAS + 3.0 or PIERNAS + 8.3 < t.y < PIERNAS + 8.8:
-        return hex_(AMARILLO["b"])
-    return hex_(GRIS["l"] if t.cara == "up" else GRIS["b"])
-
-
-def estrella(cx, cy, r_ext, r_int):
-    """Estrella de 5 puntas en el plano XY (antihoraria)."""
-    pts = []
-    for k in range(10):
-        a = math.radians(90 + 36 * k)
-        r = r_ext if k % 2 == 0 else r_int
-        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
-    return pts
-
-
-def pintor_estrella(cx, cy):
     def p(t):
-        if abs(t.n[2]) > 0.7:
-            return hex_(MORADO["l"] if math.hypot(t.x - cx, t.y - cy) < 0.75 else MORADO["b"])
-        return hex_(MORADO["s"])
+        u = t.x if t.cara in ("north", "south", "up", "down") else t.z
+        w = t.z if t.cara in ("up", "down") else t.y
+        if _azar(math.floor(u * 2) * 5.3 + math.floor(w * 2) * 2.9) > umbral:
+            return musgo(t)
+        return tela(t)
     return p
 
 
-def tubo(p0, p1, r0, r1, lados=6):
-    """Cono truncado de 'lados' caras que va de p0 (radio r0) a p1 (radio r1), en cualquier direccion."""
-    d = [p1[i] - p0[i] for i in range(3)]
-    largo = math.sqrt(sum(c * c for c in d))
-    vs, cs = geo.loft([(0.0, 0, 0, r0, r0), (largo, 0, 0, r1, r1)], lados, 30)
-    ux, uy, uz = (c / largo for c in d)
-    eje = (uz, 0.0, -ux)                                       # (0, 1, 0) x u: el giro que lleva +Y a la direccion
-    seno = math.sqrt(eje[0] ** 2 + eje[2] ** 2)
-    coseno = uy
-    if seno > 1e-9:
-        kx, kz = eje[0] / seno, eje[2] / seno
-
-        def girar(v):                                          # Rodrigues alrededor de (kx, 0, kz)
-            x, y, z = v
-            kv = kx * x + kz * z
-            cx, cy, cz = -kz * y, kz * x - kx * z, kx * y        # k x v
-            return (x * coseno + cx * seno + kx * kv * (1 - coseno), y * coseno + cy * seno,
-                    z * coseno + cz * seno + kz * kv * (1 - coseno))
-        vs = [girar(v) for v in vs]
-    return [(x + p0[0], y + p0[1], z + p0[2]) for x, y, z in vs], cs
+def arbol_dorado(x, y):
+    """El arbol dorado de la espalda de la capa: tronco, ramas en V, hojitas, y abajo el galon con su rombo."""
+    if abs(x) < 0.25 and 12.5 < y < 21.5:
+        return True
+    for i, yb in enumerate((15.2, 16.6, 18.0, 19.4, 20.6)):
+        largo = 2.6 - 0.45 * i
+        for s in (1, -1):
+            if _a_segmento((x, y), (0.0, yb), (s * largo, yb + 1.0)) < 0.22:
+                return True
+            if abs(x - s * (largo + 0.25)) < 0.25 and abs(y - (yb + 1.25)) < 0.25:
+                return True
+    if abs(x) < 3.8 and abs(y - (9.2 + 0.45 * abs(x))) < 0.22:
+        return True
+    return 0.3 < abs(x) + abs(y - 10.4) * 0.8 < 0.55
 
 
-def punta_bufon(base, s, alto=2.4, largo=3.6):
-    """Punta de bufon de atras: sale de arriba de la corona (un poco antes de la esquina), sube, y a mitad de camino se
-    quiebra y baja inclinada hacia afuera. s = 1 a la derecha del personaje, -1 a la izquierda. Devuelve
-    (mallas, punta)."""
-    codo = (base[0] + s * 0.7, base[1] + alto, base[2] + 0.7)
-    fin = (codo[0] + s * largo * 0.72, codo[1] - largo * 0.55, codo[2] + largo * 0.42)
-    subida = tubo(base, codo, 1.15, 0.85)
-    bajada = tubo(codo, fin, 0.85, 0.22)
-    union = geo.bipiramide(codo, 0.9, 0.55, 0.55, lados=6, giro=30)   # tapa la junta del quiebre
-    return geo.unir(subida, bajada, union), fin
+def capa_espalda():
+    tela, oro = manchas_de_musgo(CAPA, umbral=0.88), hex_(ORO)
+    return lambda t: oro if t.cara == "south" and arbol_dorado(t.x, t.y) else tela(t)
+
+
+def enredaderas(p, orillas, semilla):
+    """Tiras de musgo que cuelgan de cada orilla: ((x0, z0), (x1, z1), y, cuantas)."""
+    musgo = voxel(MUSGO, 0.08)
+    k = 0
+    for (x0, z0), (x1, z1), y, n in orillas:
+        for i in range(n):
+            f = (i + 0.5) / n
+            x, z = x0 + (x1 - x0) * f, z0 + (z1 - z0) * f
+            largo = 1.2 + 3.6 * _azar(semilla + k * 3.1)
+            w = 0.55 + 0.35 * _azar(semilla + k * 7.7)
+            p.caja("Body/enredaderas", f"enredadera{semilla}_{k}", (x - w / 2, y - largo, z - w / 2),
+                   (x + w / 2, y + 0.3, z + w / 2), musgo, dens=D)
+            k += 1
 
 
 def construir():
-    p = Personaje("revolthir", altura=27, cabeza=10, torso=(7.5, 8, 4.5), brazo=(2.6, 2.6), pierna=(3.4, 3.4))
-    C, T, L = p.cuello, p.tope, p.lh                           # 17, 27, 9
-    assert (C, T, L) == (CABEZA_Y, TOPE, PIERNAS)
-
-    # ================================================================ CABEZA-CUBO con OREJITAS
-    # el cubo empieza HUNDIDO mas atras y la placa queda al ras del frente: no se despega ni se ve una lamina aparte
-    p.caja("Head/cabeza", "cabeza", (-5, C, -5 + HUNDIDO), (5, T, 5), cabeza, dens=D)
-    p.caja("Head/cabeza", "placa", (-5, C, -5), (5, CORONA_Y[0] + 0.1, -5 + HUNDIDO - 0.02), placa, dens=D)
-    z = -5.0
-    for k, (u0, u1, v0, v1) in enumerate(BIGOTE):               # en bloques, negro parejo
-        p.caja("Head/cabeza", f"bigote{k}", (-u1, C + v0, z - 0.35), (-u0, C + v1, z), color(PUPILA), dens=D,
-               luz=False)
-    for s in (1, -1):
-        x1, x2 = sorted((s * 5.0, s * 5.7))
-        p.caja("Head/cabeza", f"oreja{s}", (x1, C + 3.6, -0.4), (x2, C + 5.6, 1.2), voxel(OREJA), dens=D)
-
-    # ================================================================ CORONA baja y CRISTALES encima
-    g = "Head/corona"
-    y0, y1 = CORONA_Y
-    p.caja(g, "corona", (-5.45, y0, -5.45), (5.45, y1, 5.45), corona, dens=D)
-    cristales = [((-3.6, -2.4), 1.15, 4.6, (-8, 0, 16), VERDE), ((-1.2, -3.1), 1.0, 3.4, (-14, 0, 6), ROSA),
-                 ((1.3, -2.6), 1.25, 5.0, (-10, 0, -8), FUEGO), ((3.7, -1.6), 1.0, 3.6, (-6, 0, -20), CELESTE),
-                 ((-2.6, 1.0), 1.3, 5.6, (6, 0, 10), MORADO), ((0.4, 0.2), 1.1, 6.2, (2, 0, -2), VERDE),
-                 ((2.8, 1.8), 1.2, 4.4, (10, 0, -14), ROSA), ((-4.0, 3.4), 0.95, 3.2, (14, 0, 20), AMARILLO),
-                 ((-0.6, 3.6), 1.0, 3.8, (16, 0, 0), CELESTE), ((4.1, 3.6), 0.9, 3.0, (16, 0, -18), FUEGO)]
-    for k, ((x, z), r, alto, giro, col) in enumerate(cristales):
-        p.malla(g, f"cristal{k}", pieza_cristal(x, y1 - 0.3, z, r, alto, giro), cristal(col), dens=D)
-    # puntas de bufon atras: salen de arriba de la corona antes de las esquinas, suben y se quiebran hacia abajo
-    malla, fin = punta_bufon((4.0, y1 - 0.2, 3.9), 1)
-    p.malla(g, "punta_der", malla, voxel(VERDE), dens=D)
-    p.malla(g, "cascabel_der", geo.bipiramide((fin[0], fin[1] - 1.1, fin[2]), 1.2, 1.1, 1.3, lados=6, giro=30),
-            cristal(CELESTE), dens=D)
-    malla, fin = punta_bufon((-4.0, y1 - 0.2, 3.9), -1, alto=2.0, largo=3.0)
-    p.malla(g, "punta_izq", malla, voxel(ROSA), dens=D)
-    cas = (fin[0], fin[1] - 0.9, fin[2])
-    p.malla(g, "cascabel_izq", geo.bipiramide(cas, 0.95, 0.9, 1.0, lados=6, giro=30), cristal(ROSA), dens=D)
-    p.malla(g, "gotita", geo.bipiramide((cas[0], cas[1] - 1.5, cas[2]), 0.35, 0.35, 0.6, lados=4, giro=45),
-            cristal(AMARILLO), dens=D)
-
-    # ================================================================ TORSO delgado, CUELLO en punta y FALDA de solapas
-    p.caja("Body/torso", "torso", (-3.75, L, -2.25), (3.75, C, 2.25), voxel(ROJO), dens=D)
-    p.caja("Body/torso", "cuello", (-1.5, C - 2.5, -2.45), (1.5, C - 0.05, -2.25), babero, dens=D)
-    # solapas: (centro en el borde de la cintura, largo, hacia donde se abren); se abren un poco hacia afuera
-    solapas = []
-    for k, x in enumerate((-3.0, -1.0, 1.0, 3.0)):
-        # rx > 0 lleva la punta de abajo hacia adelante; rz > 0, hacia +X
-        solapas.append(((x, -2.45), (1.9, 0.25), 3.9 + 0.7 * (k % 2), (20, 0, 5 * x)))       # adelante
-        solapas.append(((x, 2.45), (1.9, 0.25), 4.4 - 0.6 * (k % 2), (-20, 0, 5 * x)))       # atras
-    for s in (1, -1):
-        solapas.append(((s * 3.95, -0.9), (0.25, 1.9), 4.2, (0, 0, 22 * s)))                 # costados
-        solapas.append(((s * 3.95, 0.9), (0.25, 1.9), 3.6, (0, 0, 22 * s)))
-    for k, ((x, z), (w, d), largo, giro) in enumerate(solapas):
-        arriba = L + 1.2
-        p.caja("Body/falda", f"solapa{k}", (x - w / 2, arriba - largo, z - d / 2), (x + w / 2, arriba, z + d / 2),
-               voxel(ROSA if k % 3 else MAGENTA), rot=giro, piv=(x, arriba, z), dens=D)
-
-    # ================================================================ BRAZOS: mangas amarillas y punos grandes
+    p = Personaje("revolthir", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
+    musgo, capa = manchas_de_musgo(MUSGO_OSC, umbral=0.7), manchas_de_musgo(CAPA, umbral=0.8)
+    # la cabeza con la mascara y la capucha de musgo (sin cara adelante)
+    p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=D)
+    p.caja("Head/capucha", "capucha", (-4.6, 22.6, -4.6), (4.6, 32.7, 4.6), musgo, dens=D,
+           caras=("south", "east", "west", "up"))
+    astas(p)
+    # el torso, los brazos y las piernas (cuerpo de Steve)
+    p.caja("Body/cuerpo", "torso", (-4, 12, -2), (4, 24, 2), torso_pintor(), dens=D)
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        x1, x2 = sorted((s * 3.75, s * 6.35))
-        g1, g2 = sorted((s * 3.5, s * 6.6))
-        p.caja(f"{hueso}/brazo", "manga", (x1, L + 2.9, -1.3), (x2, C, 1.3), voxel(AMARILLO), dens=D)
-        p.caja(f"{hueso}/brazo", "puno", (g1, L - 0.3, -1.55), (g2, L + 3.0, 1.55), voxel(GUANTE), dens=D)
-
-    # ================================================================ VARITA de estrella en la mano izquierda
-    g = "LeftArm/varita"
-    piv = (-5.05, L + 1.4, -2.05)
-    giro = dict(rot=(0, 0, 12), piv=piv)
-    p.caja(g, "baston", (-5.3, L - 1.4, -2.3), (-4.8, L + 10.5, -1.8), baston, dens=D, **giro)
-    cx, cy = -5.05, L + 12.3
-    malla = geo.extruir(estrella(cx, cy, 2.1, 0.95), -2.45, -1.65)
-    p.malla(g, "estrella", geo.girar(malla, (0, 0, 12), piv), pintor_estrella(cx, cy), dens=D)
-
-    # ================================================================ PIERNAS verdes y BOTAS en bloque
-    for s in (1, -1):
+        x1, x2 = sorted((s * 4, s * 8))
+        manga = manchas_de_musgo(TUNICA if s > 0 else TELA, umbral=0.86)
+        p.caja(f"{hueso}/brazo", "manga", (x1, 13.2, -2), (x2, 24, 2), manga, dens=D)
+        p.caja(f"{hueso}/brazo", "guante", (x1 + s * 0.05, 12, -1.95), (x2 - s * 0.05, 13.2, 1.95), voxel(CUERO), dens=D)
         hueso = "RightLeg" if s > 0 else "LeftLeg"
-        x1, x2 = sorted((s * 0.15, s * 3.55))
-        b1, b2 = sorted((s * 0.0, s * 3.75))
-        p.caja(f"{hueso}/pierna", "pierna", (x1, 2.6, -1.7), (x2, L, 1.7), voxel(VERDE), dens=D)
-        p.caja(f"{hueso}/bota", "bota", (b1, 0.0, -2.5), (b2, 2.8, 2.0), bota, dens=D)
+        x1, x2 = sorted((0, s * 4))
+        p.caja(f"{hueso}/pierna", "pierna", (x1, 3.4, -2), (x2, 12, 2), voxel(VERDE, 0.05), dens=D)
+        a, b = sorted((s * -0.2, s * 4.2))
+        p.caja(f"{hueso}/bota", "bota", (a, 0.0, -2.4), (b, 3.4, 2.3), voxel(MADERA), dens=D)
+        a, b = sorted((s * -0.3, s * 4.3))
+        p.caja(f"{hueso}/bota", "pelaje", (a, 3.0, -2.5), (b, 4.2, 2.4), voxel(TELA, 0.15), dens=D)
+        # la falda partida: blanca de un lado y verde oscuro del otro
+        a, b = sorted((s * 0.05, s * 4.35))
+        falda = manchas_de_musgo(TELA if s > 0 else VERDE, umbral=0.9)
+        p.caja("Body/ropa", f"falda{s}", (a, 5.6, -2.4), (b, 14.9, 2.4), falda, dens=D)
+    # los frasquitos colgando del cinturon
+    for i, (x, abajo) in enumerate(((-1.3, 11.0), (0.9, 12.2), (2.3, 10.2))):
+        p.caja("Body/ropa", f"cordon{i}", (x - 0.08, abajo, -2.56), (x + 0.08, 14.9, -2.44), color(CUERO["b"]), dens=D)
+        p.caja("Body/ropa", f"frasco{i}", (x - 0.4, abajo - 1.2, -2.95), (x + 0.4, abajo, -2.4), color(VIDRIO), dens=D,
+               luz=False)
+        p.caja("Body/ropa", f"corcho{i}", (x - 0.22, abajo, -2.82), (x + 0.22, abajo + 0.3, -2.52), color(CORCHO), dens=D)
+    # la capa: la esclavina de musgo, los lados junto a los brazos y la espalda con el arbol dorado
+    p.caja("Body/capa", "esclavina", (-8.7, 20.8, -2.7), (8.7, 24.9, 3.2), capa, dens=D)
+    p.caja("Body/capa", "espalda", (-5.0, 5.0, 2.2), (5.0, 24.6, 3.1), capa_espalda(), dens=D)
+    for s in (1, -1):
+        a, b = sorted((s * 8.1, s * 8.8))
+        p.caja("Body/capa", f"lado{s}", (a, 5.6, -1.6), (b, 21.0, 3.0), capa, dens=D)
+    # los jirones de tela blanca abajo de la capa
+    for i in range(10):
+        x = -4.6 + i * 0.95
+        largo = 0.9 + 1.8 * _azar(i * 4.1)
+        p.caja("Body/capa", f"jiron{i}", (x, 5.0 - largo, 2.35), (x + 0.8, 5.2, 2.95), voxel(TELA, 0.1), dens=D)
+    # las enredaderas: de la capucha a los lados de la cara, de la esclavina y de los lados de la capa
+    enredaderas(p, (((-4.6, -4.4), (-4.6, 2.0), 25.0, 4), ((4.6, -4.4), (4.6, 2.0), 25.0, 4),
+                    ((-8.7, -2.8), (8.7, -2.8), 20.9, 14), ((-8.7, 3.3), (8.7, 3.3), 20.9, 10),
+                    ((-8.9, -1.6), (-8.9, 3.0), 12.0, 3), ((8.9, -1.6), (8.9, 3.0), 12.0, 3),
+                    ((-5.0, 3.2), (5.0, 3.2), 16.0, 4)), 11)
     return p
