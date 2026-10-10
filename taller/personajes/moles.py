@@ -124,7 +124,7 @@ def liso(col):
 
 # el pelo: por ahora UNA sola pieza atras de la cabeza, con la silueta del boceto: angosta arriba (del ancho de la
 # cabeza), los costados que se abren en curva hacia abajo y la base plana con las puntas un poco hacia afuera.
-PELO_ATRAS = (5.0, 8.4, 21.8, 9.6, (5.0, 6.2))          # arriba y abajo sobresale de la nuca         # medio ancho arriba y abajo, y de arriba y de abajo, z
+PELO_ATRAS = (5.0, 8.4, 21.8, 9.6, (5.0, 6.2))   # medio ancho arriba y abajo, y de arriba y abajo (sobresale de la nuca), z
 
 
 def pelo(p, C, T):
