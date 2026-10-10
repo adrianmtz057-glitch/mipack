@@ -290,7 +290,7 @@ CENTRO_CABEZA = (0.0, 16.0, 0.0)
 def capucha_pintor():
     """Crema por fuera y el forro negro por dentro: cada pieza es 2D (dos caras), la que mira hacia la cabeza es el
     forro."""
-    crema, forro = faceta(paleta=CREMA, grano=0), faceta(paleta=FORRO, grano=0)
+    crema, forro = faceta(paleta=CREMA, grano=0, simetrico=True), faceta(paleta=FORRO, grano=0, simetrico=True)
 
     def pintor(t):
         hacia_fuera = _punto(t.n, _resta((t.x, t.y, t.z), CENTRO_CABEZA))

@@ -149,16 +149,19 @@ def _suave(niveles, pasos=3):
     return out
 
 
-def faceta(sesgo=0.0, paleta=None, grano=0.12, lavado=0.0):
+def faceta(sesgo=0.0, paleta=None, grano=0.12, lavado=0.0, simetrico=False):
     """Pintor low-poly (pelo, ropa, orejas): cada cara de un tono segun hacia donde mira (arriba claro, hacia abajo
     oscuro, y en cada pliegue una cara clara y la otra oscura) y un poquito distinta de la de junto, para que las caras
     se lean como poligonos. Todas las piezas del pelo usan el mismo, asi se ven como una sola cabellera.
     grano: la textura de pixeles (ondas suaves y una matriz de Bayer, en bloques de un texel, como voxel): mezcla
-    cada tono con el de junto. lavado: manchas grandes mas claras y mas oscuras (tela deslavada)."""
+    cada tono con el de junto. lavado: manchas grandes mas claras y mas oscuras (tela deslavada). simetrico: una cara
+    y su espejo (izquierda-derecha) salen del mismo tono."""
     import math
 
     def pintor(t):
         nx, ny, nz = t.n
+        if simetrico:
+            nx = abs(nx)
         # las dos caras de cada pliegue miran un poco a un lado y al otro: con sin(4 * angulo) una sale clara y la
         # otra oscura, igual en los dos costados, atras y adelante (no depende de un solo foco)
         h = math.hypot(nx, nz)
