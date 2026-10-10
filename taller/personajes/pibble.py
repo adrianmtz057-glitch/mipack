@@ -365,9 +365,65 @@ def liso(col):
     return lambda t: c
 
 
+# ---------------------------------------------------------------- el cuerpo
+
+# pachoncito, a escala de Minecraft: si un jugador (32 de alto, los ojos a ~26) estuviera enfrente, sus ojos le
+# llegarian al pecho. La cabeza y la capucha se hicieron con el cuello en 11.2 y suben hasta CUELLO_Y
+CUELLO_Y = 31.0
+CUERPO = ((0.34, "#121015"), (0.5, "#19161C"), (0.66, "#211D24"), (9.0, "#2B262E"))
+# el torso, de huevo con la panza hacia enfrente: (y, medio ancho, medio hondo adelante, medio hondo atras)
+TORSO = ((8.5, 4.5, 3.8, 3.6), (10.0, 6.4, 5.4, 5.0), (13.0, 7.4, 6.4, 5.8), (17.0, 7.7, 6.6, 6.0),
+         (21.0, 7.3, 6.1, 5.7), (25.0, 6.5, 5.2, 5.0), (28.0, 5.6, 4.4, 4.3), (30.0, 4.2, 3.4, 3.4),
+         (31.6, 2.8, 2.6, 2.6))
+# las piernas cortas y gorditas (la derecha; la izquierda en espejo), con el pie hacia enfrente:
+# (y, medio ancho, medio hondo, z del centro)
+PIERNA_X = 3.0
+PIERNA = ((0.0, 2.3, 3.1, -0.8), (1.4, 2.4, 3.1, -0.8), (2.3, 2.1, 2.3, -0.2), (5.0, 2.2, 2.3, 0.0),
+          (9.8, 2.5, 2.5, 0.0))
+# los brazos gorditos (el derecho), colgando por fuera de la panza: (x, y, z, radio) del hombro a la mano
+BRAZO = ((6.4, 28.2, 0.0, 1.9), (8.2, 24.0, -0.2, 2.2), (9.3, 19.5, -0.3, 2.15), (9.7, 16.0, -0.4, 2.3),
+         (9.7, 13.4, -0.4, 2.1), (9.6, 12.2, -0.4, 1.3))
+
+
+def _anillo_oval(cx, y, cz, mx, mzf, mzb, lados=16):
+    """Anillo ovalado antihorario visto desde arriba, mas hondo adelante (mzf) que atras (mzb)."""
+    pts = []
+    for k in range(lados):
+        a = 2 * math.pi * k / lados
+        pts.append((cx + mx * math.cos(a), y, cz - (mzf if math.sin(a) > 0 else mzb) * math.sin(a)))
+    return pts
+
+
+def _subir_cabeza(p, dy):
+    """Sube dy las piezas de la cabeza (cabeza, ojos, capucha) sin mover su pivote (ya esta en el cuello); cada una se
+    sigue pintando igual (su pintor la ve donde estaba)."""
+    from .bashi import _bajar
+    for m in p.m.mallas:
+        if m.hueso.split("/")[0] == "Head":
+            m.vertices = [(x, y + dy, z) for x, y, z in m.vertices]
+            m.grupos = [(_bajar(pin, dy), poli) for pin, poli in m.grupos]
+
+
+def cuerpo(p):
+    negro = faceta(paleta=CUERPO, grano=0.06, simetrico=True)
+    torso = geo.loft_puntos([_anillo_oval(0.0, y, 0.0, mx, mzf, mzb) for y, mx, mzf, mzb in TORSO])
+    p.malla("Body/cuerpo", "torso", torso, negro, dens=4)
+    pierna = geo.loft_puntos([_anillo_oval(PIERNA_X, y, cz, mx, mz, mz, 12) for y, mx, mz, cz in PIERNA])
+    brazo = geo.loft_puntos([_anillo_oval(x, y, z, r, r, r, 12) for x, y, z, r in BRAZO][::-1])
+    for s in (1, -1):
+        pierna_s, brazo_s = (pierna, brazo) if s > 0 else (geo.espejo_x(pierna), geo.espejo_x(brazo))
+        p.malla(f"{'RightLeg' if s > 0 else 'LeftLeg'}/pierna", "pierna", pierna_s, negro, dens=4)
+        p.malla(f"{'RightArm' if s > 0 else 'LeftArm'}/brazo", "brazo", brazo_s, negro, dens=4)
+
+
 def construir():
-    p = Personaje("pibble", altura=21, cabeza=10, torso=(5.6, 6, 3.2), brazo=(2.0, 2.0), pierna=(2.4, 2.4))
+    p = Personaje("pibble", altura=42, cabeza=11, torso=(14, 22, 11), brazo=(4.4, 4.4), pierna=(5, 5))
     p.malla("Head/cabeza", "cabeza", cabeza_malla(), liso(VACIO), dens=4, luz=False)   # el vacio no se sombrea
     ojos(p)
     capucha(p)
+    _subir_cabeza(p, CUELLO_Y - CABEZA[0][0])
+    cuerpo(p)
+    hombro, cadera = BRAZO[0], PIERNA_X
+    p.m.pivotes.update({"RightArm": (hombro[0], hombro[1], 0.0), "LeftArm": (-hombro[0], hombro[1], 0.0),
+                        "RightLeg": (cadera, PIERNA[-1][0], 0.0), "LeftLeg": (-cadera, PIERNA[-1][0], 0.0)})
     return p
