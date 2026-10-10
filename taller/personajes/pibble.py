@@ -8,8 +8,8 @@ frente redonda; toda de vacio negro, con los ojos de almendra crema (piezas con 
 cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al centro de la frente.
 La capucha, paso a paso: por ahora los dos paneles de enfrente, unidos por la punta en la frente: doblados hacia la
 cabeza, la parte de abajo inclinada hacia enfrente, la esquina de arriba alargada hacia arriba, y el hundido hecho con
-paneles 2D en capas, muy cerca de la cara sin tocarla; y el cuadrado horizontal de arriba que sale de la punta
-hacia atras.
+paneles 2D en capas y curvado hacia adentro, cortados a lo largo con la mitad de abajo hundida, muy cerca de la cara
+sin tocarla; y el cuadrado horizontal de arriba que sale de la punta hacia atras.
 """
 
 import math
@@ -104,6 +104,8 @@ ALARGA = 2.5                                             # cuanto se alargan las
 PUNTA_ARRIBA = 4.0                                       # cuanto se alarga hacia arriba la esquina de arriba
 CAPAS = ((0.5, 0.0, 0.0), (0.32, 0.15, -0.1), (None, 0.3, -0.2))
 HOLGURA = 0.1                                            # lo mas cerca que pasan de la cara, sin tocarla
+HUNDE_MITAD = 0.35                                       # la mitad de abajo (cortada a lo largo) se hunde esto
+CURVA = 0.6                                              # el hundido se curva hacia adentro: lo mas hondo, en la orilla
 # el cuadrado de arriba: horizontal, con la esquina de enfrente en la punta de los triangulos y hacia atras; su
 # diagonal de enfrente a atras
 DIAGONAL_CUADRADO = 9.6
@@ -174,7 +176,7 @@ def _paneles(a, b, c, estorbos):
     largo = math.hypot(lx, ly)
     punta = (b1[0] + lx / largo * PUNTA_ARRIBA, b1[1] + ly / largo * PUNTA_ARRIBA)
     mitad = ((t0[0] + b1[0]) / 2, (t0[1] + b1[1]) / 2)
-    honda = max(z for _, z, _ in CAPAS)
+    honda = max(z for _, z, _ in CAPAS) + HUNDE_MITAD + CURVA
     recorre = 0.0
     for q in estorbos:
         d = _resta(q, a)
@@ -188,10 +190,27 @@ def _paneles(a, b, c, estorbos):
     (k0, z0, s0), (k1, z1, s1), (_, z2, s2) = CAPAS
     p, q1, q2 = hueco(k0)
     r, w1, w2 = hueco(k1)
-    capas = (([t0, mitad, punta, q1, p, q2, b2], z0, s0), ([q1, p, q2, w2, r, w1], z1, s1), ([r, w1, w2], z2, s2))
+    m = (mx, my)
+    eje = math.hypot(mx - p[0], my - p[1])
+
+    def curva(q):                                         # 0 en la punta del hundido, CURVA en la orilla de afuera
+        f = ((q[0] - p[0]) * (mx - p[0]) + (q[1] - p[1]) * (my - p[1])) / (eje * eje)
+        return CURVA * max(0.0, min(1.0, f)) ** 2
+
+    # (poligono, que tan atras, sesgo, si se curva): arriba del corte (de la punta al medio del lado de afuera) y
+    # abajo, hundida
+    piezas = [([t0, mitad, punta, q1, p], z0, s0, False), ([t0, p, q2, b2], z0 + HUNDE_MITAD, s0 - 0.06, False),
+              ([q1, p, r, w1], z1, s1, True), ([p, q2, w2, r], z1 + HUNDE_MITAD, s1 - 0.06, True),
+              ([r, w1, m], z2, s2, True), ([r, m, w2], z2 + HUNDE_MITAD, s2 - 0.06, True)]
     out = []
-    for pts, z, sesgo in capas:
-        out.append((_panel([tuple(a[i] + x * u[i] + y * v[i] + z * n[i] for i in range(3)) for x, y in pts]), sesgo))
+    for pts, z, sesgo, curvo in piezas:
+        en_3d = [tuple(a[i] + x * u[i] + y * v[i] + (z + (curva((x, y)) if curvo else 0.0)) * n[i] for i in range(3))
+                 for x, y in pts]
+        if curvo:                                         # en triangulos, asi cada cara queda plana aunque se curve
+            for i in range(1, len(en_3d) - 1):
+                out.append((_panel([en_3d[0], en_3d[i], en_3d[i + 1]]), sesgo))
+        else:
+            out.append((_panel(en_3d), sesgo))
     return out, a
 
 
