@@ -124,7 +124,7 @@ def liso(col):
 
 # el pelo: por ahora UNA sola pieza atras de la cabeza, con la silueta del boceto: angosta arriba (del ancho de la
 # cabeza), los costados que se abren en curva hacia abajo y la base plana con las puntas un poco hacia afuera.
-PELO_ATRAS = (5.0, 9.8, 21.0, 12.2, (5.0, 6.2))         # medio ancho arriba y abajo, y de arriba y de abajo, z
+PELO_ATRAS = (5.0, 8.4, 21.8, 9.6, (5.0, 6.2))          # arriba y abajo sobresale de la nuca         # medio ancho arriba y abajo, y de arriba y de abajo, z
 
 
 def pelo(p, C, T):
@@ -132,7 +132,7 @@ def pelo(p, C, T):
     from .. import malla as geo
     w0, w1, y0, y1, (z0, z1) = PELO_ATRAS
     n = 8
-    lado = [(w0 + (w1 - w0) * (i / n) ** 2.2, y0 - (y0 - y1) * i / n) for i in range(n + 1)]
+    lado = [(w0 + (w1 - w0) * (i / n) ** 1.4, y0 - (y0 - y1) * i / n) for i in range(n + 1)]
     perfil = lado[::-1] + [(-x, y) for x, y in lado]      # baja por un costado, cruza la base y sube por el otro
     p.malla("Head/pelo", "atras", geo.extruir(perfil, z0, z1), liso(PELO["b"]), dens=D)
 
