@@ -217,8 +217,9 @@ def _pliegue(k, n, nivel, y):
 
 
 def _adentro(y, w):
-    """Donde va el pelo por dentro: pegado al costado de la cabeza (abajo de la cabeza, solo un poco mas adentro)."""
-    return max(COSTADO, w - GROSOR_PELO) if y >= CUELLO else w - GROSOR_PELO
+    """Donde va el pelo por dentro: a la altura de la cabeza, pegado a su costado (el pelo es macizo hasta la cabeza,
+    sin hueco); abajo de la cabeza, solo un poco mas adentro que por fuera."""
+    return COSTADO if y >= CUELLO else w - GROSOR_PELO
 
 
 def _u_pelo(nivel, y, w, zb, zf):
