@@ -11,9 +11,9 @@ Lo que lleva, de adentro hacia afuera:
     se abomba) y la pupila cuadrada cian al medio. Encima, la ceja gris gruesa en bloque, levantada y chueca.
   OJO IZQUIERDO: chico, entrecerrado y mas alto que el grande, de picaro: blanco con el iris vino mirando de lado, un parpado de bloque que
     lo tapa a la mitad con la raya gruesa de las pestanas, la ojera abajo y la ceja gris baja y caida hacia adentro.
-  NARIZ delgada de bloque que sale casi un px, con el puente arriba.
-  SONRISA chueca y abierta que sube hacia su izquierda: adentro rojo oscuro con la lengua, la fila de dientes de
-    arriba, el labio marcado y las arrugas de la risa en las comisuras.
+  NARIZ delgada con su forma: nace fina en el puente entre los ojos y baja saliendo hasta la punta redondeada.
+  SONRISA chueca y cerrada (la boca cerrada se lee mejor en Minecraft): una raya que sube hacia su izquierda, con
+    esa comisura levantada y las arrugas de la risa.
   PELO gris revuelto en mechones de bloque (cajas, sin luz y sin sombras adentro): una capa pegada a los costados y
     a la nuca con las puntas disparejas, otra encima con mechones que se abren hacia afuera (mas locos a su
     derecha), copetes que salen de lado justo bajo el ala y mechones que caen sobre las esquinas de la frente.
@@ -48,13 +48,14 @@ LENTE = (0.25, 3.25, 32.75, 35.75)      # x0, x1, y0, y1 del ojo grande (3 x 3)
 LENTE_Z = (-4.175, -3.95)               # sale 0.175 de la cara
 CHAFLAN = 0.375                         # esquinas cortadas del lente
 BLANCO_Z = -4.25                        # el cuadro blanco sale un poco mas: el ojo se abomba
-NARIZ = ((-0.75, 32.0, -4.875), (-0.125, 33.75, -4.0))          # delgada: 5 texeles de ancho
-PUENTE = ((-0.625, 33.75, -4.375), (-0.25, 34.5, -4.0))
-PARPADO = ((-3.375, 34.75, -4.125), (-1.125, 35.25, -3.9))
+NARIZ_X = -0.4375                       # la nariz va entre los dos ojos, apenas hacia su izquierda
+NARIZ = ((32.0, 0.375, -4.7), (32.375, 0.375, -4.9), (32.875, 0.3125, -4.7), (33.75, 0.25, -4.35),
+         (34.5, 0.1875, -4.08))         # (y, medio ancho, z de la punta) de abajo (las fosas) al puente entre los ojos
+PARPADO = ((-3.0, 34.75, -4.125), (-1.25, 35.25, -3.9))
 CEJA_DER = ((0.0, 35.875, -4.625), (3.25, 36.5, -3.95), 8.0)      # sobre el ojo grande: levantada, la punta de afuera arriba
 CEJA_IZQ = ((-3.375, 35.5, -4.5), (-0.75, 36.25, -3.95), -7.0)   # sobre el ojo chico: baja y caida hacia adentro
 BOCA_IZQ, BOCA_DER = (-2.25, 1.375), (2.5, 2.0)                 # comisuras (u, v) en la cara: sube hacia su izquierda
-BOCA_HONDO = 0.875
+BOCA_CURVA = 0.3                        # cuanto baja al medio la boca cerrada
 OJO_CHICO = 12                          # texeles que sube el ojo chico (queda mas alto que el grande)
 
 
@@ -64,12 +65,15 @@ def _boca_arriba(u):
     return v0 + (u - u0) * (v1 - v0) / (u1 - u0)
 
 
-def _boca_abajo(u):
-    """Altura v del labio de abajo: una curva que baja al medio (mas honda un poco a su izquierda)."""
+def _boca_cerrada(u):
+    """Altura v de la boca cerrada: la raya chueca que baja un poco al medio (sonrie)."""
     (u0, _), (u1, _) = BOCA_IZQ, BOCA_DER
     medio, mitad = (u0 + u1) / 2 + 0.25, (u1 - u0) / 2
     q = max(0.0, 1.0 - ((u - medio) / mitad) ** 2)
-    return _boca_arriba(u) - BOCA_HONDO * q ** 0.6
+    return _boca_arriba(u) - BOCA_CURVA * q
+
+
+COMISURA = {(20, 17), (21, 18)}         # la punta de la sonrisa que sube, a la derecha de quien lo ve
 
 
 # texeles (i, j) de la cara (8 por px; i de izquierda a derecha de quien la ve, j desde la barbilla)
@@ -91,47 +95,33 @@ def cara(u, v):
         return PIEL["s2"]
     # --- el ojo chico (el parpado de bloque tapa la mitad de arriba); OJO_CHICO lo sube
     j -= OJO_CHICO
-    if 10 <= i <= 25 and 20 <= j <= 25:
-        if j == 20 and not 12 <= i <= 23:
+    if 11 <= i <= 22 and 21 <= j <= 25:
+        if j == 21 and not 12 <= i <= 21:
             return PIEL["s2"]
-        if 11 <= i <= 16:                                        # iris vino, mirando hacia la nariz
-            if 13 <= i <= 14 and 21 <= j <= 23:
+        if 12 <= i <= 16:                                        # iris vino, mirando hacia la nariz
+            if 13 <= i <= 14 and 22 <= j <= 24:
                 return "#2A0C18"                                 # pupila
-            if (i, j) == (15, 23):
+            if (i, j) == (15, 24):
                 return "#F4E8EC"                                 # brillito
-            if i in (11, 16) or j == 20:
+            if i in (12, 16) or j == 21:
                 return "#4A1428"
-            return "#7E2E50" if j >= 23 else "#9A4468"
-        if j == 25:
-            return "#BFB2A8"                                     # la sombra del parpado sobre el blanco
-        return "#EEE6DC" if i < 24 else "#D8CEC4"
-    if j == 19 and 11 <= i <= 24:
+            return "#7E2E50" if j >= 24 else "#9A4468"
+        return "#EEE6DC"
+    if j == 20 and 12 <= i <= 21:
         return PIEL["s2"]                                        # parpado de abajo
-    if j == 18 and 13 <= i <= 23:
-        return PIEL["s"]                                         # la ojera
-    if j == 26 and i in (9, 26):
+    if j == 26 and i in (10, 23):
         return PIEL["o"]                                         # las puntas de las pestanas
     j += OJO_CHICO
-    # --- la sonrisa
+    # --- la sonrisa cerrada y chueca: una raya de 2 texeles que sube hacia su izquierda y se curva al medio; la
+    # comisura de su izquierda se levanta (sonrisa de lado)
     ua = (i + 0.5) / 8
-    va = (j + 0.5) / 8
     (u0, _), (u1, _) = BOCA_IZQ, BOCA_DER
-    if u0 < ua < u1:
-        arriba, abajo = _boca_arriba(ua), _boca_abajo(ua)
-        if abajo <= va < arriba:
-            if arriba - va < 0.375 and u0 + 0.375 < ua < u1 - 0.375:
-                if i % 4 == 0:
-                    return "#5A1A1E"                             # entre diente y diente
-                return "#F2ECDE" if arriba - va < 0.25 else "#D6CCBA"
-            if va - abajo < 0.3 and abs(ua - 0.4) < 1.3:
-                return "#B04A46" if va - abajo >= 0.18 else "#9A3A3A"       # la lengua
-            return "#4A1216"
-        if arriba <= va < arriba + 0.125:
-            return PIEL["o"]                                     # el labio de arriba
-        if abajo - 0.125 <= va < abajo:
-            return PIEL["s2"]
-        if abajo - 0.25 <= va < abajo - 0.125:
-            return PIEL["l"]                                     # el brillo del labio de abajo
+    if u0 <= ua <= u1:
+        jl = math.floor(_boca_cerrada(ua) * 8)
+        if jl - 1 <= j <= jl:
+            return PIEL["o"]
+    if (i, j) in COMISURA:
+        return PIEL["o"]
     if (i, j) in ARRUGAS:
         return PIEL["s2"]
     return PIEL["b"]
@@ -218,22 +208,26 @@ def ojo_grande(p):
 
 
 # ---------------------------------------------------------------------------------------------- nariz, parpado y cejas
+def nariz_malla():
+    """La nariz con su forma: delgada, nace fina en el puente entre los ojos, baja saliendo hasta la punta
+    redondeada y abajo se ensancha apenas en las fosas."""
+    anillos = []
+    for y, w, zf in NARIZ:
+        x0, x1, zb = NARIZ_X - w, NARIZ_X + w, -3.95
+        anillos.append([(x1, y, zb), (x1, y, zf), (x0, y, zf), (x0, y, zb)])
+    return geo.loft_puntos(anillos)
+
+
 def nariz(t):
-    """La nariz de bloque, sombreada a mano: el frente claro con el canto de arriba mas claro y el de abajo en
-    sombra, su derecha (de cara a la luz) en base y su izquierda en sombra; abajo, las fosas."""
-    c = t.cara
-    if c == "north":
-        return hex_(PIEL["l"] if t.j == 0 else PIEL["s"] if t.fila_abajo == 0 else PIEL["m"])
-    if c == "up":
-        return hex_(PIEL["l"])
-    if c == "east":
-        return hex_(PIEL["b"] if t.fila_abajo > 0 else PIEL["s"])
-    if c == "west":
-        return hex_(PIEL["s"] if t.fila_abajo > 0 else PIEL["s2"])
-    if c == "down":
-        fosa = t.nombre == "nariz" and 1 <= t.j <= 3 and t.i in (1, 2, t.tw - 3, t.tw - 2)
-        return hex_(PIEL["o"] if fosa else PIEL["s2"])
-    return hex_(PIEL["s"])
+    """La nariz sin sombras, solo un tono por lado para que se lea: el frente un poco mas claro que la cara, los
+    costados un tono abajo y abajo las dos fosas."""
+    nx, ny, nz = t.n
+    if ny < -0.6:
+        fosa = abs(abs(t.x - NARIZ_X) - 0.19) < 0.07 and t.z < -4.3
+        return hex_(PIEL["o"] if fosa else PIEL["s"])
+    if abs(nx) > 0.6:
+        return hex_(PIEL["s"])
+    return hex_(PIEL["m"])
 
 
 def parpado(t):
@@ -263,8 +257,7 @@ def ceja(t):
 
 def facciones(p):
     g = f"{G}/cara"
-    p.caja(g, "nariz", *NARIZ, nariz, dens=DC, luz=False)
-    p.caja(g, "puente", *PUENTE, nariz, dens=DC, luz=False)
+    p.malla(g, "nariz", nariz_malla(), nariz, dens=DC)
     p.caja(g, "parpado", *PARPADO, parpado, dens=DC, luz=False)
     for nombre, (a, b, giro) in (("ceja_der", CEJA_DER), ("ceja_izq", CEJA_IZQ)):
         centro = tuple((a[k] + b[k]) / 2 for k in range(3))
