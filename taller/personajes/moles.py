@@ -633,25 +633,25 @@ def copo_luz(pintor, k=0):
     return pintar
 
 
-def _cola_puntos(pasos=4):
+def _cola_puntos(pasos=4, camino=CAMINO_COLA):
     out = []
-    for k in range(len(CAMINO_COLA) - 1):
-        a, b = CAMINO_COLA[k], CAMINO_COLA[k + 1]
+    for k in range(len(camino) - 1):
+        a, b = camino[k], camino[k + 1]
         for i in range(pasos):
             f = i / pasos
             out.append(tuple(a[j] + (b[j] - a[j]) * f for j in range(4)) + (k + f,))
-    return out + [CAMINO_COLA[-1] + (len(CAMINO_COLA) - 1,)]
+    return out + [camino[-1] + (len(camino) - 1,)]
 
 
-def cola(p):
+def cola(p, camino=CAMINO_COLA, base=COLA_RUBIA, punta=COLA_CREMA, corte=0.62):
     """Cola esponjosa de muchos cubos: en cada punto de la curva, un cubo grande del medio y seis copos alrededor, cada
-    uno con su tamano y su giro (un patron fijo que va rotando). Rubia en la base y crema en la punta. Sin luz
-    horneada: entre tantos cubos encimados la oclusion la ensucia."""
+    uno con su tamano y su giro (un patron fijo que va rotando). Rubia en la base y crema en la punta (otro personaje
+    puede dar su camino y sus colores). Sin luz horneada: entre tantos cubos encimados la oclusion la ensucia."""
     import math
-    pts = _cola_puntos()
-    total = len(CAMINO_COLA) - 1
+    pts = _cola_puntos(camino=camino)
+    total = len(camino) - 1
     for k, (x, y, z, r, f) in enumerate(pts):
-        pint = COLA_RUBIA if f / total < 0.62 else COLA_CREMA
+        pint = base if f / total < corte else punta
         lado = r * 1.25
         p.caja("Body/cola", f"cola{k}", (x - lado / 2, y - lado / 2, z - lado / 2),
                (x + lado / 2, y + lado / 2, z + lado / 2), copo_luz(pint),

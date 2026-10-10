@@ -385,13 +385,22 @@ BRAZO = ((6.4, 28.2, 0.0, 1.9), (8.2, 24.0, -0.2, 2.2), (9.3, 19.5, -0.3, 2.15),
          (9.7, 13.4, -0.4, 2.1), (9.6, 12.2, -0.4, 1.3))
 
 
-def _anillo_oval(cx, y, cz, mx, mzf, mzb, lados=16):
-    """Anillo ovalado antihorario visto desde arriba, mas hondo adelante (mzf) que atras (mzb)."""
-    pts = []
-    for k in range(lados):
-        a = 2 * math.pi * k / lados
-        pts.append((cx + mx * math.cos(a), y, cz - (mzf if math.sin(a) > 0 else mzb) * math.sin(a)))
-    return pts
+TEXTURA = False                                          # sin grano por ahora (para ver la forma)
+ESQUINA = 0.32                                           # cuanto de cada medio ancho se recorta en las esquinas
+
+
+def _anillo_oval(cx, y, cz, mx, mzf, mzb, lados=None):
+    """Anillo de caja con las esquinas recortadas (8 puntos, poco redondo, estilo Minecraft), antihorario visto desde
+    arriba (de +X hacia -Z); mas hondo adelante (mzf) que atras (mzb)."""
+    c = ESQUINA * min(mx, mzf, mzb)
+    return [(cx + mx, y, cz - mzf + c), (cx + mx - c, y, cz - mzf), (cx - mx + c, y, cz - mzf),
+            (cx - mx, y, cz - mzf + c), (cx - mx, y, cz + mzb - c), (cx - mx + c, y, cz + mzb),
+            (cx + mx - c, y, cz + mzb), (cx + mx, y, cz + mzb - c)]
+
+
+def tela(paleta, sesgo=0.0, grano=0.1):
+    """El pintor de la ropa y el cuerpo (un tono por cara; con grano solo si TEXTURA)."""
+    return faceta(sesgo, paleta, grano=grano if TEXTURA else 0.0, simetrico=True)
 
 
 def _subir_cabeza(p, dy):
@@ -405,7 +414,7 @@ def _subir_cabeza(p, dy):
 
 
 def cuerpo(p):
-    negro = faceta(paleta=CUERPO, grano=0.06, simetrico=True)
+    negro = tela(CUERPO, grano=0.06)
     torso = geo.loft_puntos([_anillo_oval(0.0, y, 0.0, mx, mzf, mzb) for y, mx, mzf, mzb in TORSO])
     p.malla("Body/cuerpo", "torso", torso, negro, dens=4)
     pierna = geo.loft_puntos([_anillo_oval(PIERNA_X, y, cz, mx, mz, mz, 12) for y, mx, mz, cz in PIERNA])
@@ -416,6 +425,162 @@ def cuerpo(p):
         p.malla(f"{'RightArm' if s > 0 else 'LeftArm'}/brazo", "brazo", brazo_s, negro, dens=4)
 
 
+# ---------------------------------------------------------------- la ropa
+
+# la bata abierta: crema, en A, abierta adelante del cuello hacia abajo (cada vez mas), con solapas negras y su filete
+# dorado, el borde de abajo dorado, el panel azul con runa atras y el forro negro. Cada nivel es una U abierta
+# adelante: (y, medio ancho, medio hondo adelante, medio hondo atras, medio ancho de la abertura)
+BATA = ((6.0, 9.3, 7.0, 7.2, 4.8), (9.0, 8.8, 6.8, 6.8, 4.2), (14.0, 8.3, 7.0, 6.5, 3.4), (19.0, 8.1, 7.0, 6.4, 2.8),
+        (24.0, 7.1, 5.8, 5.6, 2.2), (28.0, 6.2, 5.0, 4.9, 1.6), (30.5, 4.8, 4.0, 4.0, 1.0))
+GROSOR_BATA = 0.45
+SOLAPA = 1.6                                             # lo ancho de la solapa negra junto a la abertura
+# las mangas anchas: (a que tanto del brazo crecen, del hombro hasta donde, el puno negro de donde a donde)
+MANGA = (1.1, 14.6, 16.0)
+# la bufanda azul: el rollo en el cuello (tapa la boca) y la banda que cuelga adelante hasta acabar en punta
+BUFANDA = ((29.2, 4.4, 3.8), (30.4, 5.2, 4.8), (31.6, 5.6, 5.4), (32.6, 5.7, 5.8))     # (y, medio ancho, medio hondo)
+BANDA = (1.5, 30.0, 3.6)                                 # medio ancho, de donde baja, hasta donde (la punta)
+# el pantalon abombado (por pierna) y las botitas negras con la punta en pico dorada
+PANTALON = ((1.7, 2.5, 2.7), (2.6, 3.0, 3.2), (5.0, 3.2, 3.4), (8.0, 3.0, 3.2), (10.5, 2.8, 3.0))   # (y, mx, mz)
+BOTA = ((2.2, 2.3, 2.4, 0.2), (2.8, 2.35, 2.45, 0.2))    # la cana: (y, mx, mz, z del centro)
+PICO = (5.9, 1.1)                                        # que tan adelante llega la punta y a que altura
+PANTALON_NEGRO = ((0.34, "#13141B"), (0.5, "#1A1C25"), (0.66, "#22252F"), (9.0, "#2C303C"))
+# la cola esponjada como la de Moles, mas grande: su camino escalado desde la parte de abajo de la espalda
+COLA_PIBBLE = tuple((x * 1.8, 12.0 + (y - 4.2) * 1.8, 5.0 + (z - 1.8) * 1.8, r * 1.8)
+                    for x, y, z, r in ((0.0, 4.2, 1.8, 0.95), (1.0, 3.4, 4.4, 1.7), (2.4, 4.4, 7.0, 2.4),
+                                       (3.4, 6.6, 8.6, 2.7), (3.6, 8.8, 9.0, 2.45), (3.0, 10.6, 8.6, 1.85),
+                                       (2.2, 11.6, 7.9, 1.1)))
+
+
+def _u_bata(y, mx, mzf, mzb, xo, g=0.0):
+    """La U de la bata: caja con las esquinas recortadas (como el torso, siempre mas grande) abierta adelante entre
+    -xo y xo; de la orilla izquierda de la abertura, por atras, a la derecha (antihoraria vista desde arriba). g:
+    cuanto mas adentro (el forro)."""
+    mx, mzf, mzb = mx - g, mzf - g, mzb - g
+    c = ESQUINA * min(mx, mzf, mzb)
+    xo = min(xo, mx - c - 0.2)
+    return [(-xo, y, -mzf), (-mx + c, y, -mzf), (-mx, y, -mzf + c), (-mx, y, mzb - c), (-mx + c, y, mzb),
+            (mx - c, y, mzb), (mx, y, mzb - c), (mx, y, -mzf + c), (mx - c, y, -mzf), (xo, y, -mzf)]
+
+
+def _abertura(y):
+    for (y0, *_, x0), (y1, *_, x1) in zip(BATA, BATA[1:]):
+        if y <= y1:
+            return x0 + (x1 - x0) * max(0.0, y - y0) / (y1 - y0)
+    return BATA[-1][-1]
+
+
+def bata_pintor():
+    crema = tela(CREMA, grano=0.12)
+    negro, azul = tela(FORRO, grano=0.06), tela(AZUL, grano=0.08)
+    oro = tela(ORO, 0.05, grano=0.08)
+
+    def pintor(t):
+        if t.n[0] * t.x + t.n[2] * t.z < 0:                    # el forro (mira hacia el cuerpo)
+            return negro(t)
+        ax = abs(t.x)
+        if t.y < BATA[0][0] + 0.6:                              # el borde de abajo
+            return oro(t)
+        if t.z < -1.0:                                          # adelante: la solapa negra y su filete
+            borde = _abertura(t.y) + SOLAPA
+            if ax < borde:
+                return negro(t)
+            if ax < borde + 0.3:
+                return oro(t)
+        if t.z > 1.0 and ax < 2.0:                              # atras: el panel azul con su orilla y su runa
+            if ax > 1.72 or any(0.42 < ax + abs(t.y - yc) * 0.7 < 0.66 for yc in (21.0, 19.4)):
+                return oro(t)
+            return azul(t)
+        return crema(t)
+    return pintor
+
+
+def banda_pintor():
+    azul, oro = tela(AZUL, grano=0.08), tela(ORO, 0.05, grano=0.08)
+
+    def pintor(t):
+        ax = abs(t.x)
+        if t.n[2] > -0.3:
+            return azul(t)
+        if ax > BANDA[0] - 0.3:                                 # las orillas doradas
+            return oro(t)
+        if any(0.36 < ax + abs(t.y - yc) * 0.7 < 0.6 for yc in (19.0, 17.5)) or abs(t.y - 21.2) < 0.15:
+            return oro(t)                                       # la runa: dos rombos encadenados y una raya
+        return azul(t)
+    return pintor
+
+
+def _frente_panza(y):
+    """Que tan adelante va la panza a esa altura (abajo de lo mas gordo la banda ya cuelga derecha)."""
+    gorda = max(TORSO, key=lambda r: r[2])
+    if y <= gorda[0]:
+        return gorda[2]
+    for (y0, _, f0, _), (y1, _, f1, _) in zip(TORSO, TORSO[1:]):
+        if y <= y1:
+            return f0 + (f1 - f0) * (y - y0) / (y1 - y0)
+    return TORSO[-1][2]
+
+
+def _doble(m):
+    """Las caras por los dos lados (para piezas cerradas cuya orientacion no importa revisar)."""
+    vs, cs = m
+    return vs, list(cs) + [tuple(reversed(c)) for c in cs]
+
+
+def ropa(p):
+    g = "Body/ropa"
+    # la bata
+    anillos = [_u_bata(y, mx, mzf, mzb, xo) + _u_bata(y, mx, mzf, mzb, xo, GROSOR_BATA)[::-1]
+               for y, mx, mzf, mzb, xo in BATA]
+    p.malla(g, "bata", geo.loft_puntos(anillos), bata_pintor(), dens=4)
+    # las mangas anchas con el puno negro (siguen al brazo hasta la muneca)
+    crece, hasta, puno = MANGA
+    camino = [b for b in BRAZO if b[1] >= hasta - 1.0]
+    for s in (1, -1):
+        hueso = "RightArm" if s > 0 else "LeftArm"
+        aros = [_anillo_oval(s * x, max(y, hasta), z, r + crece, r + crece, r + crece, 12) for x, y, z, r in camino]
+        p.malla(f"{hueso}/ropa", "manga", geo.loft_puntos(aros[::-1]), tela(CREMA, grano=0.12),
+                dens=4)
+        x, _, z, r = camino[-1]
+        aros = [_anillo_oval(s * x, y, z, r + crece + 0.1, r + crece + 0.1, r + crece + 0.1, 12) for y in (hasta, puno)]
+        p.malla(f"{hueso}/ropa", "puno", geo.loft_puntos(aros), tela(FORRO, grano=0.06),
+                dens=4)
+    # la bufanda azul: el rollo del cuello y la banda que cuelga sobre la camisa (la panza) y acaba en punta
+    azul = tela(AZUL, grano=0.08)
+    p.malla("Head/bufanda", "rollo", geo.loft_puntos([_anillo_oval(0.0, y, 0.0, mx, mz, mz) for y, mx, mz in BUFANDA]),
+            azul, dens=4)
+    w, y0, y1 = BANDA
+    ys = [y0 - (y0 - y1 - 1.5) * i / 8 for i in range(9)]
+    aros = [[(w, y, -_frente_panza(y) - 0.05), (w, y, -_frente_panza(y) - 0.35), (-w, y, -_frente_panza(y) - 0.35),
+             (-w, y, -_frente_panza(y) - 0.05)] for y in ys]
+    cuerpo_banda = geo.loft_puntos(aros[::-1], tapa_abajo=False)
+    abajo = aros[-1]
+    punta = (abajo + [(0.0, y1, -_frente_panza(y1) - 0.2)], [((i + 1) % 4, i, 4) for i in range(4)])
+    p.malla(g, "banda", _doble(geo.unir(cuerpo_banda, punta)), banda_pintor(), dens=4)
+    # el pantalon y las botitas en pico
+    negro_p = tela(PANTALON_NEGRO, grano=0.08)
+    negro_b, oro = tela(FORRO, grano=0.06), tela(ORO, 0.05, grano=0.08)
+    for s in (1, -1):
+        hueso = "RightLeg" if s > 0 else "LeftLeg"
+        cx = s * PIERNA_X
+        p.malla(f"{hueso}/ropa", "pantalon",
+                geo.loft_puntos([_anillo_oval(cx, y, 0.0, mx, mz, mz, 12) for y, mx, mz in PANTALON]), negro_p, dens=4)
+        p.malla(f"{hueso}/ropa", "cana",
+                geo.loft_puntos([_anillo_oval(cx, y, cz, mx, mz, mz, 12) for y, mx, mz, cz in BOTA]), negro_b, dens=4)
+        largo, alto = PICO
+        pie = [(cx + 2.3, 0.0, 2.2), (cx + 2.4, 0.0, -1.5), (cx - 2.4, 0.0, -1.5), (cx - 2.3, 0.0, 2.2),
+               (cx + 2.3, 2.4, 2.2), (cx + 2.4, 2.2, -1.5), (cx - 2.4, 2.2, -1.5), (cx - 2.3, 2.4, 2.2),
+               (cx, alto, -largo)]
+        caras = [(0, 1, 2, 3), (4, 7, 6, 5), (0, 4, 5, 1), (3, 2, 6, 7), (0, 3, 7, 4), (1, 5, 8), (5, 6, 8), (6, 2, 8),
+                 (2, 1, 8)]
+        bota = lambda t: oro(t) if t.z < -largo + 2.0 else negro_b(t)
+        p.malla(f"{hueso}/ropa", "bota", _doble((pie, caras)), bota, dens=4)
+    # la cola esponjada como la de Moles: azul marino y la punta negra
+    from .moles import cola
+    from .revolthir import voxel
+    cola(p, camino=COLA_PIBBLE, base=voxel({"s": "#1F2F42", "b": "#283B50", "l": "#3C556C"}, claro=0.3),
+         punta=voxel({"s": "#121015", "b": "#1D1A1F", "l": "#2B262E"}, claro=0.3), corte=0.7)
+
+
 def construir():
     p = Personaje("pibble", altura=42, cabeza=11, torso=(14, 22, 11), brazo=(4.4, 4.4), pierna=(5, 5))
     p.malla("Head/cabeza", "cabeza", cabeza_malla(), liso(VACIO), dens=4, luz=False)   # el vacio no se sombrea
@@ -423,6 +588,7 @@ def construir():
     capucha(p)
     _subir_cabeza(p, CUELLO_Y - CABEZA[0][0])
     cuerpo(p)
+    ropa(p)
     hombro, cadera = BRAZO[0], PIERNA_X
     p.m.pivotes.update({"RightArm": (hombro[0], hombro[1], 0.0), "LeftArm": (-hombro[0], hombro[1], 0.0),
                         "RightLeg": (cadera, PIERNA[-1][0], 0.0), "LeftLeg": (-cadera, PIERNA[-1][0], 0.0)})
