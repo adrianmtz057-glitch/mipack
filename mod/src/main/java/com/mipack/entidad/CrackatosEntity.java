@@ -43,6 +43,7 @@ import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -73,6 +74,13 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     // dano (en medios corazones)
     private static final float DANO_EMBESTIDA = 14f, DANO_PISOTON = 6f, DANO_AZOTE = 12f;
 
+    /** Cuanto crece el modelo en el juego (el render lo usa; las animaciones van al paso de esta escala). */
+    public static final float ESCALA = 2.0f;
+    // a que velocidad (bloques por tick) avanza el cuerpo en las animaciones de caminar y galopar a velocidad 1:
+    // el pie apoyado recorre su zancada (7 y 14 px del modelo) en lo que dura el apoyo (0.7 de 1.6 s, 0.42 de 0.6 s)
+    private static final double PASO_CAMINAR = 7.0 / (0.7 * 1.6) * ESCALA / 16 / 20;
+    private static final double PASO_GALOPE = 14.0 / (0.42 * 0.6) * ESCALA / 16 / 20;
+
     private static final EntityDataAccessor<Integer> ESTADO = SynchedEntityData.defineId(CrackatosEntity.class, EntityDataSerializers.INT);
 
     private static final RawAnimation A_QUIETO = RawAnimation.begin().thenLoop("animation.crackatos.quieto");
@@ -98,6 +106,7 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     private int alzadasPendientes;
     private boolean rugioAlEmpezar;
     private final Set<UUID> golpeados = new HashSet<>();
+    private final EnumSet<Estado> visitados = EnumSet.noneOf(Estado.class);
     private Ola ola;
 
     public CrackatosEntity(EntityType<? extends Monster> tipo, Level nivel) {
@@ -139,11 +148,21 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         return Estado.values()[this.entityData.get(ESTADO)];
     }
 
+    /** Para las pruebas: por que estados ha pasado y cuanto lleva en el de ahora. */
+    public Set<Estado> visitados() {
+        return this.visitados;
+    }
+
+    public int ticksEnEstado() {
+        return this.ticksEnEstado;
+    }
+
     private void cambiar(Estado nuevo) {
         if (Mipack.PRUEBA)
             Mipack.LOGGER.info("[Crackatos] {} -> {} (vida {})", getEstado(), nuevo, (int) getHealth());
         this.entityData.set(ESTADO, nuevo.ordinal());
         this.ticksEnEstado = 0;
+        this.visitados.add(nuevo);
     }
 
     private boolean valido(LivingEntity e) {
@@ -300,8 +319,8 @@ public class CrackatosEntity extends Monster implements GeoEntity {
                 return;
             }
         }
-        // se estrello: los cuernos se atoran en la pared
-        if (this.horizontalCollision && ticksEnEstado > 3) {
+        // se estrello: los cuernos se atoran en la pared (se ve por la cabeza, que va mas adelante que la caja)
+        if ((this.horizontalCollision || cabezaEnPared()) && ticksEnEstado > 3) {
             this.playSound(SoundEvents.ANVIL_LAND, 2.5f, 0.5f);
             this.playSound(SoundEvents.GENERIC_EXPLODE, 1.5f, 0.7f);
             BlockPos pared = BlockPos.containing(this.position().add(this.direccion.scale(this.getBbWidth() * 0.5 + 1.0)).add(0, 2, 0));
@@ -314,6 +333,14 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         }
         if (ticksEnEstado >= T_EMBESTIR_MAX)
             terminarEmbestida();
+    }
+
+    /** Si lo de enfrente de la caja (donde van la cabeza y los cuernos) ya pega con algo solido. */
+    private boolean cabezaEnPared() {
+        Vec3 c = this.position().add(this.direccion.scale(this.getBbWidth() * 0.5 + 0.9));
+        AABB cabeza = new AABB(c.x - 0.9, this.getY() + 1.4, c.z - 0.9, c.x + 0.9, this.getY() + 4.2, c.z + 0.9)
+                .expandTowards(this.direccion.x * 0.5, 0, this.direccion.z * 0.5);
+        return !this.level().noCollision(this, cabeza);
     }
 
     private void terminarEmbestida() {
@@ -429,7 +456,7 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     public boolean hurt(DamageSource fuente, float cantidad) {
         if (getEstado() == Estado.ATORADO)
             cantidad *= 2f;                       // la ventana de castigo: con los cuernos atorados
-        if (fuente.getEntity() instanceof PuaCayendo)
+        if (fuente.getDirectEntity() instanceof PuaCayendo)
             return false;
         return super.hurt(fuente, cantidad);
     }
@@ -469,9 +496,14 @@ public class CrackatosEntity extends Monster implements GeoEntity {
 
     @Override
     public void remove(Entity.RemovalReason razon) {
-        if (this.ola != null)
+        if (this.ola != null && razon.shouldDestroy())        // al descargarse no: esos bloques se borran al cargar
             this.ola.terminar();
         super.remove(razon);
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling() {
+        return this.getBoundingBox().inflate(6.5, 2.0, 6.5);      // la cola y la cabeza salen de la caja
     }
 
     @Override
@@ -515,10 +547,10 @@ public class CrackatosEntity extends Monster implements GeoEntity {
 
     /** Caminar y galopar van al paso de lo que avanza de verdad (asi los pies no patinan). */
     private double velocidadDeAnimacion() {
-        double v = Math.sqrt(this.getDeltaMovement().horizontalDistanceSqr());
+        double v = Math.hypot(this.getX() - this.xo, this.getZ() - this.zo);     // lo que avanzo este tick
         return switch (getEstado()) {
-            case ACECHAR, QUIETO -> Mth.clamp(v / 0.055, 0.6, 2.5);
-            case EMBESTIR -> Mth.clamp(v / 0.15, 1.0, 3.0);
+            case ACECHAR, QUIETO -> Mth.clamp(v / PASO_CAMINAR, 0.6, 2.5);
+            case EMBESTIR -> Mth.clamp(v / PASO_GALOPE, 1.0, 3.0);
             default -> 1.0;
         };
     }

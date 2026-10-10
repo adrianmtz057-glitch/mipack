@@ -1,6 +1,7 @@
 package com.mipack;
 
 import com.mipack.entidad.CrackatosEntity;
+import com.mipack.entidad.Ola;
 import com.mipack.entidad.PuaCayendo;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
@@ -11,7 +12,9 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.ForgeSpawnEggItem;
+import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -63,11 +66,18 @@ public class Mipack {
         OBJETOS.register(bus);
         PESTANAS.register(bus);
         bus.addListener(this::atributos);
+        MinecraftForge.EVENT_BUS.addListener(this::alEntrar);
         if (PRUEBA)
             LOGGER.info("[Mipack] modo de prueba: los jefes atacan tambien a otros mobs");
     }
 
     private void atributos(EntityAttributeCreationEvent event) {
         event.put(CRACKATOS.get(), CrackatosEntity.atributos().build());
+    }
+
+    /** Los bloques de una ola que quedaron guardados (se cerro el mundo a media ola) no vuelven a aparecer. */
+    private void alEntrar(EntityJoinLevelEvent event) {
+        if (event.loadedFromDisk() && event.getEntity().getTags().contains(Ola.ETIQUETA))
+            event.setCanceled(true);
     }
 }
