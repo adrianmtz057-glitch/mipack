@@ -122,33 +122,19 @@ def liso(col):
     return lambda t: c
 
 
-# el pelo: UNA sola pieza. Cada nivel es una herradura (rodea la cabeza menos la cara) con su borde de afuera y el
-# de adentro; de arriba abajo: tapa la cabeza, baja pegada por los costados y atras y abajo se abre en campana.
-# (y, medio ancho de afuera, medio ancho de adentro)
-NIVELES_PELO = ((21.8, 4.6, 0.4), (21.3, 5.6, 2.2), (20.2, 5.9, 5.05), (13.0, 6.5, 5.05), (11.0, 7.1, 5.05),
-                (8.6, 7.6, 6.5), (7.6, 7.1, 6.8))
-ABRE_CARA = 150.0                       # grados desde la nuca hasta donde llega la herradura (la cara queda libre)
-
-
-def _herradura(y, afuera, adentro, n=24):
-    """Un nivel del pelo: herradura cuadrada (sigue la cabeza) de la nuca hacia los dos lados hasta la cara."""
-    import math
-    def punto(ang, r):
-        a = math.radians(ang)
-        sx, sz = math.sin(a), math.cos(a)
-        k = r / max(abs(sx), abs(sz))
-        return (k * sx, y, k * sz)
-    angs = [-ABRE_CARA + 2 * ABRE_CARA * i / n for i in range(n + 1)]
-    return [punto(a, afuera) for a in angs] + [punto(a, adentro) for a in reversed(angs)]
+# el pelo: por ahora UNA sola pieza atras de la cabeza, con la silueta del boceto: angosta arriba (del ancho de la
+# cabeza), los costados que se abren en curva hacia abajo y la base plana con las puntas un poco hacia afuera.
+PELO_ATRAS = (5.0, 9.8, 21.0, 12.2, (5.0, 6.2))         # medio ancho arriba y abajo, y de arriba y de abajo, z
 
 
 def pelo(p, C, T):
-    """El pelo rubio en UNA sola pieza con la forma del boceto: tapa la cabeza, baja pegada por los costados y la
-    nuca, y abajo se abre en campana hasta pasar la cabeza, con el borde redondeado; adelante deja la cara libre."""
+    """El pelo: solo la pieza de atras, con la silueta del boceto."""
     from .. import malla as geo
-    anillos = [_herradura(y, a, b) for y, a, b in NIVELES_PELO]
-    m = geo.loft_puntos(anillos[::-1])
-    p.malla("Head/pelo", "pelo", m, liso(PELO["b"]), dens=D)
+    w0, w1, y0, y1, (z0, z1) = PELO_ATRAS
+    n = 8
+    lado = [(w0 + (w1 - w0) * (i / n) ** 2.2, y0 - (y0 - y1) * i / n) for i in range(n + 1)]
+    perfil = lado[::-1] + [(-x, y) for x, y in lado]      # baja por un costado, cruza la base y sube por el otro
+    p.malla("Head/pelo", "atras", geo.extruir(perfil, z0, z1), liso(PELO["b"]), dens=D)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
@@ -310,7 +296,6 @@ def construir():
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA, luz=False)   # sin sombra en la cara
     pestanas(p, C)
     pelo(p, C, T)
-    orejas(p, T)
 
     p.caja("Body/cuerpo", "torso", (-2.8, L, -1.6), (2.8, C, 1.6), piel, dens=D, luz=False)
     for s in (1, -1):
