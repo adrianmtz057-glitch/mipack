@@ -2,11 +2,11 @@
 Bashi: la bata (ver bashi.py), segun referencias/personajes/bashi_hoja2.png. Por ahora solo la forma con colores
 lisos (sin accesorios ni textura).
 
-  TORSO: la bata morada, cerrada (toda unida) y de 8 lados, con la solapa que cruza al medio.
-  MANGAS en tres ESCALONES redondos (8 lados), cada uno mas ancho que el de arriba, despegadas del brazo y hasta
+  TORSO: la bata morada, cerrada (toda unida) y de 12 lados, con la solapa que cruza al medio.
+  MANGAS en tres ESCALONES redondos (12 lados), cada uno mas ancho que el de arriba, despegadas del brazo y hasta
     la muneca, con el final olivo (en los huesos de los brazos, abiertas como los brazos). Por dentro asoma la
     CAMISA beige de manga larga hasta la muneca.
-  FALDON: de la cintura para abajo en TIRAS pegadas al torso que se abren apenas, cada una de un largo distinto (al azar, fijo) y con la
+  FALDON: de la cintura para abajo en TIRAS al ras del estomago que se abren apenas, cada una de un largo distinto (al azar, fijo) y con la
     punta escalonada, en dos capas (la de abajo mas oscura tapa los huecos), cerrado todo alrededor. Algunas tiras
     olivo entre las moradas.
 """
@@ -19,7 +19,7 @@ from .bashi import BEIGE, C, D, MORADO, OLIVO, OSCURO, azar, giro_brazo
 from .meron import tubo_hueco
 
 CINTURA_Y = 22.4                        # de aqui cuelga el faldon
-ARO = (4.4, 2.75)                       # el borde de la bata en la cintura (un ovalo pegado al torso): medio ancho y hondo
+ARO = (4.37, 2.73)                      # el torso donde empieza el faldon: medio ancho y hondo (las tiras van al ras)
 RUEDO = (8.4, 12.4)                     # donde termina cada tira: entre estas alturas, al azar (fijo)
 
 
@@ -43,18 +43,21 @@ def caja(p, grupo, nombre, desde, hasta, rampa, **kw):
 
 
 # ---------------------------------------------------------------------------------------------- torso
-TORSO = ((21.4, 4.3, 2.7), (24.5, 4.45, 2.8), (28.5, 4.5, 2.85), (C + 0.35, 4.3, 2.6))
-# secciones del torso de la bata, de la cintura a los hombros: (y, medio ancho, medio hondo); de 8 lados como las mangas
+LADOS = 12                              # todo redondo pero de caras: el torso y las mangas son de 12 lados
+TORSO = ((19.0, 4.35, 2.72), (22.4, 4.37, 2.73), (24.5, 4.45, 2.8), (28.5, 4.5, 2.85), (C + 0.35, 4.3, 2.6))
+# secciones del torso de la bata, de abajo del estomago (tapado por el faldon) a los hombros: (y, medio ancho,
+# medio hondo)
 
 
 def torso(p):
-    """La bata sobre el torso, cerrada y de 8 lados (redonda pero de caras, como las mangas): un solo cuerpo morado
-    con los hombros y los costados cortados, y la solapa que cruza al medio, de su derecha a su izquierda."""
+    """La bata sobre el torso, cerrada y de 12 lados (redonda pero de caras, como las mangas): un solo cuerpo morado
+    y la solapa que cruza al medio, de su derecha a su izquierda."""
     g = "Body/bata"
-    anillos = [geo.anillo(0.0, y, 0.0, rx, rz, 8, 22.5) for y, rx, rz in TORSO]
+    giro = 180.0 / LADOS                                         # un lado plano adelante, atras y a los costados
+    anillos = [geo.anillo(0.0, y, 0.0, rx, rz, LADOS, giro) for y, rx, rz in TORSO]
     p.malla(g, "cuerpo", geo.loft_puntos(anillos), plano(MORADO), dens=D)
-    zf = min(-rz * math.sin(math.radians(67.5)) for _, _, rz in TORSO)     # el frente plano mas adelante
-    caja(p, g, "solapa", (-1.6, 21.4, zf - 0.2), (0.6, C + 0.1, zf + 0.3), MORADO)
+    zf = min(-rz * math.cos(math.radians(giro)) for _, _, rz in TORSO)     # el frente plano mas adelante
+    caja(p, g, "solapa", (-1.0, 22.4, zf - 0.2), (0.5, C + 0.1, zf + 0.3), MORADO)
 
 
 # ---------------------------------------------------------------------------------------------- mangas
@@ -66,9 +69,10 @@ FINAL = 0.7                             # alto de la franja olivo en el borde de
 
 
 def escalon(cx, y0, y1, rx, rz):
-    """Un escalon de la manga: tubo hueco de 8 lados (redondo), con la tapa de arriba (el escalon) y abierto abajo."""
-    abajo = geo.anillo(cx, y0, 0.0, rx * 1.04, rz * 1.04, 8, 22.5)
-    arriba = geo.anillo(cx, y1, 0.0, rx, rz, 8, 22.5)
+    """Un escalon de la manga: tubo hueco de 12 lados (redondo de caras), con la tapa de arriba (el escalon) y
+    abierto abajo."""
+    abajo = geo.anillo(cx, y0, 0.0, rx * 1.04, rz * 1.04, LADOS, 180.0 / LADOS)
+    arriba = geo.anillo(cx, y1, 0.0, rx, rz, LADOS, 180.0 / LADOS)
     return tubo_hueco(abajo, arriba, grosor=0.15)
 
 
@@ -128,7 +132,7 @@ def faldon(p):
     """El faldon en tiras: dos capas alrededor de la cintura, cerrado, cada tira de un largo distinto."""
     g = "Body/faldon"
     k = 0
-    for capa, (n, fuera, abre, oscuro) in enumerate(((22, 0.15, 4.0, False), (22, 0.0, 2.5, True))):
+    for capa, (n, fuera, abre, oscuro) in enumerate(((22, -0.2, 2.5, False), (22, -0.45, 1.5, True))):
         for i in range(n):
             t = (i + 0.5 * capa) / n
             (x, z), ang = borde(t)
