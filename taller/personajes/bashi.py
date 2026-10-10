@@ -106,6 +106,7 @@ CANAS = _rampa("#B5ADA8")               # pelo, cejas, bigote y barba
 CRISTAL = _rampa("#80C0B8")
 SUELA = OSCURO
 PIEDRA = _rampa("#8A8078")
+MADERA = _rampa("#7A5536")              # la pata de palo
 
 # lo que brilla (va con luz=False: no le cae sombra)
 CIAN = {"o": "#16465A", "s": "#3B91AF", "b": "#59B9C2", "l": "#8FD8CF", "h": "#E6FFFB"}
