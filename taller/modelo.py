@@ -29,6 +29,7 @@ HUESOS = {
     "RightLeg": (2, 12, 0),
     "LeftLeg": (-2, 12, 0),
 }
+MARGEN = 1                               # texeles de margen alrededor de cada cara en el atlas
 ESPEJO_HUESO = {"RightArm": "LeftArm", "LeftArm": "RightArm",
                 "RightLeg": "LeftLeg", "LeftLeg": "RightLeg"}
 
@@ -206,7 +207,9 @@ class Modelo:
 
     # ------------------------------------------------------------------ textura
     def _empaquetar(self, ancho):
-        """Reparte las caras sin UV fija en el atlas (el rincon 64x64 es la skin). Devuelve alto usado."""
+        """Reparte las caras sin UV fija en el atlas (el rincon 64x64 es la skin). Devuelve alto usado. Cada cara
+        lleva alrededor un margen de MARGEN texeles (se rellena con su propia orilla, ver _rellenar_margenes): asi
+        Blockbench y Minecraft no agarran el color de la cara de junto en las orillas (rayitas y puntitos claros)."""
         piezas = []
         for c in self.cubos:
             if c.uv:
@@ -226,6 +229,7 @@ class Modelo:
             return skin if y < skin else 0
         x, y, alto_fila, asign = x_ini(0), 0, 0, {}
         for th, tw, c, cara in piezas:
+            th, tw = th + 2 * MARGEN, tw + 2 * MARGEN
             x0 = x_ini(y)
             if x + tw > ancho:
                 y += alto_fila
@@ -235,7 +239,7 @@ class Modelo:
             if alto_fila == 0:
                 alto_fila = th
                 x = max(x, x0)
-            asign[(id(c), cara)] = (x, y, tw, th)
+            asign[(id(c), cara)] = (x + MARGEN, y + MARGEN, tw - 2 * MARGEN, th - 2 * MARGEN)
             x += tw
         return max(skin, y + alto_fila), asign
 
@@ -416,7 +420,21 @@ class Modelo:
             uvs[id(m)] = uvm
         if self.luz:
             self._hornear_luz(lienzo, uvs, caras_luz)
+        self._rellenar_margenes(lienzo, asign.values())
         return lienzo, uvs
+
+    @staticmethod
+    def _rellenar_margenes(lienzo, rects):
+        """Copia la orilla de cada cara a su margen (hacia afuera, con las esquinas)."""
+        for ux, uy, tw, th in rects:
+            for k in range(1, MARGEN + 1):
+                for ix in range(-k, tw + k):
+                    x = min(max(ux + ix, ux), ux + tw - 1)
+                    lienzo.poner(ux + ix, uy - k, lienzo.leer(x, uy))
+                    lienzo.poner(ux + ix, uy + th - 1 + k, lienzo.leer(x, uy + th - 1))
+                for jy in range(0, th):
+                    lienzo.poner(ux - k, uy + jy, lienzo.leer(ux, uy + jy))
+                    lienzo.poner(ux + tw - 1 + k, uy + jy, lienzo.leer(ux + tw - 1, uy + jy))
 
     def _hornear_luz(self, lienzo, uvs, caras_luz):
         """Segunda pasada: con todo ya pintado (asi lo transparente no tapa la luz), corre cada texel unos pasos de su
