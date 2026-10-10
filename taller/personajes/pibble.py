@@ -93,8 +93,8 @@ def ojos(p):
 # las esquinas de afuera alargadas (en punta), girado sobre su punta (lo de afuera baja), doblado hacia la cabeza e
 # inclinado (la parte de abajo hacia enfrente); y la esquina de arriba alargada hacia arriba desde la mitad de la
 # orilla de arriba. El hundido (un triangulo de la mitad con la base sobre el lado de afuera, de su punta hasta el
-# final) se curva hacia adentro, de caras de cuatro lados pegadas, con sus paredes; cada lado se corta a lo largo y
-# la mitad de abajo se hunde. Todo 2D (cada cara con sus dos lados) y todo pegado
+# final) se curva hacia adentro con un bisel suave; cada lado se corta a lo largo y la mitad de abajo se hunde con un
+# doblez suave. Cada lado es UNA malla 2D continua (cada cara con sus dos lados) de muchos poligonos: todo pegado
 LADO_TRIANGULO = 10.5
 PUNTA_FRENTE = (0.0, 21.0, -4.6)                         # arriba de la frente, justo sobre la coronilla
 Z_AFUERA = -3.0
@@ -108,7 +108,9 @@ Z_HUECO = 0.15                                           # que tan atras empieza
 HOLGURA = 0.1                                            # lo mas cerca que pasan de la cara, sin tocarla
 HUNDE_MITAD = 0.35                                       # la mitad de abajo (cortada a lo largo) se hunde esto
 CURVA = 0.6                                              # el hundido se curva hacia adentro: lo mas hondo, en la orilla
-FILAS_HUECO = (0.0, 0.25, 0.5, 0.75, 1.0)                # las filas de caras del hundido, de su punta a la orilla
+RETICULA = 14                                            # cada lado se arma con una reticula de RETICULA x RETICULA
+DOBLEZ = 0.5                                             # lo ancho del doblez del corte (hacia la mitad de abajo)
+BISEL = 0.45                                             # lo ancho del bisel con que entra el hundido
 # el rombo de arriba: pegado a la orilla de arriba de los dos triangulos desde la punta (dos de sus lados van sobre
 # ellas), asi queda inclinado hacia arriba; lo largo de sus lados
 LADO_ROMBO = 3.5
@@ -165,7 +167,7 @@ def _dentro(pts, x, y, margen):
 
 
 def _paneles(a, b, c, estorbos):
-    """Las caras 2D de un lado (cada una con su sesgo de tono), la punta (ya recorrida) y la mitad de su orilla de
+    """Un lado entero como una sola malla 2D (reticula pegada), su punta (ya recorrida) y la mitad de su orilla de
     arriba. Todo el lado se recorre hacia enfrente lo justo para que nada de 'estorbos' (los vertices de la cabeza y los
     ojos) quede a menos de HOLGURA detras de lo mas hondo: muy cerca de la cara, sin meterse."""
     u = _unit(_resta(b, a))
@@ -187,40 +189,55 @@ def _paneles(a, b, c, estorbos):
             recorre = max(recorre, HOLGURA + Z_HUECO + CURVA + h - _punto(d, n))
     a = tuple(a[i] - n[i] * recorre for i in range(3))
 
-    def en3d(q, z):
-        return tuple(a[i] + q[0] * u[i] + q[1] * v[i] + z * n[i] for i in range(3))
-
     def mezcla(p, q, f):
         return (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
 
-    p, q1, q2 = [mezcla((mx, my), q, HUECO) for q in (t0, b1, b2)]   # el hueco, hacia el medio del lado de afuera
-    caras = [([en3d(q, 0.0) for q in (t0, mitad, punta, q1, p)], 0.0),          # arriba del corte
-             ([en3d(q, h) for q in (t0, p, q2, b2)], -0.06),                     # abajo, hundida
-             ([en3d(t0, 0.0), en3d(p, 0.0), en3d(p, h), en3d(t0, h)], -0.2)]     # el escalon del corte
+    def suave(x):
+        x = max(0.0, min(1.0, x))
+        return x * x * (3 - 2 * x)
 
-    def punto_hueco(t, s):                                # t: de la punta del hueco (0) a la orilla (1); s: -1 a 1
-        izq, eje, der = mezcla(p, q1, t), mezcla(p, (mx, my), t), mezcla(p, q2, t)
-        return mezcla(izq, eje, s + 1) if s <= 0 else mezcla(eje, der, s)
+    def lado_de(q, p0, p1):                               # distancia con signo de q a la recta p0-p1
+        ex, ey = p1[0] - p0[0], p1[1] - p0[1]
+        return ((q[0] - p0[0]) * ey - (q[1] - p0[1]) * ex) / math.hypot(ex, ey)
 
-    def hondo(t, abajo):
-        return Z_HUECO + CURVA * t * t + (h if abajo else 0.0)
+    medio = (mx, my)
+    p, q1, q2 = [mezcla(medio, q, HUECO) for q in (t0, b1, b2)]   # el hueco, hacia el medio del lado de afuera
+    abajo = 1.0 if lado_de(b2, t0, medio) > 0 else -1.0
+    eje = math.hypot(mx - p[0], my - p[1])
 
-    for ta, tb in zip(FILAS_HUECO, FILAS_HUECO[1:]):
-        for columnas, abajo in (((-1.0, -0.5, 0.0), False), ((0.0, 0.5, 1.0), True)):
-            for sa, sb in zip(columnas, columnas[1:]):
-                cara = [en3d(punto_hueco(ta, sa), hondo(ta, abajo)), en3d(punto_hueco(ta, sb), hondo(ta, abajo)),
-                        en3d(punto_hueco(tb, sb), hondo(tb, abajo)), en3d(punto_hueco(tb, sa), hondo(tb, abajo))]
-                caras.append((cara[1:] if ta == 0 else cara, -0.1 - (0.06 if abajo else 0.0)))
-        # las paredes que lo pegan: con la cara de arriba, con la de abajo, y el escalon del corte adentro del hueco
-        for s_, z_cara, abajo_a, abajo_b in ((-1.0, 0.0, False, False), (1.0, h, True, True), (0.0, None, False, True)):
-            pa, pb = punto_hueco(ta, s_), punto_hueco(tb, s_)
-            if z_cara is None:
-                pared = [en3d(pa, hondo(ta, False)), en3d(pb, hondo(tb, False)), en3d(pb, hondo(tb, True)),
-                         en3d(pa, hondo(ta, True))]
-            else:
-                pared = [en3d(pa, z_cara), en3d(pb, z_cara), en3d(pb, hondo(tb, abajo_b)), en3d(pa, hondo(ta, abajo_a))]
-            caras.append((pared, -0.2))
-    return [(_panel(vs), sesgo) for vs, sesgo in caras], en3d(t0, 0.0), en3d(mitad, 0.0)
+    def hondo(q):
+        """Que tan atras va cada punto: la mitad de abajo hundida (con un doblez suave en el corte) y el hundido, que
+        entra con un bisel y se curva hacia adentro hacia la orilla de afuera."""
+        z = h * suave(abajo * lado_de(q, t0, medio) / DOBLEZ)
+        d1, d2 = lado_de(q, p, q1), lado_de(q, p, q2)
+        dentro1, dentro2 = d1 * (1 if lado_de(q2, p, q1) > 0 else -1), d2 * (1 if lado_de(q1, p, q2) > 0 else -1)
+        if dentro1 > 0 and dentro2 > 0:
+            t = max(0.0, min(1.0, ((q[0] - p[0]) * (mx - p[0]) + (q[1] - p[1]) * (my - p[1])) / (eje * eje)))
+            z += (Z_HUECO + CURVA * t * t) * suave(min(dentro1, dentro2) / BISEL)
+        return z
+
+    def en3d(q):
+        z = hondo(q)
+        return tuple(a[i] + q[0] * u[i] + q[1] * v[i] + z * n[i] for i in range(3))
+
+    # la reticula sobre el contorno (la punta, el lado de abajo, el de afuera con la punta de arriba, la orilla de
+    # arriba): cada celda en dos triangulos, asi todo queda plano por cara y pegado
+    esquinas = (t0, b2, punta, mitad)
+    k = RETICULA
+    vs = []
+    for j in range(k + 1):
+        for i in range(k + 1):
+            s_, r_ = i / k, j / k
+            x = sum(w * c[0] for w, c in zip(((1 - s_) * (1 - r_), s_ * (1 - r_), s_ * r_, (1 - s_) * r_), esquinas))
+            y = sum(w * c[1] for w, c in zip(((1 - s_) * (1 - r_), s_ * (1 - r_), s_ * r_, (1 - s_) * r_), esquinas))
+            vs.append(en3d((x, y)))
+    cs = []
+    for j in range(k):
+        for i in range(k):
+            v00, v10, v11, v01 = j * (k + 1) + i, j * (k + 1) + i + 1, (j + 1) * (k + 1) + i + 1, (j + 1) * (k + 1) + i
+            for tri in ((v00, v10, v11), (v00, v11, v01)):
+                cs += [tri, tri[::-1]]                    # las dos caras (2D)
+    return (vs, cs), en3d(t0), en3d(mitad)
 
 
 def _panel(vs):
@@ -231,9 +248,8 @@ def _panel(vs):
 
 def capucha(p):
     estorbos = [q for m in p.m.mallas if m.hueso.split("/")[0] == "Head" for q in m.vertices]
-    caras, punta, mitad = _paneles(*_triangulo(), estorbos)
-    for k, (malla, sesgo) in enumerate(caras):
-        p.malla_par("Head/capucha", f"cara{k}", malla, faceta(sesgo, CREMA, grano=0), dens=4, luz=False)
+    lado, punta, mitad = _paneles(*_triangulo(), estorbos)
+    p.malla_par("Head/capucha", "lado", lado, faceta(paleta=CREMA, grano=0), dens=4, luz=False)
     hacia = _unit(_resta(mitad, punta))
     der = tuple(punta[i] + hacia[i] * LADO_ROMBO for i in range(3))
     izq = (-der[0], der[1], der[2])
