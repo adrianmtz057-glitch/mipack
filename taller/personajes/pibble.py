@@ -6,7 +6,7 @@ Por ahora solo la cabeza, esculpida como un gato de papel: redonda y mas ancha q
 los cachetes en pico a los lados, el hocico con la nariz que sale, las cuencas de los ojos hundidas, la ceja y la
 frente redonda; toda de vacio negro, con los ojos de almendra crema (piezas con las puntas afiladas, pegadas en las
 cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al centro de la frente.
-La capucha, paso a paso: por ahora los dos triangulos de enfrente, unidos por la punta en la frente.
+La capucha, paso a paso: por ahora los dos triangulos equilateros de enfrente, unidos por la punta en la frente.
 """
 
 import math
@@ -85,10 +85,19 @@ def ojos(p):
             liso(VACIO), dens=8, luz=False)
 
 
-# la capucha, paso a paso: por ahora los dos triangulos de enfrente, unidos por la punta justo en la frente. Cada uno
-# (el derecho; el izquierdo en espejo): la punta, la esquina de arriba afuera y la de abajo afuera; la orilla de la
-# punta a la esquina de abajo deja la cara libre
-TRIANGULO = ((0.0, 19.8, -5.0), (7.2, 21.4, -2.4), (8.4, 10.8, -3.6))
+# la capucha, paso a paso: por ahora los dos triangulos de enfrente, unidos por la punta justo en la frente.
+# Equilateros: cada uno (el derecho; el izquierdo en espejo) con la punta en la frente y el lado de afuera derecho
+# (vertical), un poco hacia atras; los tres lados miden LADO_TRIANGULO
+LADO_TRIANGULO = 8.25
+PUNTA_FRENTE = (0.0, 19.8, -5.0)
+Z_AFUERA = -3.0
+
+
+def _triangulo():
+    x0, y0, z0 = PUNTA_FRENTE
+    l = LADO_TRIANGULO
+    x = math.sqrt(l * l - (l / 2) ** 2 - (Z_AFUERA - z0) ** 2)
+    return (PUNTA_FRENTE, (x0 + x, y0 + l / 2, Z_AFUERA), (x0 + x, y0 - l / 2, Z_AFUERA))
 GROSOR = 0.35
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
@@ -110,7 +119,7 @@ def _placa_3d(a, b, c, grueso):
 
 
 def capucha(p):
-    p.malla_par("Head/capucha", "triangulo", _placa_3d(*TRIANGULO, GROSOR), faceta(paleta=CREMA, grano=0), dens=4,
+    p.malla_par("Head/capucha", "triangulo", _placa_3d(*_triangulo(), GROSOR), faceta(paleta=CREMA, grano=0), dens=4,
                 luz=False)
 
 
