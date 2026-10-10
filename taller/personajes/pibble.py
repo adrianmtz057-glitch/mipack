@@ -9,8 +9,8 @@ cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al 
 La capucha, paso a paso: por ahora los dos paneles de enfrente, unidos por la punta en la frente: doblados hacia la
 cabeza, la parte de abajo inclinada hacia enfrente, la esquina de arriba alargada hacia arriba, y el hundido hecho con
 el hundido curvo hacia adentro de caras pegadas, cortados a lo largo con la mitad de abajo hundida, muy cerca de la
-cara sin tocarla; y el techo (rombo) que sale de la punta de la frente, pegado a sus orillas de arriba hasta sus
-esquinas, y cierra hacia atras.
+cara sin tocarla; y el techo que sale de la punta de la frente, pegado a sus orillas de arriba hasta sus esquinas,
+cortado como semi bumeran (acaba en una muesca a la mitad, con el medio hundido en valle).
 """
 
 import math
@@ -112,9 +112,10 @@ CURVA = 0.6                                              # el hundido se curva h
 RETICULA = 14                                            # cada lado se arma con una reticula de RETICULA x RETICULA
 DOBLEZ = 0.5                                             # lo ancho del doblez del corte (hacia la mitad de abajo)
 BISEL = 0.45                                             # lo ancho del bisel con que entra el hundido
-# el techo (rombo): de la punta de la frente, pegado a la orilla de arriba de cada triangulo hasta su esquina de
-# arriba, y de ahi cierra hacia atras en ESPALDA (sobre la cabeza, sin tocarla)
-ESPALDA = (0.0, 23.0, 5.8)
+# el techo (el triangulo de arriba): de la punta de la frente, pegado a la orilla de arriba de cada lado hasta su
+# esquina de arriba; cortado como semi bumeran: en vez de cerrar atras acaba en la MUESCA, a la mitad, hundida (de la
+# punta a la mitad el medio se hunde en valle, sobre la cabeza sin tocarla)
+MUESCA = (0.0, 21.25, -0.2)
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
 
@@ -252,10 +253,11 @@ def capucha(p):
     estorbos = [q for m in p.m.mallas if m.hueso.split("/")[0] == "Head" for q in m.vertices]
     lado, frente, mitad, esquina = _paneles(*_triangulo(), estorbos)
     p.malla_par("Head/capucha", "lado", lado, faceta(paleta=CREMA, grano=0), dens=4, luz=False)
-    # el techo: pegado a la orilla de arriba de cada lado (la punta, la mitad y la esquina de arriba) y cerrado atras
+    # el techo: pegado a la orilla de arriba de cada lado (la punta, la mitad y la esquina de arriba); sus dos brazos
+    # van de la punta de la frente a cada esquina y se juntan atras en la muesca hundida (el valle del medio)
     espejo = lambda q: (-q[0], q[1], q[2])
     techo = []
-    for tri in ((frente, mitad, esquina), (frente, esquina, ESPALDA), (frente, ESPALDA, espejo(esquina)),
+    for tri in ((frente, mitad, esquina), (frente, esquina, MUESCA), (frente, MUESCA, espejo(esquina)),
                 (frente, espejo(esquina), espejo(mitad))):
         techo.append(_panel(list(tri)))
     p.malla("Head/capucha", "techo", geo.unir(*techo), faceta(paleta=CREMA, grano=0), dens=4, luz=False)
