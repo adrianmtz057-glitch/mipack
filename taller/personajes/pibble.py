@@ -10,7 +10,8 @@ La capucha, paso a paso: por ahora los dos paneles de enfrente, unidos por la pu
 cabeza, la parte de abajo inclinada hacia enfrente, la esquina de arriba alargada hacia arriba, y el hundido hecho con
 el hundido curvo hacia adentro de caras pegadas, cortados a lo largo con la mitad de abajo hundida, muy cerca de la
 cara sin tocarla; y el techo que sale de la punta de la frente, pegado a sus orillas de arriba hasta sus esquinas,
-cortado como semi bumeran (acaba en una muesca a la mitad, con el medio hundido en valle).
+cortado como semi bumeran (acaba en una muesca a la mitad, con el medio hundido en valle); atras la copia en espejo
+y los costados cerrados.
 """
 
 import math
@@ -96,14 +97,14 @@ def ojos(p):
 # orilla de arriba. El hundido (un triangulo de la mitad con la base sobre el lado de afuera, de su punta hasta el
 # final) se curva hacia adentro con un bisel suave; cada lado se corta a lo largo y la mitad de abajo se hunde con un
 # doblez suave. Cada lado es UNA malla 2D continua (cada cara con sus dos lados) de muchos poligonos: todo pegado
-LADO_TRIANGULO = 10.5
+LADO_TRIANGULO = 9.5
 PUNTA_FRENTE = (0.0, 19.8, -4.0)                         # en la frente (se recorre hacia enfrente lo justo)
 Z_AFUERA = -3.0
 GIRO_TRIANGULO = 20.0                                    # grados que se gira sobre su punta: lo de afuera baja
 HACIA_ADENTRO = 25.0                                     # grados que lo de afuera se dobla hacia la cabeza
 INCLINA = 20.0                                           # grados que la parte de abajo se inclina hacia enfrente
-ALARGA = 2.5                                             # cuanto se alargan las dos esquinas de afuera (en punta)
-PUNTA_ARRIBA = 4.0                                       # cuanto se alarga hacia arriba la esquina de arriba
+ALARGA = 2.2                                             # cuanto se alargan las dos esquinas de afuera (en punta)
+PUNTA_ARRIBA = 3.5                                       # cuanto se alarga hacia arriba la esquina de arriba
 HUECO = 0.5                                              # el hundido: el triangulo de la mitad
 Z_HUECO = 0.15                                           # que tan atras empieza el hundido (en su punta)
 HOLGURA = 0.1                                            # lo mas cerca que pasan de la cara, sin tocarla
@@ -114,8 +115,10 @@ DOBLEZ = 0.5                                             # lo ancho del doblez d
 BISEL = 0.45                                             # lo ancho del bisel con que entra el hundido
 # el techo (el triangulo de arriba): de la punta de la frente, pegado a la orilla de arriba de cada lado hasta su
 # esquina de arriba; cortado como semi bumeran: en vez de cerrar atras acaba en la MUESCA, a la mitad, hundida (de la
-# punta a la mitad el medio se hunde en valle, sobre la cabeza sin tocarla)
-MUESCA = (0.0, 21.25, -0.2)
+# punta a la mitad el medio se hunde en valle, sobre la cabeza sin tocarla). Atras va la copia en espejo (los dos
+# lados y el techo), con su V cerrada (atras no hay cara), y los costados se cierran uniendo la orilla de afuera de
+# enfrente con la de atras
+MUESCA = (0.0, 21.25, 0.0)
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
 
@@ -249,18 +252,72 @@ def _panel(vs):
     return vs, [tuple(range(m)), tuple(range(m))[::-1]]
 
 
+def _reticula_2d(filas):
+    """Malla 2D (dos caras) de una reticula de puntos (filas de la misma cantidad de puntos)."""
+    ancho = len(filas[0])
+    vs = [q for fila in filas for q in fila]
+    cs = []
+    for j in range(len(filas) - 1):
+        for i in range(ancho - 1):
+            v00, v10, v11, v01 = j * ancho + i, j * ancho + i + 1, (j + 1) * ancho + i + 1, (j + 1) * ancho + i
+            for tri in ((v00, v10, v11), (v00, v11, v01)):
+                a, b, c = (vs[t] for t in tri)
+                if math.sqrt(_punto(*(2 * [_cruz(_resta(b, a), _resta(c, a))]))) > 1e-6:   # sin las que se juntan
+                    cs += [tri, tri[::-1]]
+    return vs, cs
+
+
+FORRO = ((0.34, "#100E12"), (0.5, "#161318"), (0.66, "#1D1A1F"), (9.0, "#252127"))
+CENTRO_CABEZA = (0.0, 16.0, 0.0)
+
+
+def capucha_pintor():
+    """Crema por fuera y el forro negro por dentro: cada pieza es 2D (dos caras), la que mira hacia la cabeza es el
+    forro."""
+    crema, forro = faceta(paleta=CREMA, grano=0), faceta(paleta=FORRO, grano=0)
+
+    def pintor(t):
+        hacia_fuera = _punto(t.n, _resta((t.x, t.y, t.z), CENTRO_CABEZA))
+        return forro(t) if hacia_fuera < 0 else crema(t)
+    return pintor
+
+
 def capucha(p):
     estorbos = [q for m in p.m.mallas if m.hueso.split("/")[0] == "Head" for q in m.vertices]
-    lado, frente, mitad, esquina = _paneles(*_triangulo(), estorbos)
-    p.malla_par("Head/capucha", "lado", lado, faceta(paleta=CREMA, grano=0), dens=4, luz=False)
-    # el techo: pegado a la orilla de arriba de cada lado (la punta, la mitad y la esquina de arriba); sus dos brazos
-    # van de la punta de la frente a cada esquina y se juntan atras en la muesca hundida (el valle del medio)
+    (vs, cs), frente, mitad, esquina = _paneles(*_triangulo(), estorbos)
+    k = RETICULA
+    atras_z = lambda q: (q[0], q[1], -q[2])
+    # el lado de atras: el de enfrente en espejo (enfrente-atras), con su esquina de arriba jalada a la de enfrente
+    # (asi las dos comparten la punta de arriba); en la reticula esa esquina es (i = k, j = k)
+    jalon = esquina[2] - atras_z(esquina)[2]
+    vs_atras = []
+    for idx, q in enumerate(vs):
+        j, i = divmod(idx, k + 1)
+        x, y, z = atras_z(q)
+        vs_atras.append((x, y, z + jalon * (i / k) * (j / k)))
+    crema = capucha_pintor()
+    p.malla_par("Head/capucha", "lado", (vs, cs), crema, dens=4, luz=False)
+    p.malla_par("Head/capucha", "lado_atras", (vs_atras, cs), crema, dens=4, luz=False)
+    # el costado: une la orilla de afuera de enfrente (i = k, de la esquina de abajo a la de arriba) con la de atras
+    orilla = [vs[j * (k + 1) + k] for j in range(k + 1)]
+    orilla_atras = [vs_atras[j * (k + 1) + k] for j in range(k + 1)]
+    filas = [[tuple(f[c] + (b_[c] - f[c]) * t / 4 for c in range(3)) for t in range(5)]
+             for f, b_ in zip(orilla, orilla_atras)]
+    p.malla_par("Head/capucha", "costado", _reticula_2d(filas), crema, dens=4, luz=False)
+    # atras no hay cara: la V de la copia se cierra uniendo la orilla de adentro de sus dos lados (j = 0, de la punta a
+    # la esquina de abajo)
+    adentro = [vs_atras[i] for i in range(k + 1)]
+    filas = [[tuple(q[c] * (1 - 2 * t / 4) if c == 0 else q[c] for c in range(3)) for t in range(5)] for q in adentro]
+    p.malla("Head/capucha", "cierre_atras", _reticula_2d(filas), crema, dens=4, luz=False)
+    # el techo de enfrente y su copia atras: pegados a la orilla de arriba de cada lado (la punta, la mitad y la
+    # esquina de arriba); sus brazos se juntan en la muesca hundida, que comparten
     espejo = lambda q: (-q[0], q[1], q[2])
     techo = []
-    for tri in ((frente, mitad, esquina), (frente, esquina, MUESCA), (frente, MUESCA, espejo(esquina)),
-                (frente, espejo(esquina), espejo(mitad))):
-        techo.append(_panel(list(tri)))
-    p.malla("Head/capucha", "techo", geo.unir(*techo), faceta(paleta=CREMA, grano=0), dens=4, luz=False)
+    for f, m in ((frente, mitad), (atras_z(frente), atras_z(mitad))):
+        for tri in ((f, m, esquina), (f, esquina, MUESCA), (f, MUESCA, espejo(esquina)),
+                    (f, espejo(esquina), espejo(m))):
+            techo.append(_panel(list(tri)))
+    p.malla("Head/capucha", "techo", geo.unir(*techo), crema, dens=4, luz=False)
 
 
 def liso(col):
