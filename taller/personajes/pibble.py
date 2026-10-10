@@ -322,6 +322,24 @@ def capucha_pintor(oreja_y, orilla):
     return pintor
 
 
+def _colgante(arriba, eslabones=2):
+    """Una cadenita dorada (eslabones de rombo) y un rombo dorado al final, colgando desde 'arriba'."""
+    x, y, z = arriba
+    piezas = [geo.bipiramide((x, y - 0.45 - 0.7 * i, z), 0.14, 0.3, 0.3) for i in range(eslabones)]
+    piezas.append(geo.bipiramide((x, y - 0.7 * eslabones - 1.05, z), 0.42, 0.5, 0.9))
+    return geo.unir(*piezas)
+
+
+def joyas(p, grupo, aro, colgantes):
+    """El aro dorado de lado (mira hacia afuera) con su gema azul, y los colgantes."""
+    oro, gema = faceta(0.08, ORO, grano=0, simetrico=True), faceta(0.1, AZUL, grano=0, simetrico=True)
+    lado = 90 if aro[0] < 0 else -90
+    p.malla(grupo, "aro", geo.mover(geo.girar(geo.aro(1.6, 1.15, 0.35, 10), (0, lado, 0)), aro), oro, dens=4)
+    p.malla(grupo, "gema", geo.bipiramide(aro, 0.5, 0.7, 0.7), gema, dens=4)
+    for i, c in enumerate(colgantes):
+        p.malla(grupo, f"colgante{i}", _colgante(c), oro, dens=4)
+
+
 def capucha(p):
     estorbos = [q for m in p.m.mallas if m.hueso.split("/")[0] == "Head" for q in m.vertices]
     (vs, cs), frente, mitad, esquina = _paneles(*_triangulo(), estorbos)
@@ -358,6 +376,12 @@ def capucha(p):
                     (f, espejo(esquina), espejo(m))):
             techo.append(_panel(list(tri)))
     p.malla("Head/capucha", "techo", geo.unir(*techo), crema, dens=4)
+    # las joyas: el aro con la gema azul al costado izquierdo (a la mitad de la orilla de afuera) con su rombo colgando,
+    # y un rombo colgando de cada esquina de abajo
+    x, y, z = orilla[k // 2]
+    aro = (-(x + 0.35), y, z)
+    joyas(p, "Head/joyas", aro, [(-(x + 0.35), y - 1.9, z)] + [(sx * vs[k][0], vs[k][1] - 0.1, vs[k][2])
+                                                              for sx in (1, -1)])
 
 
 def liso(col):
@@ -436,6 +460,12 @@ GROSOR_BATA = 0.45
 PLIEGUE = 0.8                                            # lo hondo de los pliegues de la bata abajo (arriba no hay)
 PISOS_BATA = 2                                           # pisos entre cada nivel de BATA (mas poligonos)
 SOLAPA = 1.6                                             # lo ancho de la solapa negra junto a la abertura
+RUNA_BATA = ((7.2, 7.55, 8.0, 10.6), (6.0, 7.55, 8.0, 8.35), (6.0, 6.35, 8.35, 9.0))     # (|x|, y) adelante, abajo
+# las puntas del borde de abajo (azules con filete dorado): a los lados y en las esquinas de la abertura
+PUNTAS_BATA = (((9.95, 6.4, -3.0), (9.95, 6.4, 3.0), (10.15, 2.6, 0.0)),
+               ((4.7, 6.4, -7.35), (7.7, 6.4, -7.35), (5.8, 2.9, -7.45)))
+# el colgante de la bufanda: de donde cuelga (a su izquierda de la banda)
+COLGANTE_BUFANDA = (-2.7, 29.4, -6.0)
 # las mangas anchas: (a que tanto del brazo crecen, del hombro hasta donde, el puno negro de donde a donde)
 MANGA = (1.1, 14.6, 16.0)
 # la bufanda azul: el rollo en el cuello (tapa la boca) y la banda que cuelga adelante hasta acabar en punta
@@ -488,6 +518,8 @@ def bata_pintor():
                 return negro(t)
             if ax < borde + 0.3:
                 return oro(t)
+            if any(x0 <= ax <= x1 and y0 <= t.y <= y1 for x0, x1, y0, y1 in RUNA_BATA):
+                return oro(t)                                   # las runas doradas de abajo
         if t.z > 1.0 and ax < 2.0:                              # atras: el panel azul con su orilla y su runa
             if ax > 1.72 or any(0.42 < ax + abs(t.y - yc) * 0.7 < 0.66 for yc in (21.0, 19.4)):
                 return oro(t)
@@ -582,6 +614,16 @@ def _pisos(niveles, entre):
     return out + [niveles[-1]]
 
 
+def _pintor_punta(pts):
+    azul, oro = tela(AZUL, grano=0.08), tela(ORO, 0.05, grano=0.08)
+
+    def pintor(t):
+        q = (t.x, t.y, t.z)
+        cerca = min(_a_segmento(q, pts[i], pts[(i + 1) % 3]) for i in range(3))
+        return oro(t) if cerca < 0.3 else azul(t)
+    return pintor
+
+
 def ropa(p):
     g = "Body/ropa"
     # la bata
@@ -625,6 +667,13 @@ def ropa(p):
     n = len(abajo)
     punta = (abajo + [(0.0, y1, -_frente_panza(y1) - 0.2)], [((i + 1) % n, i, n) for i in range(n)])
     p.malla(g, "banda", _doble(geo.unir(cuerpo_banda, punta)), banda_pintor(), dens=4)
+    # las puntas del borde de abajo de la bata: azules con filete dorado (2D, por los dos lados)
+    for i, tri in enumerate(PUNTAS_BATA):
+        for s in (1, -1):
+            pts = [(s * x, y, z) for x, y, z in tri]
+            p.malla(g, f"punta{i}_{'der' if s > 0 else 'izq'}", _panel(pts), _pintor_punta(pts), dens=4)
+    # el colgante dorado de la bufanda
+    p.malla(g, "colgante_bufanda", _colgante(COLGANTE_BUFANDA, 3), tela(ORO, 0.08, grano=0), dens=4)
     # el pantalon y las botitas en pico
     negro_p = tela(PANTALON_NEGRO, grano=0.08)
     negro_b, oro = tela(FORRO, grano=0.06), tela(ORO, 0.05, grano=0.08)
