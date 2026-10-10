@@ -8,10 +8,11 @@ circulos de muchos lados).
   BRAZOS en capas, como la hoja: la bata es de MANGA CORTA (morada, hueca, hasta medio brazo); abajo asoma la
     CAMISA olivo hasta el codo y debajo la otra CAMISA beige, gruesa y esponjada, hasta la muneca, con un BRAZAL de
     cuero y hebilla dorada en la muneca (en los huesos de los brazos, abiertas como los brazos).
-  CINTURON de cuero ENCIMA del faldon (lo aprieta: el faldon sale de abajo del cinturon) con la hebilla dorada;
-    BUFANDA verde en rollo alrededor del cuello con dos puntas que cuelgan adelante; MOCHILA de cuero en la espalda
-    con tapa, broche dorado y correas.
-  FALDON: sale de abajo del cinturon en TIRAS que se abren un poco hacia afuera, cada una de un largo distinto (al
+  La tunica termina en la cintura y la FALDA la faja: su faja (morado oscuro) aprieta la tunica y encima va el
+    CINTURON de cuero con la hebilla dorada (la faja asoma arriba y abajo: el cinturon va encima). BUFANDA verde en
+    rollo alrededor del cuello con dos puntas que cuelgan adelante. MOCHILA de cuero en la espalda, abierta arriba,
+    con un pergamino enrollado y una pocion asomando, y la CORREA cruzada (hebilla de oro y tres frascos colgando).
+  FALDON: sale de abajo de la faja en TIRAS que se abren un poco hacia afuera, cada una de un largo distinto (al
     azar, fijo) y con la punta escalonada, en dos capas (la de abajo mas oscura tapa los huecos). Algunas olivo.
 """
 
@@ -19,14 +20,14 @@ import math
 
 from .. import malla as geo
 from ..textura import hex_a_rgba as hex_
-from .bashi import BEIGE, C, CUERO, CUERO_OSC, D, MORADO, OLIVO, ORO, OSCURO, PIEL, azar, giro_brazo
+from .bashi import BEIGE, C, CIAN, CUERO, CUERO_OSC, D, MORADO, OLIVO, ORO, OSCURO, PIEL, VIOLETA, azar, giro_brazo
 from .meron import tubo_hueco
 
 
 def plano(rampa):
     """Color liso de la pieza, apenas un tono por lado para que se lea la forma: arriba mas claro, los costados y
     abajo un tono mas oscuro."""
-    b, m, s = hex_(rampa["b"]), hex_(rampa["m"]), hex_(rampa["s"])
+    b, m, s = hex_(rampa["b"]), hex_(rampa.get("m", rampa["l"])), hex_(rampa["s"])
 
     def p(t):
         n = t.n
@@ -126,15 +127,18 @@ def brazos(p):
 
 
 # ---------------------------------------------------------------------------------------------- cinturon y faldon
-CINTURON = ((21.3, 4.95, 3.25, 0.55), (23.0, 4.95, 3.25, 0.55))
-ARO = (4.5, 2.85)                       # donde nacen las tiras, abajo del cinturon: medio ancho y hondo
-TIRA_ARRIBA = 21.9                      # las tiras empiezan adentro del cinturon y salen por debajo
+FAJA = ((20.6, 4.7, 3.0, 0.5), (23.6, 4.7, 3.0, 0.5))      # la parte de arriba de la falda: faja la tunica
+CINTURON = ((21.3, 4.95, 3.25, 0.55), (23.0, 4.95, 3.25, 0.55))   # encima de la faja (asoma arriba y abajo)
+ARO = (4.4, 2.75)                       # donde nacen las tiras, adentro de la faja: medio ancho y hondo
+TIRA_ARRIBA = 21.0                      # las tiras empiezan adentro de la faja y salen por debajo
 RUEDO = (8.4, 12.4)                     # donde termina cada tira: entre estas alturas, al azar (fijo)
 
 
 def cinturon(p):
-    """El cinturon de cuero encima del faldon (lo aprieta), con la hebilla dorada adelante."""
+    """La faja de la falda (morado oscuro) que aprieta la tunica en la cintura, y encima el cinturon de cuero con la
+    hebilla dorada adelante: la faja asoma arriba y abajo del cinturon, asi se ve que el cinturon va encima."""
     g = "Body/cinturon"
+    p.malla(g, "faja", bloque(FAJA), oscuro(MORADO), dens=D)
     p.malla(g, "cinto", bloque(CINTURON), plano(CUERO), dens=D)
     zf = -CINTURON[0][2]
     caja(p, g, "hebilla", (-0.8, 21.1, zf - 0.25), (0.8, 23.25, zf + 0.1), ORO)
@@ -201,17 +205,85 @@ def bufanda(p):
         p.malla(g, f"punta{k}", m, oscuro(OLIVO) if os else plano(OLIVO), dens=D)
 
 
+MOCHILA = ((-2.4, 23.4, 2.78), (2.4, 27.4, 4.6))       # el cuerpo de la mochila (abierta arriba)
+PERGAMINO = ((-1.0, 3.7), 0.6, 26.0, 29.6, 6.0)         # (x, z), radio, abajo, arriba (asoma media mochila) y giro
+FRASCO_MOCHILA = ((1.05, 3.65), 26.6, -8.0)             # (x, z), abajo y giro de la pocion de la mochila
+CORREA = ((-2.6, 29.7), (4.45, 24.1), 1.1, (-3.1, -2.78))   # de su hombro izquierdo a su cadera derecha: ancho y z
+HEBILLA_X = -0.6                                        # la hebilla de oro, en medio de la correa (libre de la bufanda)
+FRASCOS = ((-2.0, 0.9, 1.3, VIOLETA), (0.2, 0.55, 0.8, CIAN), (3.3, 0.7, 1.0, ORO))   # colgando: x, ancho, alto, color
+
+
+def interior(rampa):
+    """Pintor de la mochila: por fuera el cuero; la tapa de arriba es el adentro (oscuro), porque va abierta."""
+    fuera, adentro = plano(rampa), hex_(OSCURO["s"])
+    return lambda t: adentro if t.cara == "up" else fuera(t)
+
+
+def enrollado(centro_arriba, radio):
+    """Pintor del pergamino: el papel beige; en la tapa de arriba, el rollo pintado (anillos mas oscuros)."""
+    papel, linea = plano(BEIGE), hex_(BEIGE["s2"])
+
+    def p(t):
+        if t.n[1] > 0.8:
+            d = math.dist((t.x, t.y, t.z), centro_arriba) / radio
+            if d > 0.15 and (d * 4.5) % 1.0 < 0.3:
+                return linea
+        return papel(t)
+    return p
+
+
+def frasco(p, g, nombre, x, y_arriba, z, ancho, alto, rampa, rot=None, piv=None):
+    """Un frasco cuadrado: el cuerpo de vidrio, el cuello y el corcho, colgando desde y_arriba (la punta del corcho)."""
+    kw = dict(rot=rot, piv=piv) if rot else {}
+    w, c = ancho / 2, ancho * 0.22
+    corcho, cuello = y_arriba - 0.3, y_arriba - 0.3 - 0.35
+    caja(p, g, nombre + "_corcho", (x - c - 0.05, corcho, z - c - 0.05), (x + c + 0.05, y_arriba, z + c + 0.05), BEIGE, **kw)
+    caja(p, g, nombre + "_cuello", (x - c, cuello, z - c), (x + c, corcho, z + c), rampa, **kw)
+    caja(p, g, nombre + "_cuerpo", (x - w, cuello - alto, z - w), (x + w, cuello, z + w), rampa, **kw)
+
+
 def mochila(p):
-    """La mochila de cuero en la espalda: el cuerpo, la tapa mas oscura con el broche dorado y las dos correas que
-    suben por la espalda, pasan bajo la bufanda y bajan por el pecho."""
+    """La mochila de cuero en la espalda, abierta arriba (sin tapa), con un pergamino enrollado (12 lados, asoma media
+    mochila, el rollo pintado en la tapa) y una pocion asomando; la correa gordita cruzada: de la mochila sube a su
+    hombro izquierdo (pasa bajo la bufanda), cruza el pecho hasta su cadera derecha (por detras de las puntas de la
+    bufanda) con la hebilla de oro en medio, y rodea el costado hasta la mochila; de la correa cuelgan tres frascos
+    de distinto tamano."""
     g = "Body/mochila"
-    caja(p, g, "cuerpo", (-2.4, 23.4, 2.75), (2.4, 28.0, 4.6), CUERO)
-    caja(p, g, "tapa", (-2.55, 26.0, 2.75), (2.55, 28.3, 4.8), CUERO_OSC)
-    caja(p, g, "broche", (-0.45, 25.2, 4.75), (0.45, 26.6, 5.0), ORO)
-    for s in (1, -1):
-        a, b = sorted((s * 1.55, s * 2.3))
-        caja(p, g, f"correa_atras{s}", (a, 27.8, 2.75), (b, C - 0.05, 3.15), CUERO_OSC)
-        caja(p, g, f"correa_frente{s}", (a, 25.6, -3.15), (b, C - 0.05, -2.75), CUERO_OSC)
+    (x0, y0, z0), (x1, y1, z1) = MOCHILA
+    p.caja(g, "cuerpo", (x0, y0, z0), (x1, y1, z1), interior(CUERO), dens=D)
+    for nombre, a, b in (("borde_atras", (x0, y1, z1 - 0.25), (x1, y1 + 0.45, z1)),
+                         ("borde_frente", (x0, y1, z0), (x1, y1 + 0.45, z0 + 0.25)),
+                         ("borde_der", (x1 - 0.25, y1, z0), (x1, y1 + 0.45, z1)),
+                         ("borde_izq", (x0, y1, z0), (x0 + 0.25, y1 + 0.45, z1))):
+        caja(p, g, nombre, a, b, CUERO_OSC)
+    # el pergamino: un plano enrollado de 12 lados, con la tapa de arriba pintada con el rollo
+    (px, pz), r, ya, yb, giro = PERGAMINO
+    anillos = [geo.anillo(px, y, pz, r, r, 12, 15) for y in (ya, yb)]
+    malla = geo.girar(geo.loft_puntos(anillos), (0, 0, giro), (px, ya, pz))
+    centro = geo.girar(([(px, yb, pz)], []), (0, 0, giro), (px, ya, pz))[0][0]
+    p.malla(g, "pergamino", malla, enrollado(centro, r), dens=D)
+    (fx, fz), fy, fgiro = FRASCO_MOCHILA
+    frasco(p, g, "pocion", fx, fy + 2.7, fz, 1.1, 1.7, VIOLETA, rot=(0, 0, fgiro), piv=(fx, fy, fz))
+    # la correa
+    (ax, ay), (bx, by), ancho, (za, zb) = CORREA
+    largo, ang = math.hypot(bx - ax, by - ay), math.degrees(math.atan2(by - ay, bx - ax))
+    linea = lambda x: ay + (by - ay) * (x - ax) / (bx - ax)
+    caja(p, g, "correa_frente", (ax, ay - ancho / 2, za), (ax + largo, ay + ancho / 2, zb), CUERO_OSC, rot=(0, 0, ang),
+         piv=(ax, ay, za))
+    caja(p, g, "correa_atras", (ax - 0.55, MOCHILA[1][1] - 0.2, 2.78), (ax + 0.55, C - 0.3, 3.12), CUERO_OSC)
+    caja(p, g, "correa_lado", (4.48, by - 0.5, -2.8), (4.85, by + 0.6, 2.8), CUERO_OSC)
+    caja(p, g, "correa_espalda", (x1, by - 0.5, 2.78), (4.85, by + 0.6, 3.12), CUERO_OSC)
+    hy = linea(HEBILLA_X)
+    caja(p, g, "hebilla", (HEBILLA_X - 0.6, hy - 0.72, za - 0.22), (HEBILLA_X + 0.6, hy + 0.72, za + 0.05), ORO,
+         rot=(0, 0, ang), piv=(HEBILLA_X, hy, za))
+    caja(p, g, "hebilla_hueco", (HEBILLA_X - 0.3, hy - 0.38, za - 0.3), (HEBILLA_X + 0.3, hy + 0.38, za - 0.15),
+         CUERO_OSC, rot=(0, 0, ang), piv=(HEBILLA_X, hy, za))
+    # los frascos que cuelgan de la correa (cada uno de un hilo)
+    for k, (x, ancho_f, alto, rampa) in enumerate(FRASCOS):
+        y_hilo = linea(x) - ancho / 2 + 0.1
+        z = za - ancho_f / 2 - 0.12
+        caja(p, g, f"hilo{k}", (x - 0.06, y_hilo - 0.45, z - 0.06), (x + 0.06, y_hilo, z + 0.06), OSCURO)
+        frasco(p, g, f"frasco{k}", x, y_hilo - 0.45, z, ancho_f, alto, rampa)
 
 
 def abrigo(p):
