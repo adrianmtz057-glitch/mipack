@@ -21,7 +21,7 @@ D_CARA = 8                              # la cabeza, con mas detalle para la car
 
 PELO = {"s": "#EBC567", "b": "#F7D77C", "l": "#FCE8A8"}              # rubio claro, con poca sombra
 OREJA = {"s": "#EFE2D2", "b": "#FAF1E6", "l": "#FFFAF2"}
-PIEL, PIEL_BAJO = "#FFEAE4", "#FCDDD6"                            # blanco rosita
+PIEL, PIEL_BAJO = "#FCF1D4", "#F8E6C0"                            # crema, como el pelaje de sus patas
 RUBOR, RUBOR_FUERTE = "#F7B1A8", "#F29A93"
 ROSA_OREJA = "#F4A9A6"
 AMBAR, AMBAR_CLARO, PUPILA, PESTANA = "#EE8E2A", "#F9C54E", "#3A1A12", "#1C1418"
@@ -315,7 +315,8 @@ def pelo(p, C, T):
 
 # las orejas de zorro, a los costados de la cabeza: de 2 de grueso (de enfrente hacia atras) y derechitas (sin
 # inclinar). De frente son una hoja grande que sale de arriba de la cabeza, sube y se abre hacia afuera hasta la punta,
-# y baja por fuera hasta el bulto del pelo. La orilla en picos de pelusa (felpudas) y el adentro crema adelante.
+# y baja por fuera hasta el bulto del pelo. Felpudas: la orilla en picos y copos de pelusa por fuera, y el adentro
+# rosa adelante con mechoncitos crema que le salen.
 # Contorno de frente de la oreja derecha (x, y): la orilla de adentro hasta la punta, la de afuera hacia abajo, y la
 # base metida en el pelo
 OREJA_FRENTE = ((1.8, 21.6), (2.0, 22.6), (2.75, 24.3), (3.9, 25.6), (5.35, 26.8), (6.9, 27.7))
@@ -324,6 +325,13 @@ OREJA_BASE = ((6.0, 16.9), (5.2, 19.5), (4.0, 21.3), (2.8, 21.6))
 OREJA_Z = (-0.6, 1.4)                                    # de enfrente a atras: 2 de grueso
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
 CREMA = ((0.5, PELUSA["s"]), (0.66, PELUSA["b"]), (9.0, PELUSA["l"]))
+ROSA = ((0.5, "#E8979A"), (9.0, ROSA_OREJA))
+# esponjosas como la cola (pero menos): copos rubios por toda la orilla y atras, cada uno de su tamano y giro; y
+# adelante, en la base del rosa donde sale del pelo, copos crema
+COPO_PASO = 0.7                                          # cada cuanto va un copo sobre la orilla
+COPO_LADO = (0.8, 1.15)                                  # tamano de los copos de la orilla (de, a)
+COPOS_ATRAS = ((4.6, 24.6), (5.9, 25.6), (6.8, 24.2), (5.6, 23.3), (7.1, 22.6), (6.6, 26.5))
+COPOS_ADENTRO = ((2.7, 22.3), (3.5, 22.0), (4.2, 22.6), (5.0, 22.1), (5.8, 22.5), (6.6, 22.0), (7.2, 22.7), (4.6, 23.2))
 
 
 def _felpa(pts, alto, k0=0):
@@ -349,14 +357,29 @@ def orejas(p, T):
     contorno = _felpa(list(OREJA_FRENTE) + list(OREJA_ATRAS), 0.35) + list(OREJA_BASE)
     z0, z1 = OREJA_Z
     oreja = geo.extruir([(x, y + dy) for x, y in contorno], z0, z1)
-    # el adentro crema, adelante: la misma hoja mas chica (sin la base), apenas salida
+    # el adentro rosa, adelante: la misma hoja mas chica (sin la base), apenas salida
     visible = list(OREJA_FRENTE) + list(OREJA_ATRAS)
     cx = sum(x for x, _ in visible) / len(visible) - 0.3
     cy = sum(y for _, y in visible) / len(visible) + 0.3
     adentro = [(cx + (x - cx) * 0.62, cy + (y - cy) * 0.62 + dy) for x, y in visible]
-    crema = geo.extruir(adentro, z0 - 0.12, z0 + 0.1)
+    rosa = geo.extruir(adentro, z0 - 0.12, z0 + 0.1)
     p.malla_par(g, "oreja", oreja, faceta(), dens=D)
-    p.malla_par(g, "adentro", crema, faceta(paleta=CREMA), dens=D)
+    p.malla_par(g, "adentro", rosa, faceta(paleta=ROSA), dens=D)
+    # los copos: sobre la orilla (lo que queda fuera del pelo), atras y en la base del rosa
+    import math
+    copos = []
+    for a, b in zip(visible, visible[1:]):
+        n = max(1, round(math.dist(a, b) / COPO_PASO))
+        copos += [(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, (z0 + z1) / 2, COLA_RUBIA)
+                  for i in range(n) if a[1] + (b[1] - a[1]) * i / n > 21.9 or a[0] > 7.0]
+    copos += [(x, y, z1 - 0.1, COLA_RUBIA) for x, y in COPOS_ATRAS]
+    copos += [(x, y, z0 - 0.25, COLA_CREMA) for x, y in COPOS_ADENTRO]
+    for s in (1, -1):
+        for k, (x, y, z, pintor) in enumerate(copos):
+            l = COPO_LADO[0] + (COPO_LADO[1] - COPO_LADO[0]) * _azar(k + 500)
+            giro = (40 * (_azar(k + 510) - 0.5), 40 * (_azar(k + 520) - 0.5), 60 * (_azar(k + 530) - 0.5))
+            p.caja(g, f"copo{s}_{k}", (s * x - l / 2, y + dy - l / 2, z - l / 2),
+                   (s * x + l / 2, y + dy + l / 2, z + l / 2), pintor, rot=giro, dens=D)
 
 
 def pestanas(p, C):
@@ -569,11 +592,12 @@ PIERNA_EXTRA = 0.6
 # (y, medio ancho, esquina)
 SHORT = ((4.2, 1.42, 0.4), (5.0 + PIERNA_EXTRA, 1.38, 0.4))
 GRIS_NEGRO = ((0.34, "#1C1C21"), (0.5, "#26262C"), (0.66, "#313138"), (9.0, "#3C3C45"))
-# las botas de pelaje crema (como las de la referencia): la pata grande con las rayitas rosas adelante, la cana de la
-# bota mas ancha que la pierna y copos de pelusa arriba y en el tobillo (como la cola, pero menos)
+# las patas de zorro (suyas, de pelaje crema como su piel): la pata grande con las rayitas rosas adelante (los
+# dedos), la pierna de pelaje mas ancha que la de piel y un borde de copos de pelusa arriba (como la cola, pero menos)
+PELAJE, PELAJE_TONOS = PELUSA, CREMA
 PATA = ((-0.05, 2.9), (0.0, 1.5), (-2.0, 1.5))           # de x a x (pierna derecha), de y a y, de z a z
 CANA = ((1.3, 1.5, 0.45), (2.4, 1.48, 0.45), (3.0, 1.52, 0.45))       # (y, medio ancho, esquina)
-COPOS_BOTA = ((3.05, 7, 0.75),)                         # (y, cuantos, tamano): el borde de arriba de la bota
+COPOS_PATA = ((3.05, 7, 0.75),)                         # (y, cuantos, tamano): el borde de arriba
 
 
 def short(p):
@@ -588,18 +612,18 @@ def short(p):
 
 
 def pata(t):
-    """La pata de la bota: pelaje crema y tres rayitas rosas adelante que suben y pasan por arriba (los dedos)."""
+    """La pata: su pelaje y tres rayitas rosas adelante que suben y pasan por arriba (los dedos)."""
     u = (t.x - t.f[0]) / max(1e-6, t.t[0] - t.f[0])
     rayas = any(abs(u - c) < 0.55 / max(1, t.tw) for c in (0.25, 0.5, 0.75))      # de un texel de ancho
     if rayas and ((t.cara == "north" and t.y > t.f[1] + 0.35) or (t.cara == "up" and t.z < t.f[2] + 0.8)):
         return hex_(RUBOR_FUERTE)
-    return voxel(PELUSA, claro=0.25)(t)
+    return voxel(PELAJE, claro=0.25)(t)
 
 
-def botas(p):
+def patas(p):
     import math
     from .. import malla as geo
-    pelusa = voxel(PELUSA, claro=0.3)
+    pelusa = voxel(PELAJE, claro=0.3)
     for s in (1, -1):
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         (xa, xb), (ya, yb), (za, zb) = PATA
@@ -607,9 +631,9 @@ def botas(p):
         p.caja(f"{hueso}/pata", "pata", (a, ya, za), (b, yb, zb), pata, dens=D, luz=False)
         cx = s * 1.3
         p.malla(f"{hueso}/pata", "cana", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y, m, r in CANA]),
-                faceta(paleta=CREMA), dens=D)
+                faceta(paleta=PELAJE_TONOS), dens=D)
         k = 0
-        for y, n, lado in COPOS_BOTA:
+        for y, n, lado in COPOS_PATA:
             for i in range(n):
                 a = math.radians(360 * i / n + 20 * s)
                 x, z = cx + 1.45 * math.cos(a), 1.45 * math.sin(a) - (0.25 if y < 2 else 0.0)
@@ -661,7 +685,7 @@ def construir():
         p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L + PIERNA_EXTRA, 1.2), piel, dens=D, luz=False)
     ropa(p, C, L)
     short(p)
-    botas(p)
+    patas(p)
     cola(p)
     subir(p, PIERNA_EXTRA)
     return p
