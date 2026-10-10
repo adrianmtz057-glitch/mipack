@@ -9,7 +9,8 @@ cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al 
 La capucha, paso a paso: por ahora los dos paneles de enfrente, unidos por la punta en la frente: doblados hacia la
 cabeza, la parte de abajo inclinada hacia enfrente, la esquina de arriba alargada hacia arriba, y el hundido hecho con
 el hundido curvo hacia adentro de caras pegadas, cortados a lo largo con la mitad de abajo hundida, muy cerca de la
-cara sin tocarla; y el rombo de arriba pegado a sus orillas, inclinado hacia arriba.
+cara sin tocarla; y el techo (rombo) que sale de la punta de la frente, pegado a sus orillas de arriba hasta sus
+esquinas, y cierra hacia atras.
 """
 
 import math
@@ -96,7 +97,7 @@ def ojos(p):
 # final) se curva hacia adentro con un bisel suave; cada lado se corta a lo largo y la mitad de abajo se hunde con un
 # doblez suave. Cada lado es UNA malla 2D continua (cada cara con sus dos lados) de muchos poligonos: todo pegado
 LADO_TRIANGULO = 10.5
-PUNTA_FRENTE = (0.0, 21.0, -4.6)                         # arriba de la frente, justo sobre la coronilla
+PUNTA_FRENTE = (0.0, 19.8, -4.0)                         # en la frente (se recorre hacia enfrente lo justo)
 Z_AFUERA = -3.0
 GIRO_TRIANGULO = 20.0                                    # grados que se gira sobre su punta: lo de afuera baja
 HACIA_ADENTRO = 25.0                                     # grados que lo de afuera se dobla hacia la cabeza
@@ -111,9 +112,9 @@ CURVA = 0.6                                              # el hundido se curva h
 RETICULA = 14                                            # cada lado se arma con una reticula de RETICULA x RETICULA
 DOBLEZ = 0.5                                             # lo ancho del doblez del corte (hacia la mitad de abajo)
 BISEL = 0.45                                             # lo ancho del bisel con que entra el hundido
-# el rombo de arriba: pegado a la orilla de arriba de los dos triangulos desde la punta (dos de sus lados van sobre
-# ellas), asi queda inclinado hacia arriba; lo largo de sus lados
-LADO_ROMBO = 3.5
+# el techo (rombo): de la punta de la frente, pegado a la orilla de arriba de cada triangulo hasta su esquina de
+# arriba, y de ahi cierra hacia atras en ESPALDA (sobre la cabeza, sin tocarla)
+ESPALDA = (0.0, 23.0, 5.8)
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
 
@@ -237,7 +238,7 @@ def _paneles(a, b, c, estorbos):
             v00, v10, v11, v01 = j * (k + 1) + i, j * (k + 1) + i + 1, (j + 1) * (k + 1) + i + 1, (j + 1) * (k + 1) + i
             for tri in ((v00, v10, v11), (v00, v11, v01)):
                 cs += [tri, tri[::-1]]                    # las dos caras (2D)
-    return (vs, cs), en3d(t0), en3d(mitad)
+    return (vs, cs), en3d(t0), en3d(mitad), en3d(punta)
 
 
 def _panel(vs):
@@ -248,14 +249,15 @@ def _panel(vs):
 
 def capucha(p):
     estorbos = [q for m in p.m.mallas if m.hueso.split("/")[0] == "Head" for q in m.vertices]
-    lado, punta, mitad = _paneles(*_triangulo(), estorbos)
+    lado, frente, mitad, esquina = _paneles(*_triangulo(), estorbos)
     p.malla_par("Head/capucha", "lado", lado, faceta(paleta=CREMA, grano=0), dens=4, luz=False)
-    hacia = _unit(_resta(mitad, punta))
-    der = tuple(punta[i] + hacia[i] * LADO_ROMBO for i in range(3))
-    izq = (-der[0], der[1], der[2])
-    atras = tuple(der[i] + izq[i] - punta[i] for i in range(3))
-    p.malla("Head/capucha", "rombo", _panel([punta, der, atras, izq]), faceta(paleta=CREMA, grano=0), dens=4,
-            luz=False)
+    # el techo: pegado a la orilla de arriba de cada lado (la punta, la mitad y la esquina de arriba) y cerrado atras
+    espejo = lambda q: (-q[0], q[1], q[2])
+    techo = []
+    for tri in ((frente, mitad, esquina), (frente, esquina, ESPALDA), (frente, ESPALDA, espejo(esquina)),
+                (frente, espejo(esquina), espejo(mitad))):
+        techo.append(_panel(list(tri)))
+    p.malla("Head/capucha", "techo", geo.unir(*techo), faceta(paleta=CREMA, grano=0), dens=4, luz=False)
 
 
 def liso(col):
