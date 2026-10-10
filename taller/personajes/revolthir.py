@@ -18,8 +18,9 @@ import math
 
 from .. import malla as geo
 from ..kit import Personaje
+from ..luz import LUZ_SIMETRICA
 from ..textura import hex_a_rgba as hex_
-from .bloques import color, ojo_kemira, voxel
+from .bloques import BAYER, color, ojo_kemira, voxel
 
 D = 4                                   # texeles por px
 
@@ -133,20 +134,54 @@ def perfil_hoja(ancho, largo):
     return der + [(0.0, -largo)] + [(-x, y) for x, y in der][::-1]
 
 
-def hoja_pintor(a, b, n, rampa):
-    """Una hoja: el frente del tono de su capa (mas claro si mira a la luz) con la vena mas clara; el reverso y los
-    cantos en sombra. Sin luz horneada (son muchas caras chiquitas): el volumen va a mano."""
-    from ..luz import LUZ
-    largo = math.sqrt(sum(c * c for c in LUZ))
-    luz = tuple(c / largo for c in LUZ)
+def _medio_ancho(f):
+    """El medio ancho (por ancho) de la silueta de la hoja a la fraccion f del largo."""
+    hw = NIVELES_HOJA[0][1]
+    for desde, w in NIVELES_HOJA:
+        if f >= desde:
+            hw = w
+    return hw
+
+
+def hoja_pintor(a, b, n, rampa, ancho):
+    """Una hoja con textura: el frente del tono de su capa (mas claro si mira a la luz), la vena del centro y las
+    venitas en V mas claras, la orilla escalonada un tono mas oscura y un grano de pixeles (ondas y Bayer, alineado
+    con la hoja); el reverso y los cantos en sombra con su grano. Sin luz horneada (son muchas caras chiquitas): el
+    volumen va a mano, con la luz pareja (arriba y de frente)."""
+    luz = _norm(LUZ_SIMETRICA)
     cols = [hex_(c) for c in rampa]
+    eje = _sub(b, a)
+    largo = math.sqrt(_punto(eje, eje)) or 1.0
+    eje = tuple(c / largo for c in eje)
+    lado = _norm(_cruz(eje, n))
     frente = 1 + (1 if _punto(n, luz) > 0.55 else 0) - (1 if _punto(n, luz) < 0.05 else 0)
 
+    def grano(q):
+        cu, cv = math.floor(_punto(q, lado) * D + 400), math.floor(_punto(q, eje) * D + 400)
+        ola = math.sin(cu * 0.9 + cv * 0.5) * math.cos(cv * 0.8 - cu * 0.35)
+        g = 0.5 * ola + ((BAYER[cv % 4][cu % 4] + 0.5) / 16 - 0.5)
+        return 1 if g > 0.36 else -1 if g < -0.36 else 0
+
     def p(t):
+        q = (t.x, t.y, t.z)
         if _punto(t.n, n) < 0.7:
-            return cols[0]
-        return cols[min(3, frente + (1 if _a_tramo((t.x, t.y, t.z), a, b) < 0.14 else 0))]
+            return cols[max(0, min(1, grano(q)))]
+        r = _sub(q, a)
+        s, d = _punto(r, eje), abs(_punto(r, lado))
+        i = frente + grano(q)
+        if d < 0.12:                                           # la vena del centro
+            i = frente + 1
+        elif s > 0.3 and (s - d * 0.9) % 0.6 < 0.1:            # las venitas en V
+            i += 1
+        elif d > _medio_ancho(s / largo) * ancho - 0.16:       # la orilla
+            i -= 1
+        return cols[max(0, min(3, i))]
     return p
+
+
+def _norm(v):
+    largo = math.sqrt(sum(c * c for c in v)) or 1.0
+    return tuple(c / largo for c in v)
 
 
 class Manto:
@@ -163,7 +198,7 @@ class Manto:
         vs, cs = geo.mover(geo.girar(geo.extruir(perfil_hoja(ancho, largo), -GROSOR_HOJA / 2, GROSOR_HOJA / 2), giro),
                            base)
         (a, b, c), _ = geo.mover(geo.girar(([(0, 0, 0), (0, -largo, 0), (0, 0, -1)], []), giro), base)
-        pin = hoja_pintor(a, b, _sub(c, a), rampa)
+        pin = hoja_pintor(a, b, _sub(c, a), rampa, ancho)
         tvs, tcs, tps = self.huesos.setdefault(grupo, ([], [], []))
         i0 = len(tvs)
         tvs.extend(vs)
@@ -418,6 +453,7 @@ def detalles(p):
 
 def construir():
     p = Personaje("revolthir", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
+    p.m.luz_desde = LUZ_SIMETRICA                    # la luz horneada pareja: en el juego llega de todos lados
     base = voxel(MUSGO_OSC, -0.15)                  # lo de abajo del manto (se asoma entre las hojas)
     # la cabeza, la mascara con volumen, la base de la capucha y las astas
     p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=8, luz=False)

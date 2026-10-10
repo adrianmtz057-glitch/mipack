@@ -121,6 +121,7 @@ class Modelo:
         self.mallas: list[Malla] = []
         self.pivotes = dict(HUESOS)
         self.luz = True          # luz horneada (taller/luz.py): volumen con sombras y cantos de luz
+        self.luz_desde = None    # de donde viene la luz horneada (None: luz.LUZ; luz.LUZ_SIMETRICA: pareja)
 
     def malla(self, hueso, nombre, vertices, caras, pintor, lado=1, dens=1, luz=True):
         """Malla de caras planas antihorarias vistas desde afuera. Una cara puede tener 3, 4 o mas vertices
@@ -420,21 +421,28 @@ class Modelo:
     def _hornear_luz(self, lienzo, uvs, caras_luz):
         """Segunda pasada: con todo ya pintado (asi lo transparente no tapa la luz), corre cada texel unos pasos de su
         rampa segun la oclusion, la sombra proyectada y los cantos (taller/luz.py)."""
-        luz = Luz(self, lienzo, uvs)
-        for datos, ux, uy, tw, th, voltea_u, voltea_v in caras_luz:
-            sombrear = luz.cara(*datos)
-            for jy in range(th):
-                r = (jy + 0.5) / th
-                if voltea_v:
-                    r = 1 - r
-                for ix in range(tw):
-                    s = (ix + 0.5) / tw
-                    if voltea_u:
-                        s = 1 - s
-                    col = lienzo.leer(ux + ix, uy + jy)
-                    nuevo = sombrear(col, s, r)
-                    if nuevo is not col:
-                        lienzo.poner(ux + ix, uy + jy, nuevo)
+        from . import luz as motor
+        antes = motor.L
+        if self.luz_desde:
+            motor.L = motor._norm(self.luz_desde)
+        try:
+            luz = Luz(self, lienzo, uvs)
+            for datos, ux, uy, tw, th, voltea_u, voltea_v in caras_luz:
+                sombrear = luz.cara(*datos)
+                for jy in range(th):
+                    r = (jy + 0.5) / th
+                    if voltea_v:
+                        r = 1 - r
+                    for ix in range(tw):
+                        s = (ix + 0.5) / tw
+                        if voltea_u:
+                            s = 1 - s
+                        col = lienzo.leer(ux + ix, uy + jy)
+                        nuevo = sombrear(col, s, r)
+                        if nuevo is not col:
+                            lienzo.poner(ux + ix, uy + jy, nuevo)
+        finally:
+            motor.L = antes
 
     # ------------------------------------------------------------------ exportar
     def a_bbmodel(self, lienzo=None, uvs=None) -> dict:

@@ -17,6 +17,7 @@ import math
 
 from .. import malla as geo
 from ..kit import Personaje
+from ..luz import LUZ_SIMETRICA
 from ..textura import hex_a_rgba as hex_
 from .bloques import ojo_kemira, voxel
 from .moles import faceta
@@ -414,6 +415,7 @@ def detalles(p):
 
 def construir():
     p = Personaje("correctar", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
+    p.m.luz_desde = LUZ_SIMETRICA                    # la luz horneada pareja: en el juego llega de todos lados
     blanco = voxel(BLANCO, 0.05)
     # la cabeza envuelta, la vuelta de la bufanda (tapa la boca), la corona y los cristales
     casco(p)

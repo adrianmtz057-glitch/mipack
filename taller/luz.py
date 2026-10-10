@@ -17,6 +17,7 @@ import math
 from functools import lru_cache
 
 LUZ = (0.35, 1.0, -0.45)                 # de donde viene la luz (arriba, de frente, de la derecha del personaje)
+LUZ_SIMETRICA = (0.0, 1.0, -0.45)        # arriba y de frente, sin lado: la izquierda y la derecha salen iguales
 RADIO_OCLUSION = 3.5                     # px: hasta donde una pieza cercana oscurece
 LARGO_SOMBRA = 40.0                      # px: hasta donde llega la sombra proyectada
 PASO_GRILLA = 0.5                        # px entre muestras de la grilla de cada cara
