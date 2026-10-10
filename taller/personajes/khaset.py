@@ -44,7 +44,7 @@ Rig para animar en Figura (la pose va en la geometria):
     <pierna>/canilla/pie/dedos en la planta (quedan apoyados cuando el garron se levanta).
   Body/taparrabo pivota en el cinturon y cada pano (pano_frente, pano_atras, faldon_der, faldon_izq) en su borde.
   script_figura() es el Lua del avatar: compensa el agachado y el golpe vanilla, hace brillar los ojos y cuida el
-    abanico al mover la cabeza (puente.exportar_figura todavia no lo escribe: hay que pegarlo en script.lua).
+    abanico al mover la cabeza (puente.py lo escribe en el script.lua del avatar, debajo de ocultar el vanilla).
 """
 
 import math

@@ -117,6 +117,10 @@ def generar(ficha_cruda, guardar_ficha=None, a_mano=True):
         ruta, lienzo, uvs = p.guardar(SALIDA)
         print(f"  Modelo (hecho a mano): {ruta}  ({len(p.m.cubos)} cubos, textura {lienzo.ancho}x{lienzo.alto})")
         exportar_figura(f, ruta, os.path.join(SALIDA, "figura", nombre))
+        if hasattr(modulo, "script_figura"):          # su propio script.lua (ej. Khaset)
+            with open(os.path.join(SALIDA, "figura", nombre, "script.lua"), "w", encoding="utf-8") as fh:
+                fh.write("-- Oculta el cuerpo vanilla: el modelo ya trae cuerpo propio\n"
+                         "vanilla_model.PLAYER:setVisible(false)\n\n" + modulo.script_figura())
         for obj in getattr(modulo, "accesorios", lambda: [])():
             r_obj, _, _ = obj.guardar(os.path.join(SALIDA, "accesorios"))
             print(f"  Accesorio: {r_obj}")
