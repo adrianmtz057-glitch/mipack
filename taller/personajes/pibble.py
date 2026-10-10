@@ -8,7 +8,8 @@ frente redonda; toda de vacio negro, con los ojos de almendra crema (piezas con 
 cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al centro de la frente.
 La capucha, paso a paso: por ahora los dos paneles de enfrente, unidos por la punta en la frente: doblados hacia la
 cabeza, la parte de abajo inclinada hacia enfrente, la esquina de arriba alargada hacia arriba, y el hundido hecho con
-paneles 2D en capas.
+paneles 2D en capas, muy cerca de la cara sin tocarla; y el cuadrado horizontal de arriba que sale de la punta
+hacia atras.
 """
 
 import math
@@ -94,7 +95,7 @@ def ojos(p):
 # orilla de arriba. El hundido (un triangulo de la mitad con la base sobre el lado de afuera, de su punta hasta el
 # final) va con PANELES 2D en capas, cada una un poco mas atras y mas oscura: (escala del hueco, que tan atras, sesgo)
 LADO_TRIANGULO = 10.5
-PUNTA_FRENTE = (0.0, 19.8, -5.0)
+PUNTA_FRENTE = (0.0, 21.0, -4.6)                         # arriba de la frente, justo sobre la coronilla
 Z_AFUERA = -3.0
 GIRO_TRIANGULO = 20.0                                    # grados que se gira sobre su punta: lo de afuera baja
 HACIA_ADENTRO = 25.0                                     # grados que lo de afuera se dobla hacia la cabeza
@@ -102,6 +103,10 @@ INCLINA = 20.0                                           # grados que la parte d
 ALARGA = 2.5                                             # cuanto se alargan las dos esquinas de afuera (en punta)
 PUNTA_ARRIBA = 4.0                                       # cuanto se alarga hacia arriba la esquina de arriba
 CAPAS = ((0.5, 0.0, 0.0), (0.32, 0.15, -0.1), (None, 0.3, -0.2))
+HOLGURA = 0.1                                            # lo mas cerca que pasan de la cara, sin tocarla
+# el cuadrado de arriba: horizontal, con la esquina de enfrente en la punta de los triangulos y hacia atras; su
+# diagonal de enfrente a atras
+DIAGONAL_CUADRADO = 9.6
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
 
@@ -141,8 +146,23 @@ def _unit(p):
     return tuple(x / math.sqrt(_punto(p, p)) for x in p)
 
 
-def _paneles(a, b, c):
-    """Los paneles 2D de un lado: (malla, sesgo de tono). Cada panel es un poligono plano con sus dos caras."""
+def _dentro(pts, x, y, margen):
+    """Si (x, y) cae dentro del poligono o a menos de margen de su orilla."""
+    dentro = False
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
+        if (y0 > y) != (y1 > y) and x < x0 + (y - y0) * (x1 - x0) / (y1 - y0):
+            dentro = not dentro
+        lx, ly = x1 - x0, y1 - y0
+        f = max(0.0, min(1.0, ((x - x0) * lx + (y - y0) * ly) / (lx * lx + ly * ly or 1.0)))
+        if math.hypot(x - x0 - lx * f, y - y0 - ly * f) < margen:
+            return True
+    return dentro
+
+
+def _paneles(a, b, c, estorbos):
+    """Los paneles 2D de un lado y la punta (ya recorrida): ([(malla, sesgo)], punta). Cada panel es un poligono plano
+    con sus dos caras. Todo el lado se recorre hacia enfrente lo justo para que nada de 'estorbos' (los vertices de la
+    cabeza y los ojos) quede a menos de HOLGURA detras de la capa mas honda: muy cerca de la cara, sin meterse."""
     u = _unit(_resta(b, a))
     n = _unit(_cruz(_resta(b, a), _resta(c, a)))
     if n[2] < 0:
@@ -154,6 +174,13 @@ def _paneles(a, b, c):
     largo = math.hypot(lx, ly)
     punta = (b1[0] + lx / largo * PUNTA_ARRIBA, b1[1] + ly / largo * PUNTA_ARRIBA)
     mitad = ((t0[0] + b1[0]) / 2, (t0[1] + b1[1]) / 2)
+    honda = max(z for _, z, _ in CAPAS)
+    recorre = 0.0
+    for q in estorbos:
+        d = _resta(q, a)
+        if _dentro([t0, mitad, punta, b2], _punto(d, u), _punto(d, v), 0.6):
+            recorre = max(recorre, HOLGURA + honda - _punto(d, n))
+    a = tuple(a[i] - n[i] * recorre for i in range(3))
 
     def hueco(k):                                         # el triangulo achicado hacia el medio del lado de afuera
         return [(mx + (x - mx) * k, my + (y - my) * k) for x, y in (t0, b1, b2)]
@@ -164,18 +191,25 @@ def _paneles(a, b, c):
     capas = (([t0, mitad, punta, q1, p, q2, b2], z0, s0), ([q1, p, q2, w2, r, w1], z1, s1), ([r, w1, w2], z2, s2))
     out = []
     for pts, z, sesgo in capas:
-        area = sum(x0 * y1 - x1 * y0 for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]))
-        if area > 0:                                      # que la cara de enfrente mire hacia enfrente
-            pts = pts[::-1]
-        vs = [tuple(a[i] + x * u[i] + y * v[i] + z * n[i] for i in range(3)) for x, y in pts]
-        m = len(vs)
-        out.append(((vs, [tuple(range(m)), tuple(range(m))[::-1]]), sesgo))
-    return out
+        out.append((_panel([tuple(a[i] + x * u[i] + y * v[i] + z * n[i] for i in range(3)) for x, y in pts]), sesgo))
+    return out, a
+
+
+def _panel(vs):
+    """Un poligono plano con sus dos caras (2D)."""
+    m = len(vs)
+    return vs, [tuple(range(m)), tuple(range(m))[::-1]]
 
 
 def capucha(p):
-    for k, (malla, sesgo) in enumerate(_paneles(*_triangulo())):
+    estorbos = [q for m in p.m.mallas if m.hueso.split("/")[0] == "Head" for q in m.vertices]
+    paneles, punta = _paneles(*_triangulo(), estorbos)
+    for k, (malla, sesgo) in enumerate(paneles):
         p.malla_par("Head/capucha", f"panel{k}", malla, faceta(sesgo, CREMA, grano=0), dens=4, luz=False)
+    x, y, z = punta
+    d = DIAGONAL_CUADRADO
+    cuadrado = _panel([(0.0, y, z), (d / 2, y, z + d / 2), (0.0, y, z + d), (-d / 2, y, z + d / 2)])
+    p.malla("Head/capucha", "cuadrado", cuadrado, faceta(paleta=CREMA, grano=0), dens=4, luz=False)
 
 
 def liso(col):
