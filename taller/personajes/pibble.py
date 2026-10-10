@@ -97,14 +97,14 @@ def ojos(p):
 # orilla de arriba. El hundido (un triangulo de la mitad con la base sobre el lado de afuera, de su punta hasta el
 # final) se curva hacia adentro con un bisel suave; cada lado se corta a lo largo y la mitad de abajo se hunde con un
 # doblez suave. Cada lado es UNA malla 2D continua (cada cara con sus dos lados) de muchos poligonos: todo pegado
-LADO_TRIANGULO = 9.5
-PUNTA_FRENTE = (0.0, 19.8, -4.0)                         # en la frente (se recorre hacia enfrente lo justo)
+LADO_TRIANGULO = 8.6
+PUNTA_FRENTE = (0.0, 21.6, -4.0)                         # arriba en la frente (se recorre hacia enfrente lo justo)
 Z_AFUERA = -3.0
-GIRO_TRIANGULO = 20.0                                    # grados que se gira sobre su punta: lo de afuera baja
+GIRO_TRIANGULO = 12.0                                    # grados que se gira sobre su punta: lo de afuera baja
 HACIA_ADENTRO = 25.0                                     # grados que lo de afuera se dobla hacia la cabeza
 INCLINA = 20.0                                           # grados que la parte de abajo se inclina hacia enfrente
-ALARGA = 2.2                                             # cuanto se alargan las dos esquinas de afuera (en punta)
-PUNTA_ARRIBA = 3.5                                       # cuanto se alarga hacia arriba la esquina de arriba
+ALARGA = 2.0                                             # cuanto se alargan las dos esquinas de afuera (en punta)
+PUNTA_ARRIBA = 3.2                                       # cuanto se alarga hacia arriba la esquina de arriba
 HUECO = 0.5                                              # el hundido: el triangulo de la mitad
 Z_HUECO = 0.15                                           # que tan atras empieza el hundido (en su punta)
 HOLGURA = 0.1                                            # lo mas cerca que pasan de la cara, sin tocarla
@@ -118,7 +118,7 @@ BISEL = 0.45                                             # lo ancho del bisel co
 # punta a la mitad el medio se hunde en valle, sobre la cabeza sin tocarla). Atras va la copia en espejo (los dos
 # lados y el techo), con su V cerrada (atras no hay cara), y los costados se cierran uniendo la orilla de afuera de
 # enfrente con la de atras
-MUESCA = (0.0, 21.25, 0.0)
+MUESCA = (0.0, 21.5, 0.0)
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
 
@@ -267,6 +267,22 @@ def _reticula_2d(filas):
     return vs, cs
 
 
+def _fuera_de_cabeza(q, holgura=0.2):
+    """Empuja el punto hacia afuera (en x) si cae dentro de la cabeza: en cada altura la cabeza es un ovalo de medio
+    ancho el de sus anillos (con los cachetes en pico) y de medio hondo el de enfrente."""
+    x, y, z = q
+    perfil = [(y_, mx + sale.get(0, 0.0), mzf) for y_, mx, mzf, _, sale in CABEZA]
+    if not perfil[0][0] <= y <= perfil[-1][0]:
+        return q
+    for (y0, a0, c0), (y1, a1, c1) in zip(perfil, perfil[1:]):
+        if y <= y1:
+            f = (y - y0) / (y1 - y0)
+            ancho, hondo = a0 + (a1 - a0) * f + holgura, c0 + (c1 - c0) * f + holgura
+            break
+    limite = ancho * math.sqrt(max(0.0, 1 - (z / hondo) ** 2))
+    return (math.copysign(max(abs(x), limite), x), y, z)
+
+
 FORRO = ((0.34, "#100E12"), (0.5, "#161318"), (0.66, "#1D1A1F"), (9.0, "#252127"))
 CENTRO_CABEZA = (0.0, 16.0, 0.0)
 
@@ -301,7 +317,7 @@ def capucha(p):
     # el costado: une la orilla de afuera de enfrente (i = k, de la esquina de abajo a la de arriba) con la de atras
     orilla = [vs[j * (k + 1) + k] for j in range(k + 1)]
     orilla_atras = [vs_atras[j * (k + 1) + k] for j in range(k + 1)]
-    filas = [[tuple(f[c] + (b_[c] - f[c]) * t / 4 for c in range(3)) for t in range(5)]
+    filas = [[_fuera_de_cabeza(tuple(f[c] + (b_[c] - f[c]) * t / 4 for c in range(3))) for t in range(5)]
              for f, b_ in zip(orilla, orilla_atras)]
     p.malla_par("Head/capucha", "costado", _reticula_2d(filas), crema, dens=4, luz=False)
     # atras no hay cara: la V de la copia se cierra uniendo la orilla de adentro de sus dos lados (j = 0, de la punta a
