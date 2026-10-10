@@ -32,6 +32,8 @@ TELA = {"s": "#D6D0C0", "b": "#E9E4D6", "l": "#F7F4EC"}
 TUNICA = {"s": "#55391F", "b": "#74502F", "l": "#906843"}
 CUERO = {"s": "#3F2817", "b": "#583A22", "l": "#72502F"}
 VERDE = {"s": "#1F2B17", "b": "#2B3A1F", "l": "#3A4B2A"}
+CINTO = {"s": "#24160C", "b": "#33200F", "l": "#4A3018"}          # el cinturon y las correas
+BRAZAL = {"s": "#6B4A2A", "b": "#8A6238", "l": "#A87C4A"}         # cuero claro de los brazales
 ORO, FUEGO, VIDRIO, CORCHO = "#D2A644", "#FFD37A", "#A9D8B8", "#8A6A44"
 MASCARA_GRIETA, OJO_FONDO = "#9A8A70", "#241812"
 OJOS = {"blanco": "#E8E2D8", "blanco_s": "#C2B8AC", "iris": "#6B4428", "iris_s": "#4E301C", "iris_c": "#8A5A36",
@@ -357,6 +359,63 @@ def capa_espalda():
     return lambda t: oro if t.cara == "south" and arbol_dorado(t.x, t.y + 3.4) else tela(t)
 
 
+def hebilla(p, grupo, nombre, c, w, h, z, pintor):
+    """Hebilla cuadrada salida: el marco (cuatro barras) y la pua al medio. c: centro (x, y); z: (atras, adelante)."""
+    x, y = c
+    z0, z1 = z
+    g = 0.2
+    for parte, d, e in (("arriba", (x - w, y + h - g), (x + w, y + h)), ("abajo", (x - w, y - h), (x + w, y - h + g)),
+                        ("izq", (x - w, y - h), (x - w + g, y + h)), ("der", (x + w - g, y - h), (x + w, y + h))):
+        p.caja(grupo, f"{nombre}_{parte}", (d[0], d[1], z0), (e[0], e[1], z1), pintor, dens=D)
+    p.caja(grupo, f"{nombre}_pua", (x - 0.1, y - h + g, z0), (x + 0.1, y + h - g, z1 - 0.12), pintor, dens=D)
+
+
+def detalles(p):
+    """Los detalles: la piedra verde en la frente de la mascara, el cordon con el broche de hoja que cierra el manto,
+    la pechera de cuero con el emblema dorado salido, el cinturon con su hebilla, los brazales de cuero con correas,
+    los galones dorados de la falda, y las botas con suela y puntera."""
+    oro, cuero, cuero_o = voxel({"s": "#A07A2C", "b": ORO, "l": "#E8C46A"}, 0.1), voxel(CUERO, 0.1), voxel(CINTO)
+    # la piedra verde de la frente (brilla)
+    from .moles import faceta
+    gema = faceta(paleta=((0.45, "#2F7A3A"), (0.6, "#48A050"), (0.75, "#74C66E"), (9.0, "#B4EAA0")), grano=0,
+                  simetrico=True)
+    p.malla("Head/mascara", "gema", geo.bipiramide((0.0, 31.35, -5.12), 0.42, 0.55, 0.55, 4, 45.0), gema, dens=D,
+            luz=False)
+    p.caja("Head/mascara", "engarce", (-0.65, 30.75, -5.1), (0.65, 31.95, -4.98), oro, dens=D)
+    # el cordon que cierra el manto con su broche de hoja dorada
+    p.caja("Body/ropa", "cordon_manto", (-2.7, 22.9, -2.62), (2.7, 23.15, -2.42), cuero_o, dens=D)
+    p.malla("Body/ropa", "broche", geo.bipiramide((0.0, 23.0, -2.8), 0.5, 0.75, 0.75, 4, 45.0), oro, dens=D)
+    # la pechera de cuero con el emblema dorado salido (el tronco y las ramas en V)
+    p.caja("Body/ropa", "pechera", (-1.8, 17.2, -2.35), (1.8, 22.6, -2.0), cuero, dens=D)
+    p.caja("Body/ropa", "emblema_tronco", (-0.18, 18.0, -2.48), (0.18, 21.6, -2.33), oro, dens=D)
+    for i, y in enumerate((19.2, 20.4)):
+        for s in (1, -1):
+            p.caja("Body/ropa", f"emblema_rama{i}{s}", (-0.15, y, -2.48), (0.15, y + 1.3, -2.33), oro,
+                   rot=(0, 0, -s * 40), piv=(0.0, y, -2.4), dens=D)
+    # el cinturon con la hebilla dorada
+    p.caja("Body/ropa", "cinturon", (-4.45, 14.7, -2.55), (4.45, 16.1, 2.55), cuero_o, dens=D)
+    hebilla(p, "Body/ropa", "hebilla", (0.0, 15.4), 0.85, 0.85, (-2.85, -2.5), oro)
+    for s in (1, -1):
+        hueso = "RightArm" if s > 0 else "LeftArm"
+        a, b = sorted((s * 3.85, s * 8.15))
+        # los brazales de cuero con dos correas
+        p.caja(f"{hueso}/brazo", "brazal", (a, 13.3, -2.15), (b, 16.0, 2.15), voxel(BRAZAL, 0.05), dens=D)
+        for k, y in enumerate((13.8, 15.1)):
+            c, d = sorted((s * 3.75, s * 8.25))
+            p.caja(f"{hueso}/brazo", f"correa{k}", (c, y, -2.25), (d, y + 0.4, 2.25), cuero_o, dens=D)
+        # los galones de la falda: abajo y a lo largo de la abertura
+        a, b = sorted((s * 0.05, s * 4.45))
+        p.caja("Body/ropa", f"galon{s}", (a, 5.5, -2.5), (b, 6.1, 2.5), oro, dens=D)
+        a, b = sorted((s * 0.05, s * 0.45))
+        p.caja("Body/ropa", f"orilla{s}", (a, 6.1, -2.5), (b, 14.7, -2.38), oro, dens=D)
+        # las botas: suela oscura y puntera
+        hueso = "RightLeg" if s > 0 else "LeftLeg"
+        a, b = sorted((s * -0.25, s * 4.25))
+        p.caja(f"{hueso}/bota", "suela", (a, 0.0, -2.55), (b, 0.5, 2.4), voxel(CUERO, -0.3), dens=D)
+        a, b = sorted((s * 0.2, s * 3.8))
+        p.caja(f"{hueso}/bota", "puntera", (a, 0.5, -2.65), (b, 1.7, -2.3), cuero, dens=D)
+
+
 def construir():
     p = Personaje("revolthir", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
     base = voxel(MUSGO_OSC, -0.15)                  # lo de abajo del manto (se asoma entre las hojas)
@@ -385,10 +444,10 @@ def construir():
         p.caja("Body/ropa", f"falda{s}", (a, 5.6, -2.4), (b, 14.9, 2.4), voxel(TELA if s > 0 else VERDE, 0.05), dens=D)
     # los frasquitos colgando del cinturon
     for i, (x, abajo) in enumerate(((-1.3, 11.0), (0.9, 12.2), (2.3, 10.2))):
-        p.caja("Body/ropa", f"cordon{i}", (x - 0.08, abajo, -2.56), (x + 0.08, 14.9, -2.44), color(CUERO["b"]), dens=D)
-        p.caja("Body/ropa", f"frasco{i}", (x - 0.4, abajo - 1.2, -2.95), (x + 0.4, abajo, -2.4), color(VIDRIO), dens=D,
+        p.caja("Body/ropa", f"cordon{i}", (x - 0.08, abajo, -2.7), (x + 0.08, 14.8, -2.58), color(CUERO["b"]), dens=D)
+        p.caja("Body/ropa", f"frasco{i}", (x - 0.4, abajo - 1.2, -3.1), (x + 0.4, abajo, -2.55), color(VIDRIO), dens=D,
                luz=False)
-        p.caja("Body/ropa", f"corcho{i}", (x - 0.22, abajo, -2.82), (x + 0.22, abajo + 0.3, -2.52), color(CORCHO), dens=D)
+        p.caja("Body/ropa", f"corcho{i}", (x - 0.22, abajo, -2.97), (x + 0.22, abajo + 0.3, -2.67), color(CORCHO), dens=D)
     # la capa: la base del manto sobre los hombros, los lados junto a los brazos y la espalda con el arbol dorado
     p.caja("Body/capa", "base_manto", (-8.1, 20.6, -2.2), (8.1, 24.2, 2.5), base, dens=D)
     p.caja("Body/capa", "espalda", (-5.0, 5.0, 2.2), (5.0, 24.6, 3.1), capa_espalda(), dens=D)
@@ -400,6 +459,7 @@ def construir():
         x = -4.6 + i * 0.95
         largo = 0.9 + 1.8 * _azar(i * 4.1)
         p.caja("Body/capa", f"jiron{i}", (x, 5.0 - largo, 2.35), (x + 0.8, 5.2, 2.95), voxel(TELA, 0.1), dens=D)
-    # el manto de hojas en capas
+    # el manto de hojas en capas y los detalles
     manto_de_hojas(p)
+    detalles(p)
     return p

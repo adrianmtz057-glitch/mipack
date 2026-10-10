@@ -146,8 +146,8 @@ FALDA = ((15.4, 4.3, 2.3), (11.0, 4.55, 2.55), (6.0, 4.85, 2.85), (2.5, 5.0, 3.0
 # la capucha doblada que cuelga: anillos (y, medio ancho, cuanto sale de la espalda)
 CAMINO_V = ((0.25, 17.8, -2.75), (1.7, 20.6, -2.75), (3.1, 23.0, -2.65), (4.6, 24.9, -1.9), (5.2, 25.4, 0.0),
             (4.7, 25.0, 2.1), (3.4, 24.2, 3.1), (0.0, 23.9, 3.4))
-CAPUCHA = ((24.5, 4.0, 3.0), (23.0, 3.9, 2.6), (21.0, 3.4, 2.2), (19.0, 2.6, 1.6), (17.2, 1.6, 1.0), (15.6, 0.7, 0.45),
-           (14.8, 0.15, 0.15))
+CAPUCHA = ((24.5, 4.0, 3.0), (23.0, 3.9, 2.6), (21.0, 3.4, 2.2), (19.4, 2.6, 1.6), (18.0, 1.6, 1.0), (17.0, 0.7, 0.45),
+           (16.4, 0.15, 0.15))
 
 
 def _abertura(y):
@@ -306,6 +306,52 @@ def bata_y_falda(p):
     p.malla(g, "broche", geo.bipiramide((0.0, 18.3, -3.35), 0.55, 0.7, 0.7, 4, 45.0), oro, dens=D)
 
 
+def detalles(p):
+    """Los detalles: la gema de la corona en su placa de oro, los cristales en las hombreras, los aros de oro de los
+    punos, el colgante de cristal del broche de la V, el libro con esquinas de oro colgando del cinturon, el emblema
+    de la faldilla, la borla de oro en la punta de la capucha y las botas con puntera y aro de oro."""
+    oro = voxel(ORO, 0.15)
+    cristal = faceta(paleta=CRISTAL, grano=0, simetrico=True)
+    g = "Body/ropa"
+    # la gema de enfrente de la corona
+    p.caja("Head/corona", "placa_gema", (-0.8, 30.7, -5.0), (0.8, 32.3, -4.88), oro, dens=D)
+    p.malla("Head/corona", "gema", geo.bipiramide((0.0, 31.5, -5.1), 0.48, 0.7, 0.7, 4, 45.0), cristal, dens=D,
+            luz=False)
+    for s in (1, -1):
+        hueso = "RightArm" if s > 0 else "LeftArm"
+        # los cristales que salen de las hombreras
+        for i, (x, y, z, r, h) in enumerate(((7.2, 25.35, 0.2, 0.5, 0.9), (8.1, 25.0, -1.1, 0.32, 0.6),
+                                             (7.9, 25.0, 1.4, 0.3, 0.55))):
+            p.malla(f"{hueso}/brazo", f"cristal_hombro{i}", geo.bipiramide((s * x, y, z), r, h, 0.3, 4, 45.0),
+                    cristal, dens=D, luz=False)
+        # los aros de oro de los punos
+        a, b = sorted((s * 3.6, s * 8.7))
+        for k, y in enumerate((13.0, 15.2)):
+            p.caja(f"{hueso}/brazo", f"aro_puno{k}", (a, y, -2.6), (b, y + 0.3, 2.6), oro, dens=D)
+        # las botas: puntera blanca y el aro de oro arriba
+        hueso = "RightLeg" if s > 0 else "LeftLeg"
+        a, b = sorted((s * 0.2, s * 3.8))
+        p.caja(f"{hueso}/bota", "puntera", (a, 0.0, -2.75), (b, 1.4, -2.35), voxel(BLANCO, 0.2), dens=D)
+        a, b = sorted((s * -0.35, s * 4.35))
+        p.caja(f"{hueso}/bota", "aro_bota", (a, 2.95, -2.55), (b, 3.25, 2.45), oro, dens=D)
+    # el colgante de cristal del broche de la V
+    p.caja(g, "cadenita", (-0.06, 17.2, -3.42), (0.06, 17.75, -3.3), oro, dens=D)
+    p.malla(g, "colgante", geo.bipiramide((0.0, 16.75, -3.4), 0.32, 0.45, 0.55, 4, 45.0), cristal, dens=D, luz=False)
+    # el libro con esquinas de oro que cuelga del cinturon (a su derecha)
+    p.caja(g, "correa_libro", (2.6, 13.3, -3.45), (2.85, 14.4, -3.25), voxel(CUERO, -0.2), dens=D)
+    p.caja(g, "libro", (2.0, 11.2, -3.95), (3.5, 13.4, -3.45), voxel(CUERO, 0.1), dens=D)
+    p.caja(g, "hojas_libro", (2.08, 11.3, -3.47), (3.42, 13.3, -3.4), voxel(CREMA), dens=D)
+    for k, (x, y) in enumerate(((2.0, 11.2), (3.1, 11.2), (2.0, 13.0), (3.1, 13.0))):
+        p.caja(g, f"esquina_libro{k}", (x - 0.05, y - 0.05, -4.02), (x + 0.45, y + 0.45, -3.9), oro, dens=D)
+    p.caja(g, "runa_libro", (2.6, 11.85, -4.02), (2.9, 12.75, -3.92), oro, dens=D)
+    # el emblema de la faldilla (un rombo de oro)
+    p.caja(g, "emblema_faldilla", (-0.45, 9.05, -3.12), (0.45, 9.95, -2.92), oro, rot=(0, 0, 45),
+           piv=(0.0, 9.5, -3.0), dens=D)
+    # la borla de oro en la punta de la capucha
+    p.caja(g, "borla_nudo", (-0.3, 15.9, 2.95), (0.3, 16.5, 3.45), oro, dens=D)
+    p.caja(g, "borla", (-0.22, 14.6, 3.0), (0.22, 15.95, 3.35), voxel(ORO, -0.1), dens=D)
+
+
 def construir():
     p = Personaje("correctar", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
     blanco = voxel(BLANCO, 0.05)
@@ -334,4 +380,5 @@ def construir():
         p.caja(f"{hueso}/bota", "puno_bota", (a, 2.2, -2.5), (b, 3.1, 2.4), voxel(BLANCO, 0.2), dens=D)
     # la falda, el cinturon, la faldilla, la bata larga y la capucha en V
     bata_y_falda(p)
+    detalles(p)
     return p
