@@ -11,10 +11,10 @@ from .bashi_abrigo import caja
 
 PALMA = ((4.85, 17.0, -1.1), (6.15, 18.8, 1.1))         # la palma (sin girar, mano derecha)
 GRUESO_DEDO = 0.82                                       # de canto (hacia los lados)
-DEDOS = ((-1.1, -0.57, 0.75, 0.6), (-0.53, 0.0, 0.85, 0.65), (0.04, 0.57, 0.8, 0.6), (0.61, 1.1, 0.6, 0.5))
+DEDOS = ((-1.1, -0.57, 1.05, 0.8), (-0.53, 0.0, 1.2, 0.9), (0.04, 0.57, 1.1, 0.85), (0.61, 1.1, 0.85, 0.65))
 # cada dedo, del indice (adelante) al menique (atras): de z a z, largo del primer tramo y de la punta
 DOBLA = 28.0                                             # grados que la punta se dobla hacia la palma
-PULGAR = ((4.95, 18.3, -1.0), (0.9, 0.7), (20.0, 35.0), (15.0, 22.0))
+PULGAR = ((4.95, 18.3, -1.0), (1.1, 0.85), (20.0, 35.0), (15.0, 22.0))
 # base (sin girar), largos de los dos tramos, cuanto se va adelante y cuanto hacia la palma cada tramo
 
 

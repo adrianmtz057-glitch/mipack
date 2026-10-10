@@ -102,7 +102,7 @@ CENTRO_BRAZO = 5.5                      # x del medio del brazo (sin girar)
 MANGA_CORTA = ((26.0, 2.15, 2.25, 0.55), (C + 0.2, 1.95, 2.05, 0.55))     # la bata: hueca, hasta medio brazo
 CAMISA_OLIVO = ((22.9, 1.6, 1.65, 0.4), (26.4, 1.6, 1.65, 0.4))
 CAMISA_BEIGE = ((19.7, 2.05, 2.1, 0.55), (21.4, 2.2, 2.25, 0.6), (22.6, 2.1, 2.15, 0.55), (23.3, 1.75, 1.8, 0.45))
-BRAZAL = ((18.6, 1.45, 1.5, 0.35), (20.0, 1.45, 1.5, 0.35))
+BRAZAL = ((18.6, 1.15, 1.2, 0.3), (20.0, 1.2, 1.25, 0.3))     # la muneca, flaca
 
 
 def brazos(p):
@@ -122,7 +122,7 @@ def brazos(p):
         p.malla(f"{hueso}/camisa", "camisa_olivo", girar(bloque(CAMISA_OLIVO, cx)), plano(OLIVO), dens=D)
         p.malla(f"{hueso}/camisa", "camisa_beige", girar(bloque(CAMISA_BEIGE, cx)), plano(BEIGE), dens=D)
         p.malla(f"{hueso}/brazal", "brazal", girar(bloque(BRAZAL, cx)), plano(CUERO), dens=D)
-        xa, xb = sorted((s * (CENTRO_BRAZO + 1.4), s * (CENTRO_BRAZO + 1.65)))
+        xa, xb = sorted((s * (CENTRO_BRAZO + 1.1), s * (CENTRO_BRAZO + 1.35)))
         caja(p, f"{hueso}/brazal", "hebilla", (xa, 18.9, -0.5), (xb, 19.7, 0.5), ORO, **giro)
 
 
