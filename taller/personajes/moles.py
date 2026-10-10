@@ -7,8 +7,8 @@ Por ahora solo el cuerpo (sin ropa ni accesorios), con las proporciones del boce
 chiquito y piernas cortas con patas.
   CARA de la referencia: ojos grandes y separados, pestana negra gruesa con la punta hacia afuera, iris ambar con
     brillo, cejitas picaras, naricita rosa, boca de gatito abierta con la lengua y mucho rubor
-  PELO rubio claro, todo en cubos: casco redondeado en escalones, flequillo en mechones de distinto largo, volumen a
-    los costados, mechones largos adelante y la melena de atras en puntas
+  PELO rubio claro LOW-POLY: un bob de una sola pieza con pliegues (mechones gruesos en tonos planos por cara), que
+    adelante se dobla hasta la cara; flequillo en tres capas de mechones de distinto largo y mechones largos adelante
   OREJAS de zorro grandes y redondeadas, en las esquinas de arriba y abiertas hacia afuera
 """
 
@@ -122,14 +122,19 @@ def liso(col):
     return lambda t: c
 
 
-# el pelo: por ahora UNA sola pieza, como un bob con las puntas hacia adentro: cubre la nuca y los costados de la
-# cabeza (la cara queda libre), se abre hacia afuera conforme baja, hace punta y abajo el borde se mete por debajo
-# de la cabeza. De lado se ve el "<" atras; de atras y de frente, una campana con las esquinas en punta.
-# Cada nivel es una U (abierta hacia la cabeza): (y, medio ancho, z de atras, z de las puntas de la U)
-NIVELES_PELO = ((21.4, 5.3, 5.5, -4.5), (19.5, 5.8, 6.1, -4.5), (16.0, 6.6, 6.9, -4.5), (12.8, 7.6, 7.8, -4.5),
-                (11.5, 6.6, 6.4, -4.4), (10.5, 5.4, 5.0, -4.0))
+# el pelo, LOW-POLY (como pelo de malla de Blockbench, no un casco liso): pocos anillos y pocos puntos, con PLIEGUES
+# (aristas y valles que bajan como mechones gruesos) y cada cara pintada de un tono plano segun hacia donde mira, asi
+# las caras se leen como poligonos. Es UNA pieza, como un bob con las puntas hacia adentro: cubre la nuca y los
+# costados (la cara queda libre), se abre hacia afuera conforme baja, hace punta y abajo el borde se mete por debajo de
+# la cabeza. De lado se ve el "<" atras; de atras y de frente, una campana con las esquinas en punta. Por dentro va
+# pegado al costado de la cabeza (sin hueco) y la orilla de enfrente queda tapada por los mechones de la cara.
+# Cada nivel es una U (abierta hacia la cara): (y, medio ancho, z de atras, z de las puntas de la U)
+NIVELES_PELO = ((21.4, 5.3, 5.5, -5.1), (19.5, 5.8, 6.1, -5.1), (16.0, 6.6, 6.9, -5.1), (12.8, 7.6, 7.8, -5.0),
+                (11.5, 6.6, 6.4, -5.1), (10.5, 5.4, 5.0, -4.9))
 GROSOR_PELO = 0.7
 ESQUINA_PELO = 1.5
+COSTADO = 5.03                          # por dentro, el pelo va pegado al costado de la cabeza
+TONOS_PELO = ((0.34, "#D6A64F"), (0.5, PELO["s"]), (0.66, PELO["b"]), (9.0, PELO["l"]))   # (hasta, tono)
 
 
 def _azar(k):
@@ -138,7 +143,7 @@ def _azar(k):
 
 
 def _suave(niveles, pasos=3):
-    """Mas niveles entre los niveles dados (curva suave que pasa por ellos): mas poligonos, la forma redonda."""
+    """Mas niveles entre los niveles dados (curva suave que pasa por ellos)."""
     out = []
     n = len(niveles)
     for i in range(n - 1):
@@ -151,59 +156,143 @@ def _suave(niveles, pasos=3):
     return out
 
 
-def _u(y, w, zb, zf, g=0.0):
-    """Una U de esquinas redondas atras: de la punta izquierda, por atras, a la punta derecha (adentro si g > 0), con
-    los lados y la espalda partidos en tramos (mas poligonos)."""
-    import math
-    w, zb, r = w - g, zb - g, max(0.2, ESQUINA_PELO - g)
-    na, nl = 12, 10                                              # puntos por esquina y por tramo recto
-    pts = [(-w, y, zf + (zb - r - zf) * i / nl) for i in range(nl)]
-    pts += [(-w + r - r * math.cos(math.radians(90 * k / na)), y, zb - r + r * math.sin(math.radians(90 * k / na)))
-            for k in range(na)]
-    pts += [(-w + r + (2 * w - 2 * r) * i / nl, y, zb) for i in range(nl)]
-    pts += [(w - r + r * math.sin(math.radians(90 * k / na)), y, zb - r + r * math.cos(math.radians(90 * k / na)))
-            for k in range(na)]
-    pts += [(w, y, zb - r - (zb - r - zf) * i / nl) for i in range(nl + 1)]
-    return pts
+def _rampa_pelo(b):
+    """El rubio en cuatro tonos planos (como textura de Minecraft): de oscuro (b chico) a claro."""
+    return next(hex_(c) for hasta, c in TONOS_PELO if b <= hasta)
 
 
-def _anillo_redondo(y, m, r=1.5, n=6):
-    """Rectangulo de esquinas redondas cerrado (para la tapa de arriba), antihorario visto desde arriba: de +X hacia
-    -Z (adelante), como geo.anillo."""
+def faceta(sesgo=0.0):
+    """Pintor del pelo low-poly: cada cara de un tono PLANO segun hacia donde mira (arriba claro, hacia abajo oscuro,
+    y en cada pliegue una cara clara y la otra oscura) y un poquito distinta de la de junto, para que las caras se lean
+    como poligonos. Todas las piezas del pelo usan el mismo, asi se ven como una sola cabellera (nada pegado aparte)."""
     import math
-    pts = []
-    c = m - r
-    for cx, cz, a0 in ((c, -c, 0), (-c, -c, 90), (-c, c, 180), (c, c, 270)):
-        for k in range(n + 1):
-            a = math.radians(a0 + 90 * k / n)
-            pts.append((cx + r * math.cos(a), y, cz - r * math.sin(a)))
-    return pts
+
+    def pintor(t):
+        nx, ny, nz = t.n
+        # las dos caras de cada pliegue miran un poco a un lado y al otro: con sin(4 * angulo) una sale clara y la
+        # otra oscura, igual en los dos costados, atras y adelante (no depende de un solo foco)
+        h = math.hypot(nx, nz)
+        b = 0.5 + 0.32 * ny - 0.12 * nz + 0.17 * h * math.sin(4 * math.atan2(nz, nx))
+        b += sesgo + 0.06 * (_azar(round(nx, 2) * 37.1 + round(ny, 2) * 11.7 + round(nz, 2) * 5.3) - 0.5)
+        return _rampa_pelo(b)
+    return pintor
+
+
+def _u(y, w, zb, zf, r, x_punta=None):
+    """La U del pelo en pocos tramos (low-poly): de la punta izquierda, por atras, a la punta derecha. Cada punto con
+    su normal hacia afuera (nx, nz) para levantar los pliegues. Con x_punta, la orilla de enfrente se DOBLA: el brazo
+    se curva hacia adentro y acaba pegado al costado de la cabeza (x_punta), asi el pelo queda cerrado adelante."""
+    import math
+    largo = zb - r - zf                                            # el brazo, de la esquina de atras a la punta
+    if x_punta is not None and w - x_punta > 0.05:
+        rx = w - x_punta
+        rz = min(0.85 * rx, 0.6 * largo)
+    else:
+        x_punta, rx, rz = w, 0.0, 0.4 * largo
+    mitad = [((w - r) * i / 3, zb, 0.0, 1.0) for i in range(3)]                       # media espalda
+    for k in range(3):                                                                 # la esquina de atras
+        a = math.radians(30 * k)
+        mitad.append((w - r + r * math.sin(a), zb - r + r * math.cos(a), math.sin(a), math.cos(a)))
+    mitad += [(w, zb - r - (largo - rz) * i / 3, 1.0, 0.0) for i in range(3)]         # el brazo
+    for k in range(4):                                                                 # el doblez de enfrente
+        a = math.radians(30 * k)
+        if rx:
+            n = (math.cos(a) / rx, -math.sin(a) / rz)
+            n = (n[0] / math.hypot(*n), n[1] / math.hypot(*n))
+            mitad.append((x_punta + rx * math.cos(a), zf + rz - rz * math.sin(a)) + n)
+        else:
+            mitad.append((w, zf + rz * (1 - k / 3), 1.0, 0.0))
+    lado = [((-x, y, z), (-nx, nz)) for x, z, nx, nz in mitad[1:]][::-1]
+    return lado + [((x, y, z), (nx, nz)) for x, z, nx, nz in mitad]
+
+
+def _pliegue(k, n, nivel, y):
+    """Cuanto sale (o se mete) el punto k de la U: aristas y valles alternados que bajan como mechones gruesos, mas
+    marcados abajo; las puntas de la U quedan lisas."""
+    if k in (0, n - 1):
+        return 0.0
+    a = 0.25 + 0.4 * max(0.0, min(1.0, (21.4 - y) / 8.6))
+    salto = (0.55 + 0.9 * _azar(k * 3.1 + 1)) if k % 2 else -0.25
+    return a * salto * (0.9 + 0.2 * _azar(k * 7.3 + nivel * 1.9))
+
+
+def _adentro(y, w):
+    """Donde va el pelo por dentro: pegado al costado de la cabeza (abajo de la cabeza, solo un poco mas adentro)."""
+    return max(COSTADO, w - GROSOR_PELO) if y >= CUELLO else w - GROSOR_PELO
+
+
+def _u_pelo(nivel, y, w, zb, zf):
+    """La U de afuera con sus pliegues, doblada adelante hasta el costado de la cabeza."""
+    pts = _u(y, w, zb, zf, ESQUINA_PELO, x_punta=_adentro(y, w))
+    out = []
+    for k, ((x, yy, z), (nx, nz)) in enumerate(pts):
+        d = _pliegue(k, len(pts), nivel, y)
+        out.append((x + nx * d, yy, z + nz * d))
+    return out
+
+
+def campana(niveles):
+    """La campana del pelo: por fuera la U con pliegues que adelante se dobla hasta la cabeza; por dentro pegada al
+    costado de la cabeza, asi el pelo queda cerrado (no se ve el corte)."""
+    from .. import malla as geo
+    anillos = []
+    for i, (y, w, zb, zf) in enumerate(niveles):
+        g = GROSOR_PELO
+        dentro = [p for p, _ in _u(y, _adentro(y, w), zb - g, zf + 0.05, max(0.3, ESQUINA_PELO - g))]
+        anillos.append(_u_pelo(i, y, w, zb, zf) + dentro[::-1])
+    return geo.loft_puntos(anillos[::-1])
+
+
+def tapa(nivel_alto, T):
+    """La tapa de arriba, parte de la misma cabellera: su primer anillo es la U de arriba de la campana (con los mismos
+    pliegues) cerrada por enfrente sobre la frente; sube y se cierra en la coronilla, y los pliegues siguen hacia
+    arriba juntandose."""
+    from .. import malla as geo
+    y0, w, zb, zf = nivel_alto
+    base = _u_pelo(0, y0, w, zb, zf)
+    base += [(w * f, T, zf - 0.15) for f in (0.6, 0.2, -0.2, -0.6)]          # cerrado por enfrente, sobre la frente
+    cz = 0.15
+    anillos = []
+    for y, s in ((y0, 1.0), (T + 0.95, 0.95), (T + 1.35, 0.78), (T + 1.55, 0.5)):
+        anillos.append([(x * s, y + (py - y0) * s, cz + (z - cz) * s) for x, py, z in base])
+    cuerpo = geo.loft_puntos(anillos, tapa_abajo=False, tapa_arriba=False)
+    punta = geo.piramide(anillos[-1], (0.0, T + 1.65, cz), tapa=False)
+    return geo.unir(cuerpo, punta)
 
 
 def mechon_malla(ancho, largo, grueso, k):
-    """Un mechon con volumen: ancho arriba, se angosta y termina en una punta corrida a un lado (fija por k)."""
+    """Un mechon low-poly: corte de rombo (una arista al frente, como un pliegue de pelo), ancho arriba, se angosta en
+    dos tramos y acaba en una punta corrida a un lado (fija por k)."""
     from .. import malla as geo
-    import math
-    w = ancho / 2
+    w, g = ancho / 2, grueso / 2
     corre = (_azar(k + 7) - 0.5) * 0.5 * ancho
-    n = 10
-    # cada orilla baja angostandose en curva hasta la punta (corrida a un lado): muchos puntos, contorno suave
-    der = [(corre + (w - corre) * math.cos(t * math.pi / 2) ** 0.7, -largo * t) for t in (i / n for i in range(n))]
-    izq = [(corre - (w + corre) * math.cos(t * math.pi / 2) ** 0.7, -largo * t) for t in (i / n for i in range(n))]
-    perfil = [(-w, 0.0)] + [(w, 0.0)] + der[1:] + [(corre, -largo)] + izq[1:][::-1]
-    return geo.extruir(perfil, -grueso / 2, grueso / 2)
+    cresta = (_azar(k + 13) - 0.5) * 0.5 * ancho                 # la arista no va justo al medio
+    anillos = []
+    for f, a in ((0.0, 1.0), (0.42, 0.88 + 0.12 * _azar(k + 21)), (0.76, 0.5)):        # de arriba hacia abajo
+        cx, y, ww = corre * f, -largo * f, w * a
+        anillos.append([(cx + ww, y, 0.0), (cx + cresta * a, y, -g * (0.6 + 0.4 * a)), (cx - ww, y, 0.0),
+                        (cx + cresta * a * 0.5, y, g * 0.6)])
+    cuerpo = geo.loft_puntos(anillos[::-1], tapa_abajo=False, tapa_arriba=True)
+    abajo = anillos[-1]
+    n = len(abajo)
+    punta = (abajo + [(corre, -largo, 0.0)], [((i + 1) % n, i, n) for i in range(n)])
+    return geo.unir(cuerpo, punta)
 
 
 # el frente: el fleco y los mechones que enmarcan la cara, en tres capas que se distinguen (de atras hacia adelante,
-# cada una mas corta, mas adelante y mas clara). (z, tono, cuanto mas corta, grueso)
-CAPAS_FRENTE = ((-5.15, "s", 0.0, 0.55), (-5.55, "b", 0.8, 0.6), (-5.95, "l", 1.6, 0.55))
+# cada una mas corta, mas adelante y mas clara). (z, sesgo de tono, cuanto mas corta, grueso)
+CAPAS_FRENTE = ((-5.15, -0.08, 0.0, 0.8), (-5.6, 0.0, 0.8, 0.85), (-6.05, 0.08, 1.6, 0.8))
+# los mechones de los costados de la cara, sobre la orilla de enfrente de la campana, siguiendo su orilla de afuera
+# (unos 15 grados): (x, y de la raiz, largo, ancho, giro hacia afuera)
+PATILLAS = ((4.6, 21.0, 8.4, 1.4, 14.0), (5.05, 19.4, 7.0, 1.3, 15.0), (5.55, 17.4, 5.0, 1.2, 16.0))
 
 
 def frente(p, C, T):
-    """El fleco y los mechones de la cara en tres capas; cada mechon de su ancho, largo y giro (al azar, fijo)."""
+    """El fleco y los mechones de la cara en tres capas; cada mechon de su ancho, largo y giro (al azar, fijo). A los
+    lados, las patillas tapan la orilla de enfrente de la campana."""
     from .. import malla as geo
     k = 0
-    for capa, (z, tono, corto, grueso) in enumerate(CAPAS_FRENTE):
+    for capa, (z, sesgo, corto, grueso) in enumerate(CAPAS_FRENTE):
         x = -5.4 + 0.4 * capa
         while x < 5.4:
             ancho = 1.1 + 0.9 * _azar(k)
@@ -217,40 +306,24 @@ def frente(p, C, T):
             giro = (6 * (_azar(k + 80) - 0.5) + (4 if borde else 0) * (1 if cx > 0 else -1))
             m = geo.girar(m, (-4 - 3 * capa, 0, giro))
             m = geo.mover(m, (cx, T + 0.3, z))
-            p.malla("Head/pelo", f"frente{capa}_{k}", m, liso(PELO[tono]), dens=D)
+            p.malla("Head/pelo", f"frente{capa}_{k}", m, faceta(sesgo), dens=D)
             x += ancho * (0.8 + 0.25 * _azar(k + 120))
             k += 1
+    for s in (1, -1):
+        for i, (x, y, largo, ancho, giro) in enumerate(PATILLAS):
+            m = mechon_malla(ancho, largo, 0.9, 200 + i * 2 + (s > 0))
+            m = geo.girar(m, (-3, 0, s * giro))
+            m = geo.mover(m, (s * x, y, -5.45 - 0.15 * i))
+            p.malla("Head/pelo", f"patilla{s}_{i}", m, faceta(-0.02), dens=D)
 
 
 def pelo(p, C, T):
-    """El pelo: la campana (bob con las puntas hacia adentro, ver NIVELES_PELO) con mas poligonos, la tapa de arriba
-    redonda y el frente en capas."""
-    from .. import malla as geo
-    anillos = []
-    niveles = _suave(NIVELES_PELO, pasos=7)
-    for y, w, zb, zf in niveles:
-        anillos.append(_u(y, w, zb, zf) + _u(y, w, zb, zf, GROSOR_PELO)[::-1])
-    p.malla("Head/pelo", "campana", geo.loft_puntos(anillos[::-1]), liso(PELO["b"]), dens=D)
-    tapa = [_anillo_redondo(y, m, r, n=10) for y, m, r in _suave(((T - 0.4, 5.55, 0.9), (T + 0.5, 5.45, 1.0),
-                                                                  (T + 1.0, 4.8, 1.6), (T + 1.3, 3.6, 1.6)), pasos=4)]
-    p.malla("Head/pelo", "tapa", geo.loft_puntos(tapa), liso(PELO["l"]), dens=D)
-    doblez(p, niveles)
+    """El pelo low-poly: la campana con pliegues, la tapa de arriba que sigue la misma cabellera y el frente en
+    capas."""
+    niveles = _suave(NIVELES_PELO, pasos=2)
+    p.malla("Head/pelo", "campana", campana(niveles), faceta(), dens=D)
+    p.malla("Head/pelo", "tapa", tapa(niveles[0], T), faceta(), dens=D)
     frente(p, C, T)
-
-
-def doblez(p, niveles):
-    """El doblez del pelo a los lados de la cara: una pared que va de la orilla de afuera del pelo hasta el costado
-    de la cabeza y sigue la forma de la campana, asi el pelo no queda abierto: se ve doblado hacia la cabeza."""
-    from .. import malla as geo
-    costado = 4.95
-    contorno = [(w, y) for y, w, zb, zf in niveles if w > costado + 0.05]
-    zf = min(n[3] for n in niveles)
-    perfil = [(costado, contorno[0][1])] + contorno + [(costado, contorno[-1][1])]
-    for s in (1, -1):
-        m = geo.extruir(perfil, zf, zf + 0.6)
-        if s < 0:
-            m = geo.espejo_x(m)
-        p.malla("Head/pelo", f"doblez{s}", m, liso(PELO["s"]), dens=D)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
