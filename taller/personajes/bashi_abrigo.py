@@ -2,11 +2,11 @@
 Bashi: la bata (ver bashi.py), segun referencias/personajes/bashi_hoja2.png. Por ahora solo la forma con colores
 lisos (sin accesorios ni textura).
 
-  TORSO: la bata morada, cerrada (toda unida), con la solapa que cruza al medio.
+  TORSO: la bata morada, cerrada (toda unida) y de 8 lados, con la solapa que cruza al medio.
   MANGAS en tres ESCALONES redondos (8 lados), cada uno mas ancho que el de arriba, despegadas del brazo y hasta
     la muneca, con el final olivo (en los huesos de los brazos, abiertas como los brazos). Por dentro asoma la
     CAMISA beige de manga larga hasta la muneca.
-  FALDON: de la cintura para abajo en TIRAS que se abren, cada una de un largo distinto (al azar, fijo) y con la
+  FALDON: de la cintura para abajo en TIRAS pegadas al torso que se abren apenas, cada una de un largo distinto (al azar, fijo) y con la
     punta escalonada, en dos capas (la de abajo mas oscura tapa los huecos), cerrado todo alrededor. Algunas tiras
     olivo entre las moradas.
 """
@@ -15,11 +15,11 @@ import math
 
 from .. import malla as geo
 from ..textura import hex_a_rgba as hex_
-from .bashi import BEIGE, C, D, MORADO, OLIVO, OSCURO, TORSO_CAJA, azar, giro_brazo
+from .bashi import BEIGE, C, D, MORADO, OLIVO, OSCURO, azar, giro_brazo
 from .meron import tubo_hueco
 
 CINTURA_Y = 22.4                        # de aqui cuelga el faldon
-ARO = (4.5, 2.8, 3.0)                   # el borde de la bata en la cintura: medio ancho, z adelante, z atras
+ARO = (4.4, 2.75)                       # el borde de la bata en la cintura (un ovalo pegado al torso): medio ancho y hondo
 RUEDO = (8.4, 12.4)                     # donde termina cada tira: entre estas alturas, al azar (fijo)
 
 
@@ -43,12 +43,18 @@ def caja(p, grupo, nombre, desde, hasta, rampa, **kw):
 
 
 # ---------------------------------------------------------------------------------------------- torso
+TORSO = ((21.4, 4.3, 2.7), (24.5, 4.45, 2.8), (28.5, 4.5, 2.85), (C + 0.35, 4.3, 2.6))
+# secciones del torso de la bata, de la cintura a los hombros: (y, medio ancho, medio hondo); de 8 lados como las mangas
+
+
 def torso(p):
-    """La bata sobre el torso, cerrada: un solo cuerpo morado y la solapa que cruza al medio, de su derecha a su
-    izquierda."""
+    """La bata sobre el torso, cerrada y de 8 lados (redonda pero de caras, como las mangas): un solo cuerpo morado
+    con los hombros y los costados cortados, y la solapa que cruza al medio, de su derecha a su izquierda."""
     g = "Body/bata"
-    caja(p, g, "cuerpo", (-4.45, 21.4, -2.75), (4.45, C + 0.35, 2.75), MORADO)
-    caja(p, g, "solapa", (-1.6, 21.4, -2.95), (0.6, C + 0.35, -2.75), MORADO)
+    anillos = [geo.anillo(0.0, y, 0.0, rx, rz, 8, 22.5) for y, rx, rz in TORSO]
+    p.malla(g, "cuerpo", geo.loft_puntos(anillos), plano(MORADO), dens=D)
+    zf = min(-rz * math.sin(math.radians(67.5)) for _, _, rz in TORSO)     # el frente plano mas adelante
+    caja(p, g, "solapa", (-1.6, 21.4, zf - 0.2), (0.6, C + 0.1, zf + 0.3), MORADO)
 
 
 # ---------------------------------------------------------------------------------------------- mangas
@@ -102,10 +108,8 @@ def borde(t):
     """Punto del borde de la bata en la cintura y su angulo, para t de 0 a 1 (empieza adelante al medio)."""
     ang = 180 + 360 * t
     a = math.radians(ang)
-    sx, sz = math.sin(a), math.cos(a)
-    mx, zf, zb = ARO
-    r = 1.0 / max(abs(sx) / mx, abs(sz) / (zb if sz > 0 else zf))
-    return (r * sx, r * sz), ang
+    mx, mz = ARO
+    return (mx * math.sin(a), mz * math.cos(a)), ang
 
 
 def tira(ancho, largo, k, grueso=0.5):
@@ -124,7 +128,7 @@ def faldon(p):
     """El faldon en tiras: dos capas alrededor de la cintura, cerrado, cada tira de un largo distinto."""
     g = "Body/faldon"
     k = 0
-    for capa, (n, fuera, abre, oscuro) in enumerate(((22, 0.25, 9.0, False), (22, 0.0, 6.0, True))):
+    for capa, (n, fuera, abre, oscuro) in enumerate(((22, 0.15, 4.0, False), (22, 0.0, 2.5, True))):
         for i in range(n):
             t = (i + 0.5 * capa) / n
             (x, z), ang = borde(t)
@@ -136,7 +140,7 @@ def faldon(p):
             else:
                 rampa = OLIVO if azar(k, 6) < 0.3 else MORADO
             m = tira(1.7 if capa == 0 else 1.9, largo, k)
-            m = geo.girar(m, (abre + 3 * azar(k, 5), ang - 180, 0))
+            m = geo.girar(m, (abre + 1.5 * azar(k, 5), ang - 180, 0))
             m = geo.mover(m, (x + math.sin(a) * fuera, CINTURA_Y, z + math.cos(a) * fuera))
             p.malla(g, f"tira{capa}_{k}", m, plano(rampa if not oscuro else {**rampa, "b": rampa["s"]}), dens=D)
             k += 1
