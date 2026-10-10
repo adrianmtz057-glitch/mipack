@@ -16,7 +16,7 @@ Lo que lleva, de adentro hacia afuera:
     parpado de bloque que lo tapa a la mitad con la raya de las pestanas, y la ceja gris baja y caida hacia adentro.
   NARIZ delgada con su forma: nace fina en el puente entre los ojos y baja saliendo hasta la punta.
   SONRISA cerrada y tranquila: una raya corta con las puntas apenas levantadas (la de su izquierda un poco mas).
-  PELO gris liso en MATAS de bloque pegadas a la cabeza: una capa pegada a los costados y la nuca con las puntas
+  PELO gris en MATAS de bloque pegadas a la cabeza, con textura de bloquecitos y luz horneada: una capa pegada a los costados y la nuca con las puntas
     disparejas, otra encima mas corta que se abre apenas, unas matas sueltas a los lados (esponja) y matas sobre las
     esquinas de la frente, la de su derecha bajando junto al ojo.
   BIGOTE caido en dos mechones desde las puntas de la boca y BARBA corta de mechones disparejos.
@@ -344,10 +344,9 @@ def parpado(t):
 
 
 def ceja(t):
-    """Ceja de bloque gris liso: el frente y arriba en su gris, abajo y los lados un tono mas oscuro."""
-    if t.cara in ("north", "up"):
-        return hex_(CANAS["m"])
-    return hex_(CANAS["s"])
+    """Ceja de bloque gris con la misma textura del pelo: el frente y arriba en su gris, abajo y los lados un tono
+    mas oscuro."""
+    return gris("m")(t) if t.cara in ("north", "up") else gris("s")(t)
 
 
 def facciones(p):
@@ -366,8 +365,22 @@ TONO_MATA = ("b", "m", "b", "l", "m", "b", "m")     # gris liso, cada mata con s
 
 
 def gris(tono):
-    c = hex_(CANAS[tono])
-    return lambda t: c
+    """Pelo gris con textura de bloques de 4 x 4 texeles (no lineas): casi todos en su tono y algunos un tono mas
+    claro o mas oscuro, con un patron fijo. La sombra y el brillo los pone la luz horneada."""
+    k = TONOS.index(tono)
+    base, claro, oscuro = hex_(CANAS[tono]), hex_(_t(CANAS, k + 1)), hex_(_t(CANAS, k - 1))
+
+    def p(t):
+        n = t.n
+        if abs(n[1]) >= max(abs(n[0]), abs(n[2])):
+            u, v = t.x, t.z
+        elif abs(n[0]) >= abs(n[2]):
+            u, v = t.z, t.y
+        else:
+            u, v = t.x, t.y
+        r = azar(math.floor(u * 2), math.floor(v * 2), 47)
+        return claro if r > 0.84 else oscuro if r < 0.08 else base
+    return p
 
 
 def mata(p, nombre, desde, hasta, k, rot=None, piv=None, tono=None):
