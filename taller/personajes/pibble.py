@@ -19,7 +19,7 @@ import math
 from .. import malla as geo
 from ..kit import Personaje
 from ..textura import hex_a_rgba as hex_
-from .moles import faceta
+from .moles import _azar, faceta
 
 VACIO, OJO, OJO_ORILLA = "#0E0C10", "#EADCBF", "#C8A058"
 
@@ -433,6 +433,8 @@ def cuerpo(p):
 BATA = ((6.0, 9.9, 7.2, 7.3, 4.8), (9.0, 9.6, 7.0, 7.0, 4.2), (14.0, 9.4, 7.1, 6.6, 3.4), (19.0, 9.3, 7.0, 6.5, 2.8),
         (24.0, 9.2, 6.2, 5.8, 2.2), (28.5, 9.0, 5.2, 5.0, 1.6), (30.5, 5.5, 4.0, 4.0, 1.0))   # tipo capa: hombros anchos
 GROSOR_BATA = 0.45
+PLIEGUE = 0.8                                            # lo hondo de los pliegues de la bata abajo (arriba no hay)
+PISOS_BATA = 2                                           # pisos entre cada nivel de BATA (mas poligonos)
 SOLAPA = 1.6                                             # lo ancho de la solapa negra junto a la abertura
 # las mangas anchas: (a que tanto del brazo crecen, del hombro hasta donde, el puno negro de donde a donde)
 MANGA = (1.1, 14.6, 16.0)
@@ -526,35 +528,102 @@ def _doble(m):
     return vs, list(cs) + [tuple(reversed(c)) for c in cs]
 
 
+def _subdividir(pts, partes, cerrado=False):
+    """Mas puntos entre cada dos puntos (en linea recta)."""
+    pts = list(pts) + ([pts[0]] if cerrado else [])
+    out = []
+    for a, b in zip(pts, pts[1:]):
+        out += [tuple(a[c] + (b[c] - a[c]) * i / partes for c in range(3)) for i in range(partes)]
+    return out if cerrado else out + [pts[-1]]
+
+
+def _normales_xz(pts, cerrado=False):
+    """La normal hacia afuera (en x, z) de cada punto de una orilla horizontal."""
+    n, out = len(pts), []
+    for k in range(n):
+        a, b = (pts[k - 1], pts[(k + 1) % n]) if cerrado else (pts[max(k - 1, 0)], pts[min(k + 1, n - 1)])
+        nx, nz = b[2] - a[2], -(b[0] - a[0])
+        largo = math.hypot(nx, nz) or 1.0
+        nx, nz = nx / largo, nz / largo
+        if nx * pts[k][0] + nz * pts[k][2] < 0 and not cerrado:
+            nx, nz = -nx, -nz
+        out.append((nx, nz))
+    return out
+
+
+def _plegar(pts, hondo, piso=0, cerrado=False, centro=(0.0, 0.0), orillas=2, gira=0.0):
+    """Pliegues de tela: cada punto sale o se mete un poco a lo largo de su normal (aristas y valles alternados que
+    bajan derechos; gira > 0 los va corriendo de piso en piso, como tela enrollada). Devuelve (puntos, normales)."""
+    if cerrado:
+        cx, cz = centro
+        ns = []
+        for x, _, z in pts:
+            largo = math.hypot(x - cx, z - cz) or 1.0
+            ns.append(((x - cx) / largo, (z - cz) / largo))
+    else:
+        ns = _normales_xz(pts)
+    out = []
+    for k, ((x, y, z), (nx, nz)) in enumerate(zip(pts, ns)):
+        if not cerrado and (k < orillas or k >= len(pts) - orillas):
+            d = 0.0
+        elif gira:
+            d = hondo * math.sin(k * math.pi / 2 + piso * gira)
+        else:
+            d = hondo * (0.6 if k % 2 else -0.4) * (0.85 + 0.3 * _azar(k * 3.7 + piso * 0.13))
+        out.append((x + nx * d, y, z + nz * d))
+    return out, ns
+
+
+def _pisos(niveles, entre):
+    """Mas niveles entre los niveles dados (en linea recta)."""
+    out = []
+    for a, b in zip(niveles, niveles[1:]):
+        out += [tuple(a[c] + (b[c] - a[c]) * i / entre for c in range(len(a))) for i in range(entre)]
+    return out + [niveles[-1]]
+
+
 def ropa(p):
     g = "Body/ropa"
     # la bata
-    anillos = [_u_bata(y, mx, mzf, mzb, xo) + _u_bata(y, mx, mzf, mzb, xo, GROSOR_BATA)[::-1]
-               for y, mx, mzf, mzb, xo in BATA]
+    anillos = []
+    alto = BATA[-1][0] - BATA[0][0]
+    for i, (y, mx, mzf, mzb, xo) in enumerate(_pisos(BATA, PISOS_BATA)):
+        f = (BATA[-1][0] - y) / alto                       # 0 en los hombros, 1 abajo
+        fuera, ns = _plegar(_subdividir(_u_bata(y, mx, mzf, mzb, xo), 2), PLIEGUE * f, piso=i)
+        dentro = [(x - nx * GROSOR_BATA, yy, z - nz * GROSOR_BATA) for (x, yy, z), (nx, nz) in zip(fuera, ns)]
+        anillos.append(fuera + dentro[::-1])
     p.malla(g, "bata", geo.loft_puntos(anillos), bata_pintor(), dens=4)
     # las mangas anchas con el puno negro (siguen al brazo hasta la muneca)
     crece, hasta, puno = MANGA
     camino = [b for b in BRAZO if b[1] >= hasta - 1.0]
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        aros = [_anillo_oval(s * x, max(y, hasta), z, r + crece, r + crece, r + crece, 12) for x, y, z, r in camino]
-        p.malla(f"{hueso}/ropa", "manga", geo.loft_puntos(aros[::-1]), tela(CREMA, grano=0.12),
-                dens=4)
+        aros = []
+        for j, (x, y, z, r) in enumerate(_pisos(camino, 2)):
+            aro = _subdividir(_anillo_oval(s * x, max(y, hasta), z, r + crece, r + crece, r + crece), 2, cerrado=True)
+            aros.append(_plegar(aro, 0.35, piso=j, cerrado=True, centro=(s * x, z))[0])   # tela fruncida
+        p.malla(f"{hueso}/ropa", "manga", geo.loft_puntos(aros[::-1]), tela(CREMA, grano=0.12), dens=4)
         x, _, z, r = camino[-1]
         aros = [_anillo_oval(s * x, y, z, r + crece + 0.1, r + crece + 0.1, r + crece + 0.1, 12) for y in (hasta, puno)]
         p.malla(f"{hueso}/ropa", "puno", geo.loft_puntos(aros), tela(FORRO, grano=0.06),
                 dens=4)
     # la bufanda azul: el rollo del cuello y la banda que cuelga sobre la camisa (la panza) y acaba en punta
     azul = tela(AZUL, grano=0.08)
-    p.malla("Head/bufanda", "rollo", geo.loft_puntos([_anillo_oval(0.0, y, 0.0, mx, mz, mz) for y, mx, mz in BUFANDA]),
-            azul, dens=4)
+    rollo = [_plegar(_subdividir(_anillo_oval(0.0, y, 0.0, mx, mz, mz), 2, cerrado=True), 0.28, piso=i, cerrado=True,
+                     gira=0.9)[0] for i, (y, mx, mz) in enumerate(_pisos(BUFANDA, 2))]     # tela enrollada
+    p.malla("Head/bufanda", "rollo", geo.loft_puntos(rollo), azul, dens=4)
     w, y0, y1 = BANDA
-    ys = [y0 - (y0 - y1 - 1.5) * i / 8 for i in range(9)]
-    aros = [[(w, y, -_frente_panza(y) - 0.05), (w, y, -_frente_panza(y) - 0.35), (-w, y, -_frente_panza(y) - 0.35),
-             (-w, y, -_frente_panza(y) - 0.05)] for y in ys]
+    ys = [y0 - (y0 - y1 - 1.5) * i / 16 for i in range(17)]
+    aros = []
+    for i, y in enumerate(ys):                              # con una ondita y un pliegue al medio
+        z = -_frente_panza(y) - 0.05 - 0.12 * math.sin(i * 1.3)
+        x = 0.08 * math.sin(i * 0.9)
+        aros.append([(x + w, y, z), (x + w, y, z - 0.3), (x + w / 3, y, z - 0.42), (x - w / 3, y, z - 0.42),
+                     (x - w, y, z - 0.3), (x - w, y, z)])
     cuerpo_banda = geo.loft_puntos(aros[::-1], tapa_abajo=False)
     abajo = aros[-1]
-    punta = (abajo + [(0.0, y1, -_frente_panza(y1) - 0.2)], [((i + 1) % 4, i, 4) for i in range(4)])
+    n = len(abajo)
+    punta = (abajo + [(0.0, y1, -_frente_panza(y1) - 0.2)], [((i + 1) % n, i, n) for i in range(n)])
     p.malla(g, "banda", _doble(geo.unir(cuerpo_banda, punta)), banda_pintor(), dens=4)
     # el pantalon y las botitas en pico
     negro_p = tela(PANTALON_NEGRO, grano=0.08)
