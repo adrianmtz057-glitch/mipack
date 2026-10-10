@@ -6,6 +6,8 @@ Por ahora solo la cabeza, esculpida como un gato de papel: redonda y mas ancha q
 los cachetes en pico a los lados, el hocico con la nariz que sale, las cuencas de los ojos hundidas, la ceja y la
 frente redonda; toda de vacio negro, con los ojos de almendra crema (piezas con las puntas afiladas, pegadas en las
 cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al centro de la frente.
+La capucha (base): carpa grande de pocas caras que se abre hacia abajo, la abertura en V invertida con la visera en
+punta sobre la frente, el forro negro y las orejas de gato negras en las esquinas de la cumbrera.
 """
 
 import math
@@ -13,6 +15,7 @@ import math
 from .. import malla as geo
 from ..kit import Personaje
 from ..textura import hex_a_rgba as hex_
+from .moles import faceta
 
 VACIO, OJO, OJO_ORILLA = "#0E0C10", "#EADCBF", "#C8A058"
 
@@ -83,6 +86,61 @@ def ojos(p):
             liso(VACIO), dens=8, luz=False)
 
 
+# la capucha: carpa grande de pocas caras. Cada nivel es una U alrededor de la cabeza, abierta adelante (la abertura en
+# V invertida que deja ver los ojos y el rombo): (y, medio ancho, z de atras, z de enfrente, medio ancho de la
+# abertura). Por dentro el forro, GROSOR mas adentro (sin tocar los cachetes); arriba el techo sube de la visera en
+# punta hasta la cumbrera entre las orejas
+CAPUCHA = ((11.2, 8.2, 6.6, -5.6, 6.6), (15.0, 7.4, 6.8, -6.0, 4.9), (19.0, 6.3, 6.4, -6.3, 2.2),
+           (21.6, 5.3, 5.9, -6.5, 0.35))
+CHAFLAN, GROSOR = 1.2, 0.6
+VISERA = (0.4, 0.3)                                      # cuanto sube y cuanto sale la punta de enfrente
+TECHO = ((22.8, 0.97, 0.75), (23.6, 0.9, 0.42), (24.0, 0.82, 0.12))   # hasta la cumbrera: (y, escala x, escala z)
+OREJA = (((5.2, 23.3, 0.0), (3.9, 23.9, -1.3), (2.6, 24.2, 0.0), (3.9, 23.9, 1.3)), (4.6, 27.6, 0.0))
+CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
+NEGRO = ((0.34, "#100E12"), (0.5, "#161318"), (0.66, "#1D1A1F"), (9.0, "#252127"))
+
+
+def _mitad_u(w, zb, zf, xa, c=CHAFLAN):
+    """Media U (la derecha), de atras al medio hasta la orilla de la abertura, con las esquinas en chaflan."""
+    return [(0.0, zb), (w - c, zb), (w, zb - c), (w, zf + c), (w - c, zf), (xa, zf)]
+
+
+def _u(mitad, y):
+    """La U entera: de la orilla izquierda de la abertura, por atras, a la derecha."""
+    return [(-x, y, z) for x, z in mitad[:0:-1]] + [(x, y, z) for x, z in mitad]
+
+
+def capucha_malla():
+    anillos = []
+    for y, w, zb, zf, xa in CAPUCHA:
+        fuera = _mitad_u(w, zb, zf, xa)
+        dentro = _mitad_u(w - GROSOR, zb - GROSOR, zf + GROSOR, xa, CHAFLAN - GROSOR / 2)
+        anillos.append(_u(fuera, y) + _u(dentro, y)[::-1])
+    cuerpo = geo.loft_puntos(anillos, tapa_abajo=True, tapa_arriba=False)
+    y0, w, zb, zf, xa = CAPUCHA[-1]
+    sube, sale = VISERA
+    base = _u(_mitad_u(w, zb, zf, xa), y0) + [(0.0, y0 + sube, zf - sale)]
+    techo = [base] + [[(x * sx, y, z * sz) for x, _, z in base] for y, sx, sz in TECHO]
+    return geo.unir(cuerpo, geo.loft_puntos(techo, tapa_abajo=False, tapa_arriba=True))
+
+
+def capucha_pintor():
+    """Crema por fuera; el forro negro (las caras que miran hacia la cabeza)."""
+    crema, negro = faceta(paleta=CREMA, grano=0), faceta(paleta=NEGRO, grano=0)
+
+    def pintor(t):
+        nx, ny, nz = t.n
+        return negro(t) if nx * t.x + nz * t.z < -0.3 and abs(ny) < 0.9 else crema(t)
+    return pintor
+
+
+def capucha(p):
+    p.malla("Head/capucha", "capucha", capucha_malla(), capucha_pintor(), dens=4, luz=False)
+    base, punta = OREJA
+    p.malla_par("Head/capucha", "oreja", geo.piramide(list(base), punta, tapa=False), faceta(paleta=NEGRO, grano=0),
+                dens=4, luz=False)
+
+
 def liso(col):
     c = hex_(col)
     return lambda t: c
@@ -92,4 +150,5 @@ def construir():
     p = Personaje("pibble", altura=21, cabeza=10, torso=(5.6, 6, 3.2), brazo=(2.0, 2.0), pierna=(2.4, 2.4))
     p.malla("Head/cabeza", "cabeza", cabeza_malla(), liso(VACIO), dens=4, luz=False)   # el vacio no se sombrea
     ojos(p)
+    capucha(p)
     return p
