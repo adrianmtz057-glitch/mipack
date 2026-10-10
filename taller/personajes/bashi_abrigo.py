@@ -2,25 +2,25 @@
 Bashi: la bata (ver bashi.py), segun referencias/personajes/bashi_hoja2.png. Por ahora solo la forma con colores
 lisos (sin accesorios ni textura).
 
-  TORSO: la bata morada cubre el torso: espalda, costados y dos delanteros que se abren al medio; por la abertura
-    se ve el chaleco oscuro y la camisa beige.
-  MANGAS (en los huesos de los brazos, abiertas como los brazos): hombrera morada redonda, brazo morado, un bullon
-    grande en el codo (olivo en la derecha, beige en la izquierda) y el puno enrollado del otro color.
-  FALDON: de la cintura a la rodilla en TIRAS que se abren hacia abajo, de largos disparejos y con la punta
-    escalonada, en dos capas (la de abajo mas oscura tapa los huecos); adelante se abre al medio y deja ver las
-    piernas; atras baja mas. Los delanteros llevan olivo por afuera y morado al medio.
+  TORSO: la bata morada, cerrada (toda unida), con la solapa que cruza al medio.
+  MANGAS de kimono como las de meron (en los huesos de los brazos, abiertas como los brazos): anchas, se abren hacia
+    afuera y hacia abajo; adelante terminan en la muneca y atras cuelgan mas, como la bolsa del kimono. Por dentro
+    asoma la CAMISA beige de manga larga hasta la muneca.
+  FALDON: de la cintura para abajo en TIRAS que se abren, cada una de un largo distinto (al azar, fijo) y con la
+    punta escalonada, en dos capas (la de abajo mas oscura tapa los huecos), cerrado todo alrededor. Algunas tiras
+    olivo entre las moradas.
 """
 
 import math
 
 from .. import malla as geo
 from ..textura import hex_a_rgba as hex_
-from .bashi import BEIGE, BRAZO_X, C, D, MORADO, OLIVO, OSCURO, TORSO_CAJA, azar, giro_brazo
+from .bashi import BEIGE, C, D, MORADO, OLIVO, OSCURO, TORSO_CAJA, azar, giro_brazo
+from .meron import tubo_hueco
 
 CINTURA_Y = 22.4                        # de aqui cuelga el faldon
 ARO = (4.5, 2.8, 3.0)                   # el borde de la bata en la cintura: medio ancho, z adelante, z atras
-ABERTURA = 15.0                         # grados a cada lado del frente sin tiras: la bata abierta
-RUEDO = {"frente": 9.6, "lado": 10.4, "atras": 8.8}     # donde termina el faldon
+RUEDO = (8.4, 12.4)                     # donde termina cada tira: entre estas alturas, al azar (fijo)
 
 
 def plano(rampa):
@@ -44,41 +44,60 @@ def caja(p, grupo, nombre, desde, hasta, rampa, **kw):
 
 # ---------------------------------------------------------------------------------------------- torso
 def torso(p):
-    """La bata sobre el torso, abierta adelante: por la abertura se ve el chaleco oscuro y la camisa beige."""
+    """La bata sobre el torso, cerrada: un solo cuerpo morado y la solapa que cruza al medio, de su derecha a su
+    izquierda."""
     g = "Body/bata"
-    (x0, y0, z0), (x1, y1, z1) = TORSO_CAJA
-    caja(p, g, "chaleco", (x0, 21.0, z0), (x1, C, z1), OSCURO)
-    caja(p, g, "camisa", (-1.3, 23.0, z0 - 0.15), (1.3, C - 0.1, z0), BEIGE)
-    abajo = 21.4
-    caja(p, g, "espalda", (-4.45, abajo, 2.25), (4.45, C + 0.25, 2.75), MORADO)
-    for s in (1, -1):
-        a, b = sorted((s * 4.0, s * 4.45))
-        caja(p, g, f"costado{s}", (a, abajo, -2.75), (b, C + 0.25, 2.75), MORADO)
-        a, b = sorted((s * 1.3, s * 4.45))
-        caja(p, g, f"delantero{s}", (a, abajo, -2.75), (b, C + 0.25, -2.25), MORADO)
-        a, b = sorted((s * 1.3, s * 2.1))                        # la solapa: el borde de la abertura doblado
-        caja(p, g, f"solapa{s}", (a, 25.5, -3.0), (b, C + 0.25, -2.75), MORADO)
-    caja(p, g, "hombros", (-4.45, C - 0.1, -2.75), (4.45, C + 0.35, 2.75), MORADO)
+    caja(p, g, "cuerpo", (-4.45, 21.4, -2.75), (4.45, C + 0.35, 2.75), MORADO)
+    caja(p, g, "solapa", (-1.6, 21.4, -2.95), (0.6, C + 0.35, -2.75), MORADO)
 
 
 # ---------------------------------------------------------------------------------------------- mangas
+MANGA = (4.1, 7.0, 8.2, C + 0.4, 21.0, 17.0, -2.3, 2.6)
+# x de adentro, x de afuera arriba y abajo; y del hombro, de la muneca (adelante) y de la bolsa (atras); z de
+# adelante y de atras abajo
+
+
+def manga_kimono():
+    """Manga ancha de kimono del lado derecho (como la de meron): se abre hacia afuera y hacia abajo; adelante
+    termina en la muneca y atras cuelga mas, como la bolsa. Hueca, con forro."""
+    xi, xo_arriba, xo_abajo, arriba, puno, bolsa, zf, zb = MANGA
+    sup = [(xo_arriba, arriba, 1.9), (xo_arriba, arriba, -1.9), (xi, arriba, -1.9), (xi, arriba, 1.9)]
+    inf = [(xo_abajo, bolsa, zb), (xo_abajo, puno, zf), (xi + 0.05, puno, zf), (xi + 0.05, bolsa, zb)]
+    return tubo_hueco(inf, sup)
+
+
+def tela_manga(giro):
+    """La manga morada con el final olivo: una franja en el borde de abajo, que sigue el corte (adelante en la
+    muneca, atras en la bolsa)."""
+    _, _, _, _, puno, bolsa, zf, zb = MANGA
+    morado = plano(MORADO)
+    olivo = plano(OLIVO)
+
+    def p(t):
+        x, y, z = geo.desgirar((t.x, t.y, t.z), giro["rot"], giro["piv"])        # relativo al hombro
+        y, z = y + giro["piv"][1], z + giro["piv"][2]
+        k = max(0.0, min(1.0, (z - zf) / (zb - zf)))
+        return olivo(t) if y < puno + (bolsa - puno) * k + 0.75 else morado(t)
+    return p
+
+
 def mangas(p):
-    """Las mangas, dibujadas rectas y abiertas con el brazo: hombrera redonda, brazo, bullon en el codo y puno."""
+    """Las mangas de kimono (moradas, con el forro oscuro) y adentro la camisa beige de manga larga hasta la
+    muneca, todo abierto con el brazo."""
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        g = f"{hueso}/manga"
-        bullon, puno = (OLIVO, BEIGE) if s > 0 else (BEIGE, OLIVO)
-        piezas = (
-            ("hombrera", (3.8, 27.4, -1.95), (7.35, 30.5, 1.95), MORADO),
-            ("hombrera_alta", (4.2, 30.5, -1.6), (7.0, 30.9, 1.6), MORADO),
-            ("brazo", (4.05, 23.6, -1.7), (7.15, 27.4, 1.7), MORADO),
-            ("bullon_alto", (3.95, 23.2, -1.85), (7.25, 23.6, 1.85), bullon),
-            ("bullon", (3.7, 20.4, -2.1), (7.5, 23.2, 2.1), bullon),
-            ("puno", (3.85, 19.0, -1.95), (7.35, 20.4, 1.95), puno),
-        )
-        for nombre, a, b, rampa in piezas:
-            xa, xb = sorted((s * a[0], s * b[0]))
-            caja(p, g, nombre, (xa, a[1], a[2]), (xb, b[1], b[2]), rampa, **giro_brazo(s))
+        giro = giro_brazo(s)
+        malla, n_fuera = manga_kimono()
+        if s < 0:
+            malla = geo.espejo_x(malla)
+        malla = geo.girar(malla, giro["rot"], giro["piv"])
+        pint = [tela_manga(giro)] * n_fuera + [plano({**OSCURO, "b": OSCURO["s"]})] * (len(malla[1]) - n_fuera)
+        p.malla(f"{hueso}/manga", "manga", malla, pint, dens=D)
+        g = f"{hueso}/camisa"
+        xa, xb = sorted((s * 4.15, s * 6.85))
+        caja(p, g, "manga_camisa", (xa, 19.4, -1.3), (xb, 27.0, 1.3), BEIGE, **giro)
+        xa, xb = sorted((s * 4.0, s * 7.0))
+        caja(p, g, "puno_camisa", (xa, 19.0, -1.45), (xb, 19.8, 1.45), BEIGE, **giro)
 
 
 # ---------------------------------------------------------------------------------------------- faldon
@@ -105,26 +124,20 @@ def tira(ancho, largo, k, grueso=0.5):
 
 
 def faldon(p):
-    """El faldon en tiras: dos capas alrededor de la cintura; adelante abierto, atras mas largo."""
+    """El faldon en tiras: dos capas alrededor de la cintura, cerrado, cada tira de un largo distinto."""
     g = "Body/faldon"
     k = 0
     for capa, (n, fuera, abre, oscuro) in enumerate(((22, 0.25, 9.0, False), (22, 0.0, 6.0, True))):
         for i in range(n):
             t = (i + 0.5 * capa) / n
             (x, z), ang = borde(t)
-            frente = abs(((ang - 180 + 180) % 360) - 180)        # 0 adelante al medio, 180 atras
-            if frente < ABERTURA - 5 * capa:
-                continue
             a = math.radians(ang)
-            zona = "frente" if frente < 60 else "lado" if frente < 120 else "atras"
-            hasta = RUEDO[zona] + 0.8 * (azar(k, 3) - 0.5) + 0.3 * capa
+            hasta = RUEDO[0] + (RUEDO[1] - RUEDO[0]) * azar(k, 3) + 0.3 * capa
             largo = CINTURA_Y - hasta
             if oscuro:
                 rampa = OSCURO if azar(k, 4) < 0.5 else MORADO
-            elif zona == "frente":
-                rampa = OLIVO if abs(x) > 2.4 else MORADO
             else:
-                rampa = OLIVO if i % 4 == 1 else MORADO
+                rampa = OLIVO if azar(k, 6) < 0.3 else MORADO
             m = tira(1.7 if capa == 0 else 1.9, largo, k)
             m = geo.girar(m, (abre + 3 * azar(k, 5), ang - 180, 0))
             m = geo.mover(m, (x + math.sin(a) * fuera, CINTURA_Y, z + math.cos(a) * fuera))
