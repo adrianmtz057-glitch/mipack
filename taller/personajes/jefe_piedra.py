@@ -1,14 +1,18 @@
 """
-El primer jefe (inspirado en Azdaha): una bestia de piedra oscura en cuatro patas, con la espalda llena de picos de
-piedra amatista. Diseno simple (las formas grandes) armado CHICO y bien proporcionado: despues se crece entero
-(escalar) hasta el tamano del Ender Dragon.
-  CABEZA baja y hacia adelante: el craneo anguloso, el hocico de piedra palida que baja como pico, dos ojos morados
-    que brillan, las cejas salidas y una corona de picos que salen hacia atras y a los lados
-  CUERPO pesado con la joroba de los hombros (lo mas alto) que baja hacia la cadera; las PATAS de enfrente enormes
-    y abiertas, las de atras mas chicas, todas con garras
-  PICOS de piedra en la espalda: una fila al centro (los mas altos en los hombros) y dos a los lados mas chicos e
-    inclinados hacia afuera, todos echados hacia atras; siguen por la COLA larga, que se afila y baja
-Medidas en px (16 por bloque); el frente es -Z, su derecha es +X. Mide unos 5 bloques de largo con la cola.
+El primer jefe (inspirado en Azdaha): una bestia de piedra oscura en cuatro patas, gorda y con la espalda llena de
+puas de amatista. Armado CHICO y bien proporcionado: despues se crece entero (escalar) hasta el tamano del Ender
+Dragon.
+  CABEZA baja y hacia adelante: el craneo poligonal, el hocico de piedra palida pegado abajo de la cara (con su
+    quilla), dos ojos morados que brillan, las cejas salidas y solo los CUERNOS, que salen a los lados y curvean
+    hacia adelante; el CUELLO y la nuca gordos de bloques de piedra encimados
+  CUERPO alto y gordo (cortes de ocho lados) con la joroba de los hombros, todo cubierto de piedra: bloques encimados
+    en tresbolillo, piedras cuadradas y cristales en los costados y el pecho
+  PATAS de piedra (bloques derechos encimados) con hombro, codo y muneca, una roca grande con rocas y cristales en
+    cada articulacion, pies de dos bloques y garras; lo levantan del piso
+  PUAS repartidas en espiral (no en filas), cada una hacia afuera de donde nace y echada atras, de cinco formas
+    (aguja, gruesa, hoja, pilar, cristal), tamanos distintos y algunas en racimo; siguen por la COLA larga y baja
+Texturas: piedra de bloques de 1 px con grietas y motitas; cristales facetados. Luz horneada pareja (simetrica).
+Medidas en px (16 por bloque); el frente es -Z, su derecha es +X. Mide unos 7 bloques de largo con la cola.
 """
 
 import math
@@ -35,6 +39,30 @@ FORMAS = {"aguja": ((0.0, 1.0, 1.0), (0.62, 0.36, 0.36)),
           "hoja": ((0.0, 1.0, 0.36), (0.6, 0.62, 0.24)),
           "pilar": ((0.0, 1.0, 1.0), (0.8, 0.82, 0.82)),
           "cristal": ((0.0, 0.8, 0.8), (0.32, 1.0, 1.0), (0.72, 0.55, 0.55))}
+
+
+def piedra(rampa, claro=0.05):
+    """Textura de piedra: los bloques de 1 px (voxel) con grietas finas mas oscuras y motitas claras."""
+    base, grieta, mota = voxel(rampa, claro), hex_(rampa["s"]), hex_(rampa["l"])
+
+    def p(t):
+        u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
+        v = t.z if abs(t.n[1]) > 0.7 else t.y
+        cu, cv = math.floor(u * D), math.floor(v * D)
+        r = _azar(cu * 3.1 + cv * 7.7 + round(t.n[0] * 3) * 13 + round(t.n[2] * 3) * 29)
+        if abs(math.sin(u * 0.9 + v * 0.45) * 3.0 + math.cos(v * 0.7 - u * 0.3) * 2.0) < 0.22:
+            return grieta
+        if r > 0.95:
+            return mota
+        return base(t)
+    return p
+
+
+def cristal():
+    """Los cristales de amatista: cada cara de un tono segun hacia donde mira (facetas), con grano suave."""
+    from .moles import faceta
+    return faceta(paleta=((0.36, AMATISTA["s"]), (0.52, AMATISTA["b"]), (0.68, AMATISTA["l"]), (9.0, "#B79BEA")),
+                  grano=0.06, simetrico=True)
 
 
 def esquirla(base, ancho, alto, rot=(0, 0, 0), forma="aguja"):
@@ -133,16 +161,17 @@ def en_superficie(tabla, z, fi, hundido=0.9):
 
 
 def picos(p, grupo, tabla, nombre, n, zona, alto, ancho, atras, semilla, formas=tuple(FORMAS)):
-    """n puas repartidas parejo (en espiral, no en filas) por la zona (z de, z a, angulo maximo desde arriba) del
-    lomo: cada una sale hacia afuera de donde nace, echada un poco atras y distinta (forma, tamano, giro); algunas
-    con una o dos chicas a su lado (racimo)."""
-    amatista = voxel(AMATISTA, 0.1)
-    z0, z1, fi_max = zona
+    """n puas repartidas parejo (en espiral, no en filas) por la zona (z de, z a, angulo maximo desde arriba y, si
+    va, el minimo) del lomo: cada una sale hacia afuera de donde nace, echada un poco atras y distinta (forma,
+    tamano, giro); algunas con una o dos chicas a su lado (racimo)."""
+    amatista = cristal()
+    z0, z1, fi_max, fi_min = zona if len(zona) == 4 else (*zona, 0.0)
     k = 0
     for i in range(n):
         sem = semilla + i * 5.3
         z = z0 + (z1 - z0) * (i + 0.5 + 0.6 * (_azar(sem) - 0.5)) / n
-        fi = (((i * 0.6180339) % 1.0) * 2 - 1) * fi_max
+        fi = (1 if i % 2 else -1) * (fi_min + ((i * 0.6180339) % 1.0) * (fi_max - fi_min)) if fi_min else \
+            (((i * 0.6180339) % 1.0) * 2 - 1) * fi_max
         base, fuera = en_superficie(tabla, z, fi)
         tam = 0.55 + 0.9 * _azar(sem + 1)
         forma = formas[int(_azar(sem + 2) * len(formas))]
@@ -209,6 +238,50 @@ def rocas(p, grupo, nombre, anillos, tam, pintores, semilla, desde=0):
                     k += 1
 
 
+def rocas_caja(p, grupo, nombre, desde, hasta, cara, n, tam, pintores, semilla, margen=0.5):
+    """Rocas sobre una cara de una caja derecha: una reja de n = (columnas, filas) bloques derechos (como la caja),
+    de tamanos parejos con un poco de diferencia, hundidos a medias y en tresbolillo. tam = (ancho, lo que salen)."""
+    eje = {"up": 1, "down": 1, "east": 0, "west": 0, "north": 2, "south": 2}[cara]
+    signo = 1 if cara in ("up", "east", "south") else -1
+    u, v = [i for i in range(3) if i != eje]
+    k = 0
+    for i in range(n[0]):
+        for j in range(n[1]):
+            sem = semilla + k * 7.7
+            fu = (i + 0.5 + 0.35 * (_azar(sem) - 0.5) + (0.5 if j % 2 else 0.0)) / (n[0] + 0.5)
+            fv = (j + 0.5 + 0.3 * (_azar(sem + 1) - 0.5)) / n[1]
+            cu = desde[u] + margen + (hasta[u] - desde[u] - 2 * margen) * fu
+            cv = desde[v] + margen + (hasta[v] - desde[v] - 2 * margen) * fv
+            wu = min(tam[0], (hasta[u] - desde[u]) / n[0]) * (0.75 + 0.5 * _azar(sem + 2)) / 2
+            wv = min(tam[0], (hasta[v] - desde[v]) / n[1]) * (0.75 + 0.5 * _azar(sem + 3)) / 2
+            sale = tam[1] * (0.6 + 0.8 * _azar(sem + 4))
+            c = hasta[eje] if signo > 0 else desde[eje]
+            a, b = [0.0] * 3, [0.0] * 3
+            a[u], b[u], a[v], b[v] = cu - wu, cu + wu, cv - wv, cv + wv
+            a[eje], b[eje] = sorted((c - signo * sale * 0.45, c + signo * sale * 0.55))
+            p.caja(grupo, f"{nombre}{k}", tuple(a), tuple(b), pintores[k % len(pintores)], dens=D)
+            k += 1
+
+
+def tramo_de_piedra(p, grupo, nombre, a, b, medio_a, medio_b, caras, pintores, semilla):
+    """Un tramo de pata o de cuello hecho de bloques de piedra derechos encimados que van de a a b (cada uno un poco
+    distinto, cada vez del medio tamano que toca), con rocas salidas en las caras dadas. medio = (x, y, z)."""
+    largo = math.dist(a, b)
+    n = max(2, math.ceil(largo / (min(medio_a) * 1.1)))
+    for i in range(n):
+        f = i / (n - 1)
+        sem = semilla + i * 4.1
+        c = tuple(a[e] + (b[e] - a[e]) * f for e in range(3))
+        m = tuple((medio_a[e] + (medio_b[e] - medio_a[e]) * f) * (0.88 + 0.24 * _azar(sem + e)) for e in range(3))
+        d, h = tuple(c[e] - m[e] for e in range(3)), tuple(c[e] + m[e] for e in range(3))
+        p.caja(grupo, f"{nombre}{i}", d, h, pintores[i % len(pintores)], dens=D)
+        for cara in caras:
+            ancho = (h[2] - d[2]) if cara in ("east", "west", "up") else (h[0] - d[0])
+            alto = (h[1] - d[1]) if cara != "up" else (h[0] - d[0])
+            rocas_caja(p, grupo, f"{nombre}{i}_{cara}_", d, h, cara, (max(1, round(ancho / 3.4)), max(1, round(alto / 3.4))),
+                       (3.4, 1.5), pintores[::-1], sem + 50)
+
+
 def anillos_tubo(a, b, r0, r1, lados=6):
     """Los dos cortes (de 'lados' lados) de un tramo de a a b, para la malla y para su piel rocosa."""
     t = _norm(tuple(b[i] - a[i] for i in range(3)))
@@ -223,12 +296,12 @@ def anillos_tubo(a, b, r0, r1, lados=6):
 
 
 def cabeza(p):
-    piedra, clara, hocico, amatista = voxel(PIEDRA, 0.05), voxel(PIEDRA_C, 0.05), voxel(HOCICO, 0.1), voxel(AMATISTA, 0.1)
+    piedra_o, clara, hocico, amatista = piedra(PIEDRA), piedra(PIEDRA_C), voxel(HOCICO, 0.1), cristal()
     g = "Head/cabeza"
-    p.malla(g, "cuello", loft_z([octagono(z, y, mx, my) for z, y, mx, my in CUELLO]), piedra, dens=D)
+    tramo_de_piedra(p, g, "cuello", (0.0, 27.5, -20.0), (0.0, 21.5, -30.0), (11.0, 9.5, 3.4), (8.6, 7.4, 3.0),
+                    ("east", "west", "up"), [piedra_o, clara], 11)
     p.malla(g, "craneo", loft_z([octagono(z, y, mx, my) for z, y, mx, my in CABEZA]), clara, dens=D)
-    rocas(p, g, "roca_cuello", [octagono(z, y, mx, my) for z, y, mx, my in CUELLO], (3.4, 1.4), [clara, piedra], 11)
-    rocas(p, g, "roca_craneo", [octagono(z, y, mx, my) for z, y, mx, my in CABEZA[:2]], (3.0, 1.2), [piedra, clara], 21)
+    rocas(p, g, "roca_craneo", [octagono(z, y, mx, my) for z, y, mx, my in CABEZA[:2]], (3.0, 1.2), [piedra_o, clara], 21)
     # el hocico (la boca): la parte de abajo de la cara, de piedra palida, bien pegada a la cabeza y saliendo hacia
     # adelante, con la quilla al centro
     from .bloques import tubo
@@ -254,42 +327,73 @@ def cabeza(p):
                     dens=D)
 
 
+def piedras_cuadradas(p, grupo, tabla, nombre, lista, tam, pintores, semilla):
+    """Piedras cuadradas grandes encajadas en el cuerpo, derechas con la superficie: (z, fi)."""
+    for k, (z, fi) in enumerate(lista):
+        sem = semilla + k * 3.7
+        base, fuera = en_superficie(tabla, z, fi, 0.98)
+        w, h, d = (tam * (0.7 + 0.5 * _azar(sem + i)) for i in range(3))
+        a = math.radians(fi)
+        bloque(p, grupo, f"{nombre}{k}", base, (w, h, d), (math.cos(a), -math.sin(a), 0.0), fuera,
+               pintores[k % len(pintores)])
+
+
 def cuerpo(p):
-    piedra, clara = voxel(PIEDRA, 0.05), voxel(PIEDRA_C, 0.05)
-    p.malla("Body/cuerpo", "cuerpo", loft_z([octagono(z, y, mx, my) for z, y, mx, my in CUERPO]), piedra, dens=D)
-    p.malla("Body/cola", "cola", loft_z([octagono(z, y, mx, my) for z, y, mx, my in COLA]), piedra, dens=D)
+    piedra_o, clara = piedra(PIEDRA), piedra(PIEDRA_C)
+    p.malla("Body/cuerpo", "cuerpo", loft_z([octagono(z, y, mx, my) for z, y, mx, my in CUERPO]), piedra_o, dens=D)
+    p.malla("Body/cola", "cola", loft_z([octagono(z, y, mx, my) for z, y, mx, my in COLA]), piedra_o, dens=D)
     # la piel rocosa: bloques encimados en todo el cuerpo y la cola
-    rocas(p, "Body/rocas", "roca", [octagono(z, y, mx, my) for z, y, mx, my in CUERPO], (3.8, 1.6), [clara, piedra], 7)
+    rocas(p, "Body/rocas", "roca", [octagono(z, y, mx, my) for z, y, mx, my in CUERPO], (3.8, 1.6), [clara, piedra_o], 7)
     rocas(p, "Body/cola", "roca_cola", [octagono(z, y, mx, my) for z, y, mx, my in COLA[:6]], (2.8, 1.1),
-          [clara, piedra], 40)
+          [clara, piedra_o], 40)
     # las puas del lomo (las mas altas en los hombros, mas chicas a los lados) y las de la cola
     def alto(z, fi):
         return (19.0 - abs(z + 9.0) * 0.38) * (1.0 - abs(fi) / 160.0)
     picos(p, "Body/picos", CUERPO, "pico", 120, (-21.0, 20.0, 105), alto, 4.4, 0.55, 1)
     picos(p, "Body/cola", COLA, "pico_cola", 48, (22.0, 66.0, 70),
           lambda z, fi: max(1.6, 8.5 - (z - 21.0) * 0.15) * (1.0 - abs(fi) / 140.0), 3.0, 0.9, 50)
+    # el relleno de los costados (que no quede liso): cristales chicos y piedras cuadradas, y en el pecho
+    picos(p, "Body/picos", CUERPO, "cristal_costado", 36, (-20.0, 19.0, 135, 100), lambda z, fi: 6.5, 3.4, 0.4, 70,
+          ("gruesa", "cristal", "pilar"))
+    piedras_cuadradas(p, "Body/rocas", CUERPO, "piedra", [(-19.0 + 3.6 * i, (1 if i % 2 else -1) * (112 + 18 * _azar(i * 3.3)))
+                                                        for i in range(11)], 4.8, [clara, piedra_o], 90)
+    for i, (x, y, d) in enumerate(((0.0, 24.0, (0.0, -0.3, -1.0)), (4.5, 21.5, (0.35, -0.4, -1.0)),
+                                   (-4.5, 21.5, (-0.35, -0.4, -1.0)), (6.5, 27.5, (0.5, 0.2, -1.0)),
+                                   (-6.5, 27.5, (-0.5, 0.2, -1.0)))):
+        p.malla("Body/picos", f"cristal_pecho{i}", esquirla((x, y, -21.5), 3.2, 5.5 - (i % 2), hacia(d),
+                                                            ("gruesa", "cristal")[i % 2]), cristal(), dens=D)
 
 
 def pata(p, hueso, s, articulaciones, radios, pie, garras):
-    """Una pata de varios tramos poligonales (hombro, codo, muneca...) con su piel rocosa, una roca en cada
-    articulacion, el pie y las garras."""
-    from .bloques import tubo
-    piedra, clara, garra = voxel(PIEDRA, 0.05), voxel(PIEDRA_C, 0.05), voxel(GARRA, 0.1)
+    """Una pata de piedra: cada tramo (hombro a codo, codo a muneca...) de bloques derechos encimados con rocas
+    salidas por afuera, adelante y atras; una roca grande en cada articulacion, el pie de dos bloques y las garras."""
+    piedra_o, clara, garra = piedra(PIEDRA), piedra(PIEDRA_C), voxel(GARRA, 0.1)
     g = f"{hueso}/pata"
+    afuera = "east" if s > 0 else "west"
     puntos = [(s * x, y, z) for x, y, z in articulaciones]
     for i, (a, b) in enumerate(zip(puntos, puntos[1:])):
-        anillos = anillos_tubo(a, b, radios[i], radios[i + 1])
-        p.malla(g, f"tramo{i}", loft_z(anillos), piedra if i % 2 == 0 else clara, dens=D)
-        rocas(p, g, f"roca{i}_", anillos, (3.0, 1.3), [clara, piedra], 200 + 13 * i + s)
+        ra, rb = radios[i], radios[i + 1]
+        tramo_de_piedra(p, g, f"tramo{i}_", a, b, (ra, ra * 0.9, ra), (rb, rb * 0.9, rb), (afuera, "north", "south"),
+                        [piedra_o, clara] if i % 2 == 0 else [clara, piedra_o], 200 + 13 * i + s)
     for i, c in enumerate(puntos[:-1]):                       # las rocas de las articulaciones (hombro y codo)
-        t = radios[i] * 1.45
-        rot = tuple(40 * (_azar(i * 9.1 + s + j) - 0.5) for j in range(3))
-        p.caja(g, f"articulacion{i}", (c[0] - t / 2, c[1] - t / 2, c[2] - t / 2),
-               (c[0] + t / 2, c[1] + t / 2, c[2] + t / 2), clara if i % 2 == 0 else piedra, rot=rot, piv=c, dens=D)
+        t = radios[i] * 1.3                                  # medio tamano
+        d, h = (c[0] - t, c[1] - t * 0.8, c[2] - t), (c[0] + t, c[1] + t * 0.8, c[2] + t)
+        p.caja(g, f"articulacion{i}", d, h, clara if i % 2 == 0 else piedra_o, dens=D)
+        for cara in (afuera, "north", "south", "up"):          # que no quede ninguna cara lisa
+            rocas_caja(p, g, f"roca_articulacion{i}_{cara}_", d, h, cara, (3, 3), (3.6, 1.6), [piedra_o, clara],
+                       300 + i * 7 + s + len(cara))
+        for k, (dy, dz) in enumerate(((0.45, -0.35), (0.6, 0.4), (0.1, 0.05))):   # cristales por afuera
+            base = ((h[0] if s > 0 else d[0]) - s * 0.6, c[1] + dy * t * 0.8, c[2] + dz * t)
+            p.malla(g, f"cristal_articulacion{i}_{k}",
+                    esquirla(base, 2.6 - 0.5 * k, 6.0 - 1.2 * k, hacia((s * 1.0, 0.7 + 0.2 * k, 0.3 * dz)),
+                             ("cristal", "gruesa", "aguja")[k]), cristal(), dens=D)
     (x, y, z0, z1, r) = pie
-    p.malla(g, "pie", tubo((s * x, y, z0), (s * x, y, z1), r, r * 0.8, 6), clara, dens=D)
+    a, b = sorted((s * (x - r * 1.15), s * (x + r * 1.15)))
+    p.caja(g, "pie", (a, 0.0, min(z0, z1)), (b, y + r * 0.5, max(z0, z1)), clara, dens=D)
+    a, b = sorted((s * (x - r * 0.9), s * (x + r * 0.9)))
+    p.caja(g, "empeine", (a, y + r * 0.4, min(z0, z1) + 1.0), (b, y + r * 1.1, max(z0, z1) - 1.5), piedra_o, dens=D)
     for k, dx in enumerate(garras):
-        p.malla(g, f"garra{k}", esquirla((s * (x + dx), y - 0.6, z1 + 0.6), 1.5, 3.0, hacia((0.0, -0.45, -1.0))), garra,
+        p.malla(g, f"garra{k}", esquirla((s * (x + dx), 1.0, z1 + 0.6), 1.5, 3.0, hacia((0.0, -0.45, -1.0))), garra,
                 dens=D)
 
 
