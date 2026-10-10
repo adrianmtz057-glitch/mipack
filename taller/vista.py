@@ -101,15 +101,16 @@ def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro):
     return img
 
 
-def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio=None, vistas=VISTAS):
-    """Vistas del modelo en un PNG. Con centro/radio (en px del modelo) hace zoom a esa zona (ej. la cara)."""
+def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio=None, vistas=VISTAS, caras=None):
+    """Vistas del modelo en un PNG. Con centro/radio (en px del modelo) hace zoom a esa zona (ej. la cara).
+    caras: las caras ya armadas (como las da _caras_mundo), por ejemplo un modelo posado o reconstruido."""
     try:
         import numpy as np
         from PIL import Image
     except ImportError:
         return None
     tex = np.frombuffer(bytes(lienzo.px), dtype=np.uint8).reshape(lienzo.alto, lienzo.ancho, 4) / 255.0
-    caras = _caras_mundo(modelo, uvs)
+    caras = caras if caras is not None else _caras_mundo(modelo, uvs)
     todos = np.concatenate([P for P, _ in caras])
     lo, hi = todos.min(axis=0), todos.max(axis=0)
     zoom = centro is not None
