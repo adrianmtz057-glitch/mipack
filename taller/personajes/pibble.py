@@ -283,7 +283,7 @@ def _fuera_de_cabeza(q, holgura=0.2):
     return (math.copysign(max(abs(x), limite), x), y, z)
 
 
-FORRO = ((0.34, "#100E12"), (0.5, "#161318"), (0.66, "#1D1A1F"), (9.0, "#252127"))
+FORRO = ((0.34, "#0B0A0C"), (0.5, "#100F12"), (0.66, "#161418"), (9.0, "#1D1A1F"))   # negro de verdad
 AZUL = ((0.34, "#1F2F42"), (0.5, "#283B50"), (0.66, "#31475D"), (9.0, "#3C556C"))
 CENTRO_CABEZA = (0.0, 16.0, 0.0)
 ORO = ((0.34, "#94713C"), (0.5, "#AD874A"), (0.66, "#C8A058"), (9.0, "#DEB974"))
@@ -370,7 +370,7 @@ def liso(col):
 # pachoncito, a escala de Minecraft: si un jugador (32 de alto, los ojos a ~26) estuviera enfrente, sus ojos le
 # llegarian al pecho. La cabeza y la capucha se hicieron con el cuello en 11.2 y suben hasta CUELLO_Y
 CUELLO_Y = 31.0
-CUERPO = ((0.34, "#121015"), (0.5, "#19161C"), (0.66, "#211D24"), (9.0, "#2B262E"))
+CUERPO = FORRO
 # el torso, de huevo con la panza hacia enfrente: (y, medio ancho, medio hondo adelante, medio hondo atras)
 TORSO = ((8.5, 4.5, 3.8, 3.6), (10.0, 6.4, 5.4, 5.0), (13.0, 7.4, 6.4, 5.8), (17.0, 7.7, 6.6, 6.0),
          (21.0, 7.3, 6.1, 5.7), (25.0, 6.5, 5.2, 5.0), (28.0, 5.6, 4.4, 4.3), (30.0, 4.2, 3.4, 3.4),
@@ -430,8 +430,8 @@ def cuerpo(p):
 # la bata abierta: crema, en A, abierta adelante del cuello hacia abajo (cada vez mas), con solapas negras y su filete
 # dorado, el borde de abajo dorado, el panel azul con runa atras y el forro negro. Cada nivel es una U abierta
 # adelante: (y, medio ancho, medio hondo adelante, medio hondo atras, medio ancho de la abertura)
-BATA = ((6.0, 9.3, 7.0, 7.2, 4.8), (9.0, 8.8, 6.8, 6.8, 4.2), (14.0, 8.3, 7.0, 6.5, 3.4), (19.0, 8.1, 7.0, 6.4, 2.8),
-        (24.0, 7.1, 5.8, 5.6, 2.2), (28.0, 6.2, 5.0, 4.9, 1.6), (30.5, 4.8, 4.0, 4.0, 1.0))
+BATA = ((6.0, 9.9, 7.2, 7.3, 4.8), (9.0, 9.6, 7.0, 7.0, 4.2), (14.0, 9.4, 7.1, 6.6, 3.4), (19.0, 9.3, 7.0, 6.5, 2.8),
+        (24.0, 9.2, 6.2, 5.8, 2.2), (28.5, 9.0, 5.2, 5.0, 1.6), (30.5, 5.5, 4.0, 4.0, 1.0))   # tipo capa: hombros anchos
 GROSOR_BATA = 0.45
 SOLAPA = 1.6                                             # lo ancho de la solapa negra junto a la abertura
 # las mangas anchas: (a que tanto del brazo crecen, del hombro hasta donde, el puno negro de donde a donde)
@@ -443,7 +443,7 @@ BANDA = (1.5, 30.0, 3.6)                                 # medio ancho, de donde
 PANTALON = ((1.7, 2.5, 2.7), (2.6, 3.0, 3.2), (5.0, 3.2, 3.4), (8.0, 3.0, 3.2), (10.5, 2.8, 3.0))   # (y, mx, mz)
 BOTA = ((2.2, 2.3, 2.4, 0.2), (2.8, 2.35, 2.45, 0.2))    # la cana: (y, mx, mz, z del centro)
 PICO = (5.9, 1.1)                                        # que tan adelante llega la punta y a que altura
-PANTALON_NEGRO = ((0.34, "#13141B"), (0.5, "#1A1C25"), (0.66, "#22252F"), (9.0, "#2C303C"))
+PANTALON_NEGRO = ((0.34, "#0C0C0E"), (0.5, "#121215"), (0.66, "#18181C"), (9.0, "#1F1F24"))
 # la cola esponjada como la de Moles, mas grande: su camino escalado desde la parte de abajo de la espalda
 COLA_PIBBLE = tuple((x * 1.8, 12.0 + (y - 4.2) * 1.8, 5.0 + (z - 1.8) * 1.8, r * 1.8)
                     for x, y, z, r in ((0.0, 4.2, 1.8, 0.95), (1.0, 3.4, 4.4, 1.7), (2.4, 4.4, 7.0, 2.4),
@@ -578,7 +578,7 @@ def ropa(p):
     from .moles import cola
     from .revolthir import voxel
     cola(p, camino=COLA_PIBBLE, base=voxel({"s": "#1F2F42", "b": "#283B50", "l": "#3C556C"}, claro=0.3),
-         punta=voxel({"s": "#121015", "b": "#1D1A1F", "l": "#2B262E"}, claro=0.3), corte=0.7)
+         punta=voxel({"s": "#0B0A0C", "b": "#121014", "l": "#1A171C"}, claro=0.3), corte=0.7)
 
 
 def construir():
