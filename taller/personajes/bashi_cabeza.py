@@ -3,7 +3,8 @@ Bashi: la cabeza (ver bashi.py). Hecha a mano segun referencias/personajes/bashi
 cara y las cuatro vistas).
 
 Lo que lleva, de adentro hacia afuera:
-  CABEZA: cubo de 8 x 8 x 8 a densidad 8 (la cara es un pixel art de 64 x 64), piel durazno lisa, sin
+  CABEZA: no es un cubo: la cara plana adelante con los pomulos cortados en diagonal hacia los costados y la
+    quijada que se angosta en una barbilla mas chica (densidad 8: la cara es un pixel art), piel durazno lisa, sin
     sombras (solo el contorno de la cuenca del ojo grande, la boca y las arrugas de la risa). Arriba, a los costados y en la nuca va pintado el pelo de mas adentro (gris oscuro), asi entre
     mechon y mechon nunca se ve piel.
   OJO DERECHO (a la izquierda de quien lo ve): enorme, cuadrado y que BRILLA: un lente en 3D con las esquinas
@@ -14,7 +15,7 @@ Lo que lleva, de adentro hacia afuera:
   NARIZ delgada con su forma: nace fina en el puente entre los ojos y baja saliendo hasta la punta redondeada.
   SONRISA chueca y cerrada (la boca cerrada se lee mejor en Minecraft): una raya que sube hacia su izquierda, con
     esa comisura levantada y las arrugas de la risa.
-  PELO gris revuelto en mechones de bloque (cajas, sin luz y sin sombras adentro): una capa pegada a los costados y
+  PELO gris revuelto en mechones de bloque con hebras de color (sin sombras): una capa pegada a los costados y
     a la nuca con las puntas disparejas, otra encima con mechones que se abren hacia afuera (mas locos a su
     derecha), copetes que salen de lado justo bajo el ala y mechones que caen sobre las esquinas de la frente.
   BIGOTE caido en dos mechones de bloque que cuelgan de las comisuras (el de su derecha mas largo) y BARBA corta de
@@ -133,23 +134,50 @@ def _disparejo(u, semilla):
     return (0.0, 0.5, 0.25, 0.75, 0.375)[int(azar(k, semilla) * 5) % 5]
 
 
+# la forma de la cabeza: secciones de abajo (la barbilla) hacia arriba. Adelante la cara es plana (z = -4) y los
+# pomulos van cortados en diagonal hacia los costados; abajo la quijada se angosta en una barbilla mas chica.
+# (y, medio ancho de la cara, medio ancho de los costados, z donde el corte llega al costado, medio ancho atras,
+#  z de atras)
+FORMA = ((30.0, 2.25, 2.75, -3.5, 2.0, 1.5), (31.0, 2.75, 3.5, -3.25, 3.0, 3.0), (32.0, 3.375, 4.0, -3.375, 3.5, 4.0),
+         (T, 3.375, 4.0, -3.375, 3.5, 4.0))
+
+
+def cabeza_malla():
+    """La cabeza con su forma: cada seccion es un octagono (la cara plana, los pomulos cortados, los costados y las
+    esquinas de atras apenas cortadas)."""
+    anillos = []
+    for y, fw, sw, zc, bw, zb in FORMA:
+        zbc = zb - (sw - bw)
+        anillos.append([(sw, y, zbc), (sw, y, zc), (fw, y, -4.0), (-fw, y, -4.0), (-sw, y, zc), (-sw, y, zbc),
+                        (-bw, y, zb), (bw, y, zb)])
+    return geo.loft_puntos(anillos)
+
+
+PATRON_HEBRAS = (0, 1, 0, -1, 1, 2, 0, 1, -1, 0, 1, 0)     # tono de cada hebra (relativo), un patron fijo
+
+
+def hebra(u, k, tono=3):
+    """Textura del pelo, solo color (sin sombras): hebras de 1 texel de ancho a lo largo del mechon, cada una con su
+    tono de un patron fijo corrido por mechon (k)."""
+    return _t(CANAS, tono + PATRON_HEBRAS[(math.floor(u * DC) + 5 * k) % len(PATRON_HEBRAS)])
+
+
 def piel_cabeza(t):
-    """Pintor del cubo de la cabeza: la cara adelante; arriba, a los costados y atras el pelo de mas adentro (gris
-    oscuro, con las puntas disparejas) y la piel abajo; bajo la barbilla, piel en sombra."""
-    c, v = t.cara, t.y - C
-    if c == "north":
+    """Pintor de la cabeza: la cara en el frente plano; en los pomulos, piel; arriba, a los costados y atras el pelo
+    de mas adentro (con sus hebras y las puntas disparejas sobre la piel). Sin sombras: piel lisa."""
+    nx, ny, nz = t.n
+    v = t.y - C
+    if nz < -0.95:
         return hex_(cara(-t.x, v))
-    if c == "up":
-        return hex_(CANAS["s"])
-    if c == "down":
-        return hex_(PIEL["s"])
-    if c in ("east", "west"):
-        if t.z < -3.25:                                          # la orilla de la cara (quijada y sien)
-            return hex_(CANAS["s2"] if v > 6.25 else PIEL["s"])
-        borde = 0.5 + _disparejo(t.z, 1 if c == "east" else 2) if t.z < -2.0 else -1.0
-    else:
-        borde = -1.0
-    return hex_(CANAS["s2"] if v > borde else PIEL["s"])
+    if ny > 0.6:
+        return hex_(hebra(t.x, 1, 2))
+    if ny < -0.6:
+        return hex_(PIEL["b"])
+    u = t.x if abs(nz) > abs(nx) else t.z
+    if t.z < -2.5:                                               # los pomulos y la sien
+        return hex_(hebra(u, 2, 2) if v > 6.25 else PIEL["b"])
+    borde = 0.5 + _disparejo(t.z, 1 if nx > 0 else 2) if t.z < -1.0 else -1.0
+    return hex_(hebra(u, 3, 2) if v > borde else PIEL["b"])
 
 
 # ---------------------------------------------------------------------------------------------- el ojo grande
@@ -266,21 +294,11 @@ def facciones(p):
 
 # ---------------------------------------------------------------------------------------------- pelo, bigote y barba
 def pintor_mechon(tono, k):
-    """Mechon de bloque gris sin luz horneada: las caras anchas en su tono, los cantos un paso mas oscuros, arriba
-    claro y las puntas (abajo) en sombra; una junta fija le parte el largo en dos bloques."""
+    """Mechon de bloque gris, solo color (sin sombras): todas sus caras con las mismas hebras a lo largo, en el tono
+    del mechon."""
     def p(t):
-        c = t.cara
-        if c == "up":
-            return hex_(_t(CANAS, tono + 1))
-        if c == "down":
-            return hex_(_t(CANAS, tono - 1))
-        f, h = t.f, t.t
-        grueso = 0 if (h[0] - f[0]) < (h[2] - f[2]) else 2
-        ancha = (c in ("east", "west")) == (grueso == 0)
-        kk = tono if ancha else tono - 1
-        if ancha and t.th > 6 and t.j == int(t.th * (0.3 + 0.4 * azar(k, 5))):
-            kk -= 1                                              # la junta
-        return hex_(_t(CANAS, kk))
+        u = t.z if t.cara in ("east", "west") else t.x
+        return hex_(hebra(u, k, tono))
     return p
 
 
@@ -425,14 +443,14 @@ def bigote_y_barba(p):
                grupo="barba")
         k += 1
     for s, lado in ((1, "e"), (-1, "w")):
-        mechon(p, f"quijada_{lado}", (s * 4.0, 31.5, -3.25), lado, 1.5, 1.75, grueso=0.75, abre=12, abanico=10,
+        mechon(p, f"quijada_{lado}", (s * 3.65, 31.5, -3.0), lado, 1.5, 1.75, grueso=0.75, abre=12, abanico=10,
                tono=3, k=k, grupo="barba")
         k += 1
 
 
 # ---------------------------------------------------------------------------------------------- armado
 def cabeza(p):
-    p.caja(f"{G}/cabeza", "cabeza", *CABEZA_CAJA, piel_cabeza, dens=DC, luz=False)
+    p.malla(f"{G}/cabeza", "cabeza", cabeza_malla(), piel_cabeza, dens=DC)
     ojo_grande(p)
     facciones(p)
     pelo(p)
