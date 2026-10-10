@@ -313,73 +313,118 @@ def pelo(p, C, T):
     frente(p, C, T)
 
 
-# las orejas de zorro, a los costados de la cabeza: de 2 de grueso (de enfrente hacia atras) y derechitas (sin
-# inclinar). De frente son una hoja grande que sale de arriba de la cabeza, sube y se abre hacia afuera hasta la punta,
-# y baja por fuera hasta el bulto del pelo. Felpudas: la orilla en picos y copos de pelusa por fuera, y el adentro
-# rosa adelante con mechoncitos crema que le salen.
-# Contorno de frente de la oreja derecha (x, y): la orilla de adentro hasta la punta, la de afuera hacia abajo, y la
-# base metida en el pelo
-OREJA_FRENTE = ((1.8, 21.6), (2.0, 22.6), (2.75, 24.3), (3.9, 25.6), (5.35, 26.8), (6.9, 27.7))
-OREJA_ATRAS = ((7.75, 26.5), (8.05, 24.1), (7.95, 21.7), (7.55, 19.3), (6.8, 16.9))
-OREJA_BASE = ((6.0, 16.9), (5.2, 19.5), (4.0, 21.3), (2.8, 21.6))
-OREJA_Z = (-0.6, 1.4)                                    # de enfrente a atras: 2 de grueso
+# las orejas de zorro, a los costados de la cabeza y derechitas (sin inclinar). De frente son una hoja grande que sale
+# de arriba de la cabeza, sube y se abre hacia afuera hasta la punta, y baja por fuera hasta el bulto del pelo. De lado
+# son MEDIO CONO: el frente plano y por detras caen en curva desde la punta, cada vez mas hondas hacia abajo, con la
+# superficie despareja (felpuda). Adelante el adentro rosa con pelitos rosas al azar, y copos rubios por la orilla y
+# por detras (como la cola, pero menos).
+# La orilla de adentro y la de afuera de la oreja derecha, de abajo hacia la punta: (y, x)
+OREJA_ADENTRO = ((16.9, 6.0), (19.5, 5.0), (21.0, 2.8), (21.6, 1.8), (22.6, 2.0), (24.3, 2.75), (25.6, 3.9),
+                 (26.8, 5.35), (27.4, 6.4))
+OREJA_AFUERA = ((16.9, 6.8), (19.3, 7.55), (21.7, 7.95), (24.1, 8.05), (26.5, 7.75), (27.4, 7.2))
+OREJA_PUNTA = (6.9, 27.8)
+OREJA_Z0 = -0.6                                          # el frente plano
+OREJA_HONDO = 2.9                                        # que tan honda es abajo (se adelgaza hasta la punta)
+OREJA_PIE = 21.9                                         # abajo de aqui ya no se adelgaza (va pegada al pelo)
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
 CREMA = ((0.5, PELUSA["s"]), (0.66, PELUSA["b"]), (9.0, PELUSA["l"]))
-ROSA = ((0.5, "#E8979A"), (9.0, ROSA_OREJA))
-# esponjosas como la cola (pero menos): copos rubios por toda la orilla y atras, cada uno de su tamano y giro; y
-# adelante, en la base del rosa donde sale del pelo, copos crema
+ROSA = ((0.42, "#D8858B"), (0.58, "#E8979A"), (9.0, ROSA_OREJA))
 COPO_PASO = 0.7                                          # cada cuanto va un copo sobre la orilla
-COPO_LADO = (0.8, 1.15)                                  # tamano de los copos de la orilla (de, a)
-COPOS_ATRAS = ((4.6, 24.6), (5.9, 25.6), (6.8, 24.2), (5.6, 23.3), (7.1, 22.6), (6.6, 26.5))
-COPOS_ADENTRO = ((2.7, 22.3), (3.5, 22.0), (4.2, 22.6), (5.0, 22.1), (5.8, 22.5), (6.6, 22.0), (7.2, 22.7), (4.6, 23.2))
+COPO_LADO = (0.8, 1.15)                                  # tamano de los copos (de, a)
+PELITOS = 16                                             # pelitos rosas adelante
 
 
-def _felpa(pts, alto, k0=0):
-    """Una orilla en picos de pelusa: entre cada dos puntos, uno que sale hacia afuera (lejos del centro de la oreja)
-    un poco al azar."""
+def _orilla(tabla, y):
+    """x de una orilla de la oreja a la altura y."""
+    for (y0, x0), (y1, x1) in zip(tabla, tabla[1:]):
+        if y <= y1:
+            return x0 + (x1 - x0) * max(0.0, y - y0) / (y1 - y0)
+    return tabla[-1][1]
+
+
+def _hondo(y):
+    """Lo hondo de la oreja a la altura y: medio cono (cuarto de elipse) que se adelgaza hasta la punta."""
     import math
-    cx = sum(x for x, _ in OREJA_FRENTE + OREJA_ATRAS) / len(OREJA_FRENTE + OREJA_ATRAS)
-    cy = sum(y for _, y in OREJA_FRENTE + OREJA_ATRAS) / len(OREJA_FRENTE + OREJA_ATRAS)
-    out = []
-    for k, (a, b) in enumerate(zip(pts, pts[1:])):
-        mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
-        dx, dy = mx - cx, my - cy
-        d = math.hypot(dx, dy) or 1.0
-        h = alto * (0.6 + 0.8 * _azar(k + k0))
-        out += [a, (mx + dx / d * h, my + dy / d * h)]
-    return out + [pts[-1]]
+    f = max(0.0, min(1.0, (y - OREJA_PIE) / (OREJA_PUNTA[1] - OREJA_PIE)))
+    return max(0.25, OREJA_HONDO * math.sqrt(1 - f * f))
+
+
+def oreja_malla():
+    """La oreja derecha: anillos de abajo hacia la punta, cada uno con el frente recto y la espalda en media elipse
+    (con bultos al azar, felpuda); las orillas tambien un poco disparejas."""
+    import math
+    from .. import malla as geo
+    anillos = []
+    y = OREJA_AFUERA[0][0]
+    k = 0
+    while y < OREJA_AFUERA[-1][0] + 1e-6:
+        xa = _orilla(OREJA_ADENTRO, y) + 0.15 * (_azar(k + 600) - 0.5)
+        xb = _orilla(OREJA_AFUERA, y) + 0.25 * (_azar(k + 610) - 0.5)
+        xc, a, d = (xa + xb) / 2, (xb - xa) / 2, _hondo(y)
+        anillo = [(xb, y, OREJA_Z0), (xc, y, OREJA_Z0), (xa, y, OREJA_Z0)]
+        for i, fi in enumerate((30, 60, 90, 120, 150)):
+            f = math.radians(fi)
+            bulto = 1 + 0.22 * (_azar(k * 7 + i + 620) - 0.5) * 2 if y > OREJA_PIE else 1.0
+            anillo.append((xc - a * math.cos(f), y, OREJA_Z0 + d * math.sin(f) * bulto))
+        anillos.append(anillo)
+        y += 0.6
+        k += 1
+    px, py = OREJA_PUNTA
+    return geo.unir(geo.loft_puntos(anillos, tapa_arriba=False),
+                    geo.piramide(anillos[-1], (px, py, OREJA_Z0 + 0.1), tapa=False))
+
+
+def oreja_pintor():
+    """Rubio por fuera; adelante (la cara plana), el adentro rosa con una orilla rubia."""
+    rubio, rosa = faceta(), faceta(paleta=ROSA)
+
+    def pintor(t):
+        if t.n[2] < -0.8 and t.y > 21.9 and _orilla(OREJA_ADENTRO, t.y) + 0.4 < abs(t.x) < _orilla(OREJA_AFUERA, t.y) - 0.45:
+            return rosa(t)
+        return rubio(t)
+    return pintor
 
 
 def orejas(p, T):
+    import math
     from .. import malla as geo
     g = "Head/orejas"
     dy = T - 21.0
-    contorno = _felpa(list(OREJA_FRENTE) + list(OREJA_ATRAS), 0.35) + list(OREJA_BASE)
-    z0, z1 = OREJA_Z
-    oreja = geo.extruir([(x, y + dy) for x, y in contorno], z0, z1)
-    # el adentro rosa, adelante: la misma hoja mas chica (sin la base), apenas salida
-    visible = list(OREJA_FRENTE) + list(OREJA_ATRAS)
-    cx = sum(x for x, _ in visible) / len(visible) - 0.3
-    cy = sum(y for _, y in visible) / len(visible) + 0.3
-    adentro = [(cx + (x - cx) * 0.62, cy + (y - cy) * 0.62 + dy) for x, y in visible]
-    rosa = geo.extruir(adentro, z0 - 0.12, z0 + 0.1)
-    p.malla_par(g, "oreja", oreja, faceta(), dens=D)
-    p.malla_par(g, "adentro", rosa, faceta(paleta=ROSA), dens=D)
-    # los copos: sobre la orilla (lo que queda fuera del pelo), atras y en la base del rosa
-    import math
+    p.malla_par(g, "oreja", geo.mover(oreja_malla(), (0, dy, 0)), oreja_pintor(), dens=D)
+    # los pelitos rosas de adelante: cada uno de su ancho, largo y giro, apuntando mas o menos hacia la punta
+    px, py = OREJA_PUNTA
+    for k in range(PELITOS):
+        y = 22.2 + 3.6 * _azar(k + 700)
+        xa, xb = _orilla(OREJA_ADENTRO, y) + 0.5, _orilla(OREJA_AFUERA, y) - 0.7
+        if xb <= xa:
+            continue
+        x = xa + (xb - xa) * _azar(k + 710)
+        largo = 1.3 + 1.2 * _azar(k + 720)
+        alfa = math.degrees(math.atan2(px - x, py - y)) + 20 * (_azar(k + 730) - 0.5)
+        m = mechon_malla(0.45 + 0.35 * _azar(k + 740), largo, 0.3, 800 + k)
+        m = geo.mover(geo.girar(m, (0, 0, 180 - alfa)), (x, y + dy, OREJA_Z0 - 0.12))
+        p.malla_par(g, f"pelito{k}", m, faceta(0.12 * (_azar(k + 750) - 0.5), ROSA), dens=D)
+    # los copos rubios: sobre las orillas (lo que queda fuera del pelo) y por la espalda del medio cono
     copos = []
-    for a, b in zip(visible, visible[1:]):
-        n = max(1, round(math.dist(a, b) / COPO_PASO))
-        copos += [(a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n, (z0 + z1) / 2, COLA_RUBIA)
-                  for i in range(n) if a[1] + (b[1] - a[1]) * i / n > 21.9 or a[0] > 7.0]
-    copos += [(x, y, z1 - 0.1, COLA_RUBIA) for x, y in COPOS_ATRAS]
-    copos += [(x, y, z0 - 0.25, COLA_CREMA) for x, y in COPOS_ADENTRO]
-    for s in (1, -1):
-        for k, (x, y, z, pintor) in enumerate(copos):
-            l = COPO_LADO[0] + (COPO_LADO[1] - COPO_LADO[0]) * _azar(k + 500)
-            giro = (40 * (_azar(k + 510) - 0.5), 40 * (_azar(k + 520) - 0.5), 60 * (_azar(k + 530) - 0.5))
+    for tabla in (OREJA_ADENTRO, OREJA_AFUERA):
+        for a, b in zip(tabla, tabla[1:]):
+            n = max(1, round(math.dist(a, b) / COPO_PASO))
+            for i in range(n):
+                y, x = a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n
+                if y > 21.9 or x > 7.0:
+                    copos.append((x, y, OREJA_Z0 + _hondo(y) * 0.35, 1.0))
+    y = 22.2
+    while y < 27.2:
+        xc = (_orilla(OREJA_ADENTRO, y) + _orilla(OREJA_AFUERA, y)) / 2
+        copos.append((xc + 0.4 * (_azar(y * 3.1) - 0.5), y, OREJA_Z0 + _hondo(y) - 0.3, 0.75))
+        y += 0.9
+    copos.append((px, py - 0.2, OREJA_Z0 + 0.15, 1.0))
+    for k, (x, y, z, escala) in enumerate(copos):
+        l = (COPO_LADO[0] + (COPO_LADO[1] - COPO_LADO[0]) * _azar(k + 500)) * escala
+        giro = (40 * (_azar(k + 510) - 0.5), 40 * (_azar(k + 520) - 0.5), 60 * (_azar(k + 530) - 0.5))
+        for s in (1, -1):
             p.caja(g, f"copo{s}_{k}", (s * x - l / 2, y + dy - l / 2, z - l / 2),
-                   (s * x + l / 2, y + dy + l / 2, z + l / 2), pintor, rot=giro, dens=D)
+                   (s * x + l / 2, y + dy + l / 2, z + l / 2), COLA_RUBIA, rot=giro, dens=D)
 
 
 def pestanas(p, C):
