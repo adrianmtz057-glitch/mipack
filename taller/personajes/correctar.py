@@ -18,7 +18,7 @@ import math
 from .. import malla as geo
 from ..kit import Personaje
 from ..textura import hex_a_rgba as hex_
-from .bloques import tubo, voxel
+from .bloques import ojo_kemira, voxel
 from .moles import faceta
 
 D = 4                                   # texeles por px
@@ -31,7 +31,9 @@ CUERO = {"s": "#6E5236", "b": "#8A6A46", "l": "#A6845A"}
 GUANTE = {"s": "#3E3C44", "b": "#4E4C55", "l": "#62606A"}
 CREMA = {"s": "#BDB4A2", "b": "#D6CEBE", "l": "#E8E2D6"}
 CRISTAL = ((0.42, "#B9C9EC"), (0.6, "#D9E3F8"), (0.75, "#EEF3FD"), (9.0, "#FFFFFF"))
-VISERA, OJO = "#1A1820", "#B9D2FF"
+VISERA = "#1A1820"
+OJOS = {"blanco": "#E8E2D8", "blanco_s": "#C2B8AC", "iris": "#6E9AD0", "iris_s": "#4F78AE", "iris_c": "#9CC0EC",
+        "pupila": "#1E2E52", "tapado": "#38527E", "pestana": "#1C1A22"}
 
 
 def _azar(k):
@@ -47,19 +49,41 @@ def _a_segmento(p, a, b):
 # ---------------------------------------------------------------- la cabeza, la corona y los cristales
 
 def cabeza_pintor():
-    """Tela blanca; adelante la franja negra de los ojos con los dos ojos celestes y la raya que baja a la nariz."""
-    tela = voxel(BLANCO, 0.05)
+    """La cabeza: tela blanca; adelante, en la rendija en T de la mascara, lo oscuro y debajo los ojos como los de
+    Kemira (el blanco afuera y el iris celeste con la pupila hacia adentro: bizcos)."""
+    tela, visera = voxel(BLANCO, 0.05), hex_(VISERA)
+    cols = {k: hex_(c) for k, c in OJOS.items()}
 
     def p(t):
         if t.cara != "north":
             return tela(t)
-        u, v = t.x, t.y - 24.0
-        if 1.2 <= abs(u) <= 2.8 and 4.2 <= v <= 5.4:
-            return hex_(OJO)
-        if (3.8 <= v <= 5.8 and abs(u) < 3.4) or (abs(u) < 0.6 and 2.2 <= v < 3.8):
-            return hex_(VISERA)
+        u, v = abs(t.x), t.y - 24.0
+        if (3.8 <= v <= 5.8 and u < 3.55) or (u < 0.6 and 2.2 <= v < 3.8):
+            parte = ojo_kemira(t.x, math.floor((t.y - 27.95) * 8))
+            return cols[parte] if parte else visera
         return tela(t)
     return p
+
+
+# la mascara de enfrente (lo demas de la cabeza es plano): las placas que dejan la rendija en T (ojos y nariz) con
+# su ceja y sus bordes salidos: (nombre, desde, hasta)
+CASCO = (("frente", (-4.0, 29.8, -4.75), (4.0, 30.6, -4.0)),
+         ("ceja", (-3.95, 29.6, -5.05), (3.95, 30.15, -4.7)),
+         ("lado_d", (3.55, 27.8, -4.75), (4.0, 29.8, -4.0)),
+         ("lado_i", (-4.0, 27.8, -4.75), (-3.55, 29.8, -4.0)),
+         ("borde_d", (3.55, 27.45, -5.05), (3.95, 30.15, -4.7)),
+         ("borde_i", (-3.95, 27.45, -5.05), (-3.55, 30.15, -4.7)),
+         ("repisa_d", (0.6, 27.45, -5.05), (3.95, 27.9, -4.7)),
+         ("repisa_i", (-3.95, 27.45, -5.05), (-0.6, 27.9, -4.7)),
+         ("mejilla_d", (0.6, 24.0, -4.75), (4.0, 27.8, -4.0)),
+         ("mejilla_i", (-4.0, 24.0, -4.75), (-0.6, 27.8, -4.0)),
+         ("barbilla", (-0.6, 24.0, -4.75), (0.6, 26.2, -4.0)))
+
+
+def casco(p):
+    blanco, borde = voxel(BLANCO, 0.1), voxel(BLANCO, 0.25)
+    for nombre, d, h in CASCO:
+        p.caja("Head/casco", nombre, d, h, borde if d[2] < -5 else blanco, dens=D)
 
 
 # las astas de la corona (las de la derecha; las de la izquierda en espejo): bloques (desde, hasta) con banda de oro
@@ -80,7 +104,7 @@ def corona(p):
         b = (t.y - t.f[1]) / max(1e-6, t.t[1] - t.f[1])
         return oro(t) if b < 0.22 or b > 0.82 else blanco(t)
 
-    p.caja("Head/corona", "corona", (-4.6, 30.4, -4.6), (4.6, 32.6, 4.6), banda, dens=D)
+    p.caja("Head/corona", "corona", (-4.75, 30.4, -4.9), (4.75, 32.6, 4.75), banda, dens=D)
     k = 0
     for s in (1, -1):
         for (x0, y0, z0), (x1, y1, z1) in ASTAS:
@@ -97,24 +121,8 @@ def corona(p):
 # ---------------------------------------------------------------- el cuerpo y la ropa
 
 def torso_pintor():
-    """La camisa crema; adelante los arneses de cuero cruzados (se asoman en la V de la capucha)."""
-    crema, cuero = voxel(CREMA, 0.05), voxel(CUERO, 0.05)
-
-    def p(t):
-        if t.cara == "north":
-            for s in (1, -1):
-                if _a_segmento((t.x, t.y), (s * 3.0, 23.8), (-s * 2.6, 15.6)) < 0.3:
-                    return cuero(t)
-        return crema(t)
-    return p
-
-
-def cinturon_pintor(t):
-    """El cinturon de cuero con la hebilla cuadrada de oro adelante."""
-    if t.cara == "north" and abs(t.x) < 0.9:
-        if abs(t.x) > 0.45 or t.y < 14.75 or t.y > 15.45:
-            return voxel(ORO, 0.1)(t)
-    return voxel(CUERO, 0.05)(t)
+    """La camisa crema (se ve en la V de la capucha y en la abertura de la bata)."""
+    return voxel(CREMA, 0.05)
 
 
 def runa(x, y):
@@ -190,7 +198,7 @@ def capucha_pintor():
     return p, oro
 
 
-def _rollo(camino, ancho, grueso, lados=8):
+def _rollo(camino, ancho, grueso, lados=14):
     """Un rollo de tela que sigue un camino pegado al cuerpo: cada corte es un ovalo (ancho sobre el cuerpo, grueso
     hacia afuera) apoyado en el cuerpo. ancho y grueso: funciones del punto. Con tapas en las puntas."""
     n = len(camino)
@@ -260,7 +268,6 @@ def bata_y_falda(p):
         f = (FALDA[0][0] - y) / (FALDA[0][0] - FALDA[-1][0])
         aros.append(_plegar(_subdividir(aro, 2, cerrado=True), 0.35 * f, piso=i, cerrado=True)[0])
     p.malla(g, "falda", geo.loft_puntos(aros), falda_pintor(), dens=D)
-    p.caja(g, "cinturon", (-4.4, 14.4, -2.42), (4.4, 15.8, 2.42), cinturon_pintor, dens=D)
     # la faldilla blanca de enfrente con su orilla dorada (cuelga del cinturon sobre la falda)
     blanco, oro = voxel(BLANCO, 0.1), voxel(ORO, 0.1)
 
@@ -276,9 +283,16 @@ def bata_y_falda(p):
         dentro = [(x - nx * GROSOR_BATA, yy, z - nz * GROSOR_BATA) for (x, yy, z), (nx, nz) in zip(fuera, ns)]
         anillos.append(fuera + dentro[::-1])
     p.malla(g, "bata", geo.loft_puntos(anillos[::-1]), bata_pintor(), dens=D)
+    # el cinturon de cuero que cine la bata, con la hebilla cuadrada de oro salida
+    p.caja(g, "cinturon", (-4.85, 14.3, -2.85), (4.85, 15.9, 2.9), voxel(CUERO, 0.05), dens=D)
+    oro_h = voxel(ORO, 0.15)
+    for nombre, d, h in (("arriba", (-1.05, 15.7, -3.2), (1.05, 16.1, -2.8)), ("abajo", (-1.05, 14.1, -3.2), (1.05, 14.5, -2.8)),
+                         ("izq", (-1.05, 14.1, -3.2), (-0.65, 16.1, -2.8)), ("der", (0.65, 14.1, -3.2), (1.05, 16.1, -2.8)),
+                         ("pua", (-0.12, 14.5, -3.05), (0.12, 15.7, -2.8))):
+        p.caja(g, f"hebilla_{nombre}", d, h, oro_h, dens=D)
     # la capucha: la tela en V que va del pecho a la espalda por los hombros, y atras la capucha doblada
     tela, oro = capucha_pintor()
-    camino = _suave([(-x, y, z) for x, y, z in CAMINO_V][::-1] + list(CAMINO_V), 3)   # de la punta izq. a la der.
+    camino = _suave([(-x, y, z) for x, y, z in CAMINO_V][::-1] + list(CAMINO_V), 6)   # de la punta izq. a la der.
     ancho = lambda c: 0.95 + 0.45 * max(0.0, min(1.0, (c[2] + 1.0) / 4.4))      # noqa: E731
     grueso = lambda c: 0.42 + 0.5 * max(0.0, min(1.0, (c[2] + 1.0) / 4.4))     # noqa: E731
     p.malla(g, "capucha_v", _rollo(camino, ancho, grueso), tela, dens=D)
@@ -292,32 +306,12 @@ def bata_y_falda(p):
     p.malla(g, "broche", geo.bipiramide((0.0, 18.3, -3.35), 0.55, 0.7, 0.7, 4, 45.0), oro, dens=D)
 
 
-def baculo(p):
-    """En la mano izquierda: el mango de cuero y oro que sube en diagonal y la jaula dorada con el cristal."""
-    cuero, oro = voxel(CUERO, 0.05), voxel(ORO, 0.1)
-    mano, arriba = (-6.0, 12.4, -2.6), (-8.6, 18.2, -3.4)
-    p.malla("LeftArm/baculo", "mango", tubo(mano, arriba, 0.35, 0.35), cuero, dens=D)
-    p.malla("LeftArm/baculo", "regaton", tubo((-5.4, 11.0, -2.4), mano, 0.4, 0.4), oro, dens=D)
-    cx, cy, cz = -9.3, 20.1, -3.6
-    h, g = 1.6, 0.22                                          # medio lado de la jaula y lo grueso de sus barras
-    barras = []
-    for a in (-1, 1):
-        for b in (-1, 1):
-            barras += [((cx - h, cy + a * h - g, cz + b * h - g), (cx + h, cy + a * h + g, cz + b * h + g)),
-                       ((cx + a * h - g, cy - h, cz + b * h - g), (cx + a * h + g, cy + h, cz + b * h + g)),
-                       ((cx + a * h - g, cy + b * h - g, cz - h), (cx + a * h + g, cy + b * h + g, cz + h))]
-    for i, (d, e) in enumerate(barras):
-        p.caja("LeftArm/baculo", f"jaula{i}", d, e, oro, rot=(0, 45, 20), piv=(cx, cy, cz), dens=D)
-    p.malla("LeftArm/baculo", "cristal", geo.bipiramide((cx, cy, cz), 0.85, 1.2, 1.2, 6, 0.0),
-            faceta(paleta=CRISTAL, grano=0, simetrico=True), dens=D, luz=False)
-
-
 def construir():
     p = Personaje("correctar", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
     blanco = voxel(BLANCO, 0.05)
     # la cabeza envuelta, la vuelta de la bufanda (tapa la boca), la corona y los cristales
-    p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=D)
-    p.caja("Head/bufanda", "vuelta", (-4.5, 24.2, -4.5), (4.5, 26.6, 4.5), voxel(BLANCO, 0.12), dens=D)
+    p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=8, luz=False)
+    casco(p)
     corona(p)
     # el cuerpo de Steve con la camisa, las mangas abultadas y las botas
     p.caja("Body/cuerpo", "torso", (-4, 12, -2), (4, 24, 2), torso_pintor(), dens=D)
@@ -340,5 +334,4 @@ def construir():
         p.caja(f"{hueso}/bota", "puno_bota", (a, 2.2, -2.5), (b, 3.1, 2.4), voxel(BLANCO, 0.2), dens=D)
     # la falda, el cinturon, la faldilla, la bata larga y la capucha en V
     bata_y_falda(p)
-    baculo(p)
     return p

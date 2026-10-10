@@ -6,7 +6,7 @@ paso el usuario: estilo de bloques con detalles.
     blancas y un FAROL encendido colgando de la punta de cada una
   CAPA verde oliva oscura: la esclavina de musgo sobre los hombros, los lados que caen junto a los brazos y la
     espalda hasta las pantorrillas, con el ARBOL dorado bordado atras y abajo un galon dorado con rombo; el borde de
-    abajo con jirones de tela blanca; ENREDADERAS de musgo colgando de todas las orillas
+    abajo con jirones de tela blanca; sobre los hombros el MANTO de hojas
   TUNICA: la camisa crema de un lado y la tunica cafe del otro, la pechera de cuero con su emblema dorado y el
     CINTURON de cuero con frasquitos colgando; abajo la falda partida: blanca de un lado y verde oscuro del otro
   BRAZOS con mangas (una cafe y una crema) con musgo arriba y guantes de cuero; PIERNAS verde oscuro; BOTAS cafes
@@ -19,7 +19,7 @@ import math
 from .. import malla as geo
 from ..kit import Personaje
 from ..textura import hex_a_rgba as hex_
-from .bloques import color, voxel
+from .bloques import color, ojo_kemira, voxel
 
 D = 4                                   # texeles por px
 
@@ -33,7 +33,9 @@ TUNICA = {"s": "#55391F", "b": "#74502F", "l": "#906843"}
 CUERO = {"s": "#3F2817", "b": "#583A22", "l": "#72502F"}
 VERDE = {"s": "#1F2B17", "b": "#2B3A1F", "l": "#3A4B2A"}
 ORO, FUEGO, VIDRIO, CORCHO = "#D2A644", "#FFD37A", "#A9D8B8", "#8A6A44"
-OJO_CAFE, OJO_NEGRO, MASCARA_GRIETA = "#4A2E1C", "#1F1612", "#9A8A70"
+MASCARA_GRIETA, OJO_FONDO = "#9A8A70", "#241812"
+OJOS = {"blanco": "#E8E2D8", "blanco_s": "#C2B8AC", "iris": "#6B4428", "iris_s": "#4E301C", "iris_c": "#8A5A36",
+        "pupila": "#1A1210", "tapado": "#3A2416", "pestana": "#1C1515"}
 HOJAS = (("#22461A", "#336428", "#488432", "#64A43E"),     # las hojas del manto (de la sombra a la luz)
          ("#2F5017", "#467428", "#609436", "#82B44A"),
          ("#1E3F1F", "#2D5C2D", "#417A38", "#5C9A48"))
@@ -53,42 +55,38 @@ def _a_segmento(p, a, b):
 # ---------------------------------------------------------------- la cabeza
 
 def cabeza_pintor():
-    """La cabeza casi no se ve (la tapan la mascara y el manto): adelante, en el hueco de cada ojo, el ojo cafe
-    oscuro con el centro negro; lo demas musgo oscuro (la sombra adentro de la capucha)."""
-    musgo, cafe, negro = voxel(MUSGO_OSC, -0.2), hex_(OJO_CAFE), hex_(OJO_NEGRO)
+    """La cabeza casi no se ve (la tapan la mascara y el manto): adelante, debajo de cada hueco de la mascara, el ojo
+    como los de Kemira (el blanco afuera y el iris cafe oscuro con la pupila negra hacia adentro: bizcos) sobre lo
+    oscuro de adentro de la mascara; lo demas musgo oscuro (la sombra adentro de la capucha)."""
+    musgo, fondo = voxel(MUSGO_OSC, -0.2), hex_(OJO_FONDO)
+    cols = {k: hex_(c) for k, c in OJOS.items()}
 
     def p(t):
         if t.cara != "north":
             return musgo(t)
-        u, v = abs(t.x), t.y - 24.0
-        if 1.0 <= u <= 3.0 and 3.4 <= v <= 5.6:
-            return negro if 1.5 <= u <= 2.5 and 3.9 <= v <= 5.1 else cafe
-        return hex_(MASCARA["s"])
+        parte = ojo_kemira(t.x, math.floor((t.y - 27.6) * 8))
+        return cols[parte] if parte else fondo
     return p
 
 
-# la mascara con volumen: piezas (desde, hasta) que dejan los huecos de los ojos (|x| 1-3, y 27.4-29.6)
-MASCARA_PIEZAS = (("frente", (-3.7, 29.6, -4.75), (3.7, 31.5, -3.95)),
-                  ("ceja", (-3.5, 29.4, -5.05), (3.5, 30.2, -4.7)),
-                  ("puente", (-1.0, 26.6, -4.9), (1.0, 29.6, -3.95)),
-                  ("nariz", (-0.65, 26.3, -5.3), (0.65, 28.4, -4.85)),
-                  ("sien_d", (3.0, 27.0, -4.65), (3.75, 29.6, -3.95)),
-                  ("sien_i", (-3.75, 27.0, -4.65), (-3.0, 29.6, -3.95)),
-                  ("mejillas", (-3.6, 25.5, -4.75), (3.6, 27.4, -3.95)),
-                  ("barbilla", (-2.6, 24.8, -4.6), (2.6, 25.6, -3.95)),
+# la mascara con volumen: piezas (desde, hasta) que dejan los huecos de los ojos (|x| 1.2-3.55, y 27.5-29.4)
+MASCARA_PIEZAS = (("frente", (-3.8, 29.6, -4.75), (3.8, 31.5, -3.95)),
+                  ("ceja", (-3.7, 29.4, -5.05), (3.7, 30.2, -4.7)),
+                  ("entrecejo", (-1.2, 27.5, -4.75), (1.2, 29.6, -3.95)),
+                  ("sien_d", (3.55, 27.5, -4.65), (3.8, 29.6, -3.95)),
+                  ("sien_i", (-3.8, 27.5, -4.65), (-3.55, 29.6, -3.95)),
+                  ("abajo", (-3.8, 25.0, -4.75), (3.8, 27.5, -3.95)),
                   ("frente_alta", (-1.8, 30.8, -5.0), (1.8, 31.9, -4.7)))
 
 
 def mascara(p):
-    """La mascara blanca con volumen: la frente con su ceja que sobresale y hace sombra en los ojos, el puente con la
-    nariz que sale, las sienes, las mejillas y la barbilla mas angosta. Unas grietas cafes chiquitas."""
+    """La mascara blanca con volumen, lisa (sin nariz ni boca): la frente con su ceja que sobresale y hace sombra en
+    los ojos, las sienes un poco mas atras y la parte de abajo pareja. Una grieta chiquita en la frente."""
     blanco = voxel(MASCARA, 0.12)
     grieta = hex_(MASCARA_GRIETA)
 
     def pintor(t):
         if t.cara == "north" and _a_segmento((t.x, t.y), (2.2, 31.4), (2.9, 30.0)) < 0.1:
-            return grieta
-        if t.cara == "north" and _a_segmento((t.x, t.y), (-2.4, 26.9), (-3.1, 25.9)) < 0.1:
             return grieta
         return blanco(t)
     for nombre, d, h in MASCARA_PIEZAS:
@@ -119,56 +117,56 @@ def _a_tramo(p, a, b):
     return math.dist(p, _mas(a, e, f))
 
 
-def hoja_pintor(a, b, tonos, k):
-    """Una hoja: cada mitad (esta doblada por la vena) de un tono segun hacia donde mira, la vena mas clara y las de
-    abajo de cada capa mas oscuras (k). Sin luz horneada (entre tantas hojas encimadas la oclusion las ensucia)."""
+# silueta de una hoja colgando (de arriba a la punta): (desde que fraccion del largo, medio ancho / ancho); cada tramo
+# es recto y entre tramos hay un escalon (bordes de pixel, como las plumas de la falda de Kemira)
+NIVELES_HOJA = ((0.0, 0.2), (0.14, 0.4), (0.36, 0.5), (0.62, 0.36), (0.84, 0.17))
+GROSOR_HOJA = 0.3
+
+
+def perfil_hoja(ancho, largo):
+    der = []
+    for i, (f, hw) in enumerate(NIVELES_HOJA):
+        f2 = NIVELES_HOJA[i + 1][0] if i + 1 < len(NIVELES_HOJA) else 1.0
+        der += [(hw * ancho, -f * largo), (hw * ancho, -f2 * largo)]
+    return der + [(0.0, -largo)] + [(-x, y) for x, y in der][::-1]
+
+
+def hoja_pintor(a, b, n, rampa):
+    """Una hoja: el frente del tono de su capa (mas claro si mira a la luz) con la vena mas clara; el reverso y los
+    cantos en sombra. Sin luz horneada (son muchas caras chiquitas): el volumen va a mano."""
     from ..luz import LUZ
     largo = math.sqrt(sum(c * c for c in LUZ))
     luz = tuple(c / largo for c in LUZ)
-    cols = [hex_(c) for c in tonos]
+    cols = [hex_(c) for c in rampa]
+    frente = 1 + (1 if _punto(n, luz) > 0.55 else 0) - (1 if _punto(n, luz) < 0.05 else 0)
 
     def p(t):
-        d = _punto(t.n, luz)
-        i = 1 + k + (1 if d > 0.5 else 0) - (1 if d < 0.0 else 0)
-        if _a_tramo((t.x, t.y, t.z), a, b) < 0.13:
-            i += 1
-        return cols[max(0, min(3, i))]
+        if _punto(t.n, n) < 0.7:
+            return cols[0]
+        return cols[min(3, frente + (1 if _a_tramo((t.x, t.y, t.z), a, b) < 0.14 else 0))]
     return p
 
 
 class Manto:
-    """Las hojas del manto, juntas en una malla por hueso. Cada hoja es un rombo doblado por la vena (las orillas
-    hacia adentro), de dos caras."""
+    """Las hojas del manto, en capas parejas (todas las de una capa iguales y del mismo tono), juntas en una malla por
+    hueso. Cada hoja es su silueta escalonada con grosor."""
 
     def __init__(self):
         self.huesos = {}
-        self.hojas = []                     # (centro, normal) para poner flores encima
 
-    def hoja(self, grupo, a, d, n, ancho, largo, tonos, k=0, doblez=0.24):
-        vs, cs, ps = self.huesos.setdefault(grupo, ([], [], []))
-        s = _cruz(d, n)
-        b = _mas(a, d, largo)
-        m = _mas(a, d, largo * 0.42)
-        r = _mas(_mas(m, s, ancho / 2), n, -doblez)
-        l = _mas(_mas(m, s, -ancho / 2), n, -doblez)
-        i0 = len(vs)
-        vs.extend((a, r, b, l))
-        pin = hoja_pintor(a, b, tonos, k)
-        for tri in ((0, 1, 2), (0, 2, 3)):
-            idx = [i0 + i for i in tri]
-            if _punto(geo.normal([vs[i] for i in idx]), n) < 0:
-                idx.reverse()
-            cs += [tuple(idx), tuple(reversed(idx))]
-            ps += [pin, pin]
-        self.hojas.append((_mas(a, d, largo * 0.45), n, d))
-
-    def colgar(self, grupo, a, nh, inclina, largo, ancho, k, semilla):
-        """Una hoja que cuelga desde a, con la punta hacia afuera (nh, horizontal) 'inclina' grados."""
-        g = math.radians(inclina + 10 * (_azar(semilla * 1.7) - 0.5))
-        d = (nh[0] * math.sin(g), -math.cos(g), nh[2] * math.sin(g))
-        n = (nh[0] * math.cos(g), math.sin(g), nh[2] * math.cos(g))
-        tonos = HOJAS[int(_azar(semilla * 3.1) * len(HOJAS))]
-        self.hoja(grupo, a, d, n, ancho, largo * (0.9 + 0.2 * _azar(semilla * 5.3)), tonos, k)
+    def hoja(self, grupo, base, ang, abre, ancho, largo, rampa):
+        """Una hoja colgando desde base; ang: donde mira alrededor del cuerpo (180 adelante, 0 atras, 90 a su
+        derecha); abre: cuanto se separa la punta del cuerpo."""
+        giro = (abre, ang - 180, 0)
+        vs, cs = geo.mover(geo.girar(geo.extruir(perfil_hoja(ancho, largo), -GROSOR_HOJA / 2, GROSOR_HOJA / 2), giro),
+                           base)
+        (a, b, c), _ = geo.mover(geo.girar(([(0, 0, 0), (0, -largo, 0), (0, 0, -1)], []), giro), base)
+        pin = hoja_pintor(a, b, _sub(c, a), rampa)
+        tvs, tcs, tps = self.huesos.setdefault(grupo, ([], [], []))
+        i0 = len(tvs)
+        tvs.extend(vs)
+        tcs.extend(tuple(i0 + i for i in cara) for cara in cs)
+        tps.extend([pin] * len(cs))
 
     def poner(self, p):
         for g, (vs, cs, ps) in self.huesos.items():
@@ -199,56 +197,56 @@ def _anillo(a, b, e, n, desfase=0.0):
     return out
 
 
-def fila(manto, hueso, y, centro, a, b, e, n, inclina, largo, ancho, k=0, desfase=0.0, salta=None, semilla=0):
-    """Una fila de hojas alrededor de una superelipse a la altura y."""
-    for i, (x, z, nx, nz) in enumerate(_anillo(a, b, e, n, desfase)):
+def capa(manto, hueso, y, centro, a, b, e, n, abre, largo, ancho, rampa, desfase=0.0, salta=None, fuera=0.08):
+    """Una capa del manto: n hojas iguales repartidas alrededor de una superelipse a la altura y."""
+    for x, z, nx, nz in _anillo(a, b, e, n, desfase):
         x, z = x + centro[0], z + centro[1]
         if salta and salta(x, z):
             continue
-        sem = semilla + i * 7.3
-        sal = 0.06 + 0.08 * (i % 2)
-        pt = (x + nx * sal, y + 0.2 * (_azar(sem) - 0.5), z + nz * sal)
-        manto.colgar(hueso(pt), pt, (nx, 0.0, nz), inclina, largo, ancho, k, sem)
+        base = (x + nx * fuera, y, z + nz * fuera)
+        manto.hoja(hueso(base), base, math.degrees(math.atan2(nx, nz)), abre, ancho, largo, rampa)
 
 
 def manto_de_hojas(p):
-    """El manto de hojas que lo cubre: la capucha (un monton de hojas arriba, filas que caen a los lados y atras
-    dejando la cara), la barba de hojas bajo la mascara y la esclavina sobre los hombros que cae por la espalda y
-    deja una V adelante. Las hojas de arriba de los brazos van en el hueso del brazo."""
+    """El manto de hojas, como una tunica en capas (como la falda de Kemira): cada capa de hojas iguales y de un tono,
+    encimada sobre la de abajo. La capucha: arriba un remolino de hojas y luego capas que bajan por los lados y atras
+    dejando la cara; abajo de la mascara la barba en dos capas; la esclavina: el cuello que se abre sobre los
+    hombros y capas que bajan por los brazos y la espalda, con una V adelante. Las de los brazos van en su hueso."""
     manto = Manto()
     cabeza = lambda pt: "Head/manto"                                 # noqa: E731
 
     def cuerpo(pt):
         return "RightArm/manto" if pt[0] > 4.5 else "LeftArm/manto" if pt[0] < -4.5 else "Body/manto"
 
-    # la capucha: de arriba hacia abajo (cada fila de mas adentro queda encima de la de afuera)
-    fila(manto, cabeza, 33.7, (0, 0.3), 1.0, 1.0, 2, 5, 74, 2.3, 1.7, 0, semilla=1)
-    fila(manto, cabeza, 33.1, (0, 0.2), 2.8, 2.8, 2.4, 11, 70, 2.4, 1.8, 0, 0.5, semilla=2)
-    fila(manto, cabeza, 32.4, (0, 0.0), 4.7, 4.7, 4, 20, 35, 2.4, 1.8, 0, semilla=3)
+    claro, medio, oscuro = HOJAS
+    # la capucha: el remolino de arriba y las capas de los lados (cada capa un tono, de claro arriba a oscuro abajo)
+    capa(manto, cabeza, 33.5, (0, 0.2), 1.1, 1.1, 2, 6, 74, 2.6, 1.9, claro, fuera=0.0)
+    capa(manto, cabeza, 32.9, (0, 0.0), 4.7, 4.7, 4, 20, 40, 2.4, 1.8, medio)
     cara = lambda x, z: z < -1.0 and abs(x) < 3.75                    # noqa: E731
-    for i, y in enumerate((30.7, 28.9, 27.1, 25.3, 23.6)):
-        fila(manto, cabeza, y, (0, 0.0), 4.75, 4.75, 4, 20, 18, 2.4, 1.8, 0 if i < 4 else -1, 0.5 * (i % 2 == 0),
-             cara, semilla=10 + i)
-    # la barba de hojas bajo la mascara
+    tonos = (claro, medio, oscuro, claro, medio, oscuro)
+    for i, y in enumerate((31.3, 29.8, 28.3, 26.8, 25.3, 23.9)):
+        capa(manto, cabeza, y, (0, 0.0), 4.75, 4.75, 4, 20, 14, 2.3, 1.8, tonos[i], 0.5 * (i % 2 == 0), cara)
+    # la barba de hojas bajo la mascara: dos capas
     for i, x in enumerate((-2.4, -1.2, 0.0, 1.2, 2.4)):
-        manto.colgar("Head/manto", (x, 25.4 - 0.3 * (i % 2), -4.5), (0.0, 0.0, -1.0), 8, 2.3, 1.5, 0, 40 + i)
+        manto.hoja("Head/manto", (x, 25.2, -4.5), 180, 8, 1.5, 2.3, claro)
     for i, x in enumerate((-1.8, -0.6, 0.6, 1.8)):
-        manto.colgar("Head/manto", (x, 24.2, -4.3), (0.0, 0.0, -1.0), 10, 2.2, 1.5, -1, 50 + i)
-    # la esclavina: sobre los hombros y cayendo; adelante una V que deja ver la pechera
+        manto.hoja("Head/manto", (x, 24.0, -4.3), 180, 8, 1.5, 2.2, medio)
+    # la esclavina: el cuello sobre los hombros y las capas que bajan; adelante una V que deja ver la pechera
     v = lambda ancho: (lambda x, z: z < -1.0 and abs(x) < ancho)     # noqa: E731
-    fila(manto, cuerpo, 25.1, (0, 0.2), 6.2, 3.0, 3, 18, 66, 2.4, 1.8, 0, salta=v(3.2), semilla=60)
-    fila(manto, cuerpo, 23.9, (0, 0.2), 8.6, 3.3, 3.5, 26, 32, 2.5, 1.9, 0, 0.5, v(1.4), semilla=61)
-    fila(manto, cuerpo, 22.2, (0, 0.2), 9.1, 3.5, 4, 28, 18, 2.5, 1.9, 0, 0.0, v(2.4), semilla=62)
-    fila(manto, cuerpo, 20.5, (0, 0.2), 9.2, 3.6, 4, 28, 14, 2.5, 1.9, -1, 0.5, v(4.0), semilla=63)
+    capa(manto, cuerpo, 25.2, (0, 0.2), 5.2, 3.0, 3, 16, 66, 2.6, 1.9, claro, salta=v(3.2))
+    pisos = ((24.2, 8.5, 3.3, 34, 1.6), (22.8, 8.9, 3.45, 18, 2.2), (21.4, 9.05, 3.55, 14, 2.8),
+             (20.0, 9.15, 3.65, 12, 3.4), (18.6, 9.2, 3.75, 12, 3.9))
+    for i, (y, a, b, abre, ancho_v) in enumerate(pisos):
+        capa(manto, cuerpo, y, (0, 0.2), a, b, 4, 28, abre, 2.5, 1.9, (medio, oscuro, claro, medio, oscuro)[i],
+             0.5 * (i % 2 == 0), v(ancho_v))
+    # atras sigue un poco mas por la espalda (sobre la capa)
+    espalda = lambda x, z: z < 1.5 or abs(x) > 5.4                   # noqa: E731
+    capa(manto, cuerpo, 17.2, (0, 0.2), 9.2, 3.85, 4, 28, 10, 2.5, 1.9, claro, 0.0, espalda)
     manto.poner(p)
-    # flores blancas sobre algunas hojas que miran al frente
-    n = 0
-    for i, (c, nrm, d) in enumerate(manto.hojas):
-        en_cara = abs(c[0]) < 4.2 and c[1] > 22.0                    # no sobre la mascara ni la barba
-        if nrm[2] < -0.5 and not en_cara and _azar(i * 4.7) > 0.7 and n < 7:
-            grupo = "Head/flores" if c[1] > 24.6 else "Body/flores"
-            flor(p, grupo, f"flor_manto{n}", _mas(c, nrm, 0.15))
-            n += 1
+    # flores blancas sobre el manto (parejas a los dos lados)
+    for s in (1, -1):
+        for i, (x, y, z) in enumerate(((5.6, 23.0, -3.9), (7.6, 20.4, -3.9), (4.4, 29.0, -5.25))):
+            flor(p, "Head/flores" if y > 25 else "Body/flores", f"flor_manto{s}_{i}", (s * x, y, z))
     return manto
 
 
@@ -356,29 +354,14 @@ def arbol_dorado(x, y):
 
 def capa_espalda():
     tela, oro = voxel(CAPA, 0.05), hex_(ORO)
-    return lambda t: oro if t.cara == "south" and arbol_dorado(t.x, t.y + 2.4) else tela(t)
-
-
-def enredaderas(p, orillas, semilla):
-    """Tiras de musgo que cuelgan de cada orilla: ((x0, z0), (x1, z1), y, cuantas)."""
-    musgo = voxel(MUSGO, 0.08)
-    k = 0
-    for (x0, z0), (x1, z1), y, n in orillas:
-        for i in range(n):
-            f = (i + 0.5) / n
-            x, z = x0 + (x1 - x0) * f, z0 + (z1 - z0) * f
-            largo = 1.2 + 3.6 * _azar(semilla + k * 3.1)
-            w = 0.55 + 0.35 * _azar(semilla + k * 7.7)
-            p.caja("Body/enredaderas", f"enredadera{semilla}_{k}", (x - w / 2, y - largo, z - w / 2),
-                   (x + w / 2, y + 0.3, z + w / 2), musgo, dens=D)
-            k += 1
+    return lambda t: oro if t.cara == "south" and arbol_dorado(t.x, t.y + 3.4) else tela(t)
 
 
 def construir():
     p = Personaje("revolthir", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
     base = voxel(MUSGO_OSC, -0.15)                  # lo de abajo del manto (se asoma entre las hojas)
     # la cabeza, la mascara con volumen, la base de la capucha y las astas
-    p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=D, luz=False)
+    p.caja("Head/cabeza", "cabeza", (-4, 24, -4), (4, 32, 4), cabeza_pintor(), dens=8, luz=False)
     mascara(p)
     p.caja("Head/capucha", "capucha", (-4.6, 23.0, -4.6), (4.6, 32.7, 4.6), base, dens=D,
            caras=("south", "east", "west", "up"))
@@ -417,10 +400,6 @@ def construir():
         x = -4.6 + i * 0.95
         largo = 0.9 + 1.8 * _azar(i * 4.1)
         p.caja("Body/capa", f"jiron{i}", (x, 5.0 - largo, 2.35), (x + 0.8, 5.2, 2.95), voxel(TELA, 0.1), dens=D)
-    # el manto de hojas y las enredaderas que cuelgan de sus orillas
+    # el manto de hojas en capas
     manto_de_hojas(p)
-    enredaderas(p, (((-4.9, -4.3), (-4.9, -2.8), 22.4, 2), ((4.9, -4.3), (4.9, -2.8), 22.4, 2),
-                    ((-9.2, -3.6), (-4.6, -3.6), 18.8, 4), ((4.6, -3.6), (9.2, -3.6), 18.8, 4),
-                    ((-9.0, 4.1), (9.0, 4.1), 18.6, 10), ((-9.1, -1.6), (-9.1, 3.0), 12.0, 3),
-                    ((9.1, -1.6), (9.1, 3.0), 12.0, 3)), 11)
     return p
