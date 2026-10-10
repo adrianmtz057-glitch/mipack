@@ -44,14 +44,14 @@ def _t(rampa, k):
 
 # ---------------------------------------------------------------------------------------------- medidas de la cara
 # en px del modelo; la cara mira a -Z (z = -4) y la derecha del personaje es +X (a la izquierda de quien lo ve)
-LENTE = (0.25, 3.25, 32.75, 35.75)      # x0, x1, y0, y1 del ojo grande (3 x 3)
+LENTE = (0.5, 3.0, 33.0, 35.5)          # x0, x1, y0, y1 del ojo grande (2.5 x 2.5)
 LENTE_Z = (-4.175, -3.95)               # sale 0.175 de la cara
 CHAFLAN = 0.375                         # esquinas cortadas del lente
 BLANCO_Z = -4.25                        # el cuadro blanco sale un poco mas: el ojo se abomba
 NARIZ_X = -0.4375                       # la nariz va entre los dos ojos, apenas hacia su izquierda
 NARIZ = ((32.0, 0.375, -4.7), (32.375, 0.375, -4.9), (32.875, 0.3125, -4.7), (33.75, 0.25, -4.35),
          (34.5, 0.1875, -4.08))         # (y, medio ancho, z de la punta) de abajo (las fosas) al puente entre los ojos
-PARPADO = ((-3.0, 34.75, -4.125), (-1.25, 35.25, -3.9))
+PARPADO = ((-3.375, 34.75, -4.125), (-1.125, 35.25, -3.9))
 CEJA_DER = ((0.0, 35.875, -4.625), (3.25, 36.5, -3.95), 8.0)      # sobre el ojo grande: levantada, la punta de afuera arriba
 CEJA_IZQ = ((-3.375, 35.5, -4.5), (-0.75, 36.25, -3.95), -7.0)   # sobre el ojo chico: baja y caida hacia adentro
 BOCA_IZQ, BOCA_DER = (-2.25, 1.375), (2.5, 2.0)                 # comisuras (u, v) en la cara: sube hacia su izquierda
@@ -95,21 +95,21 @@ def cara(u, v):
         return PIEL["s2"]
     # --- el ojo chico (el parpado de bloque tapa la mitad de arriba); OJO_CHICO lo sube
     j -= OJO_CHICO
-    if 11 <= i <= 22 and 21 <= j <= 25:
-        if j == 21 and not 12 <= i <= 21:
+    if 10 <= i <= 25 and 20 <= j <= 25:
+        if j == 20 and not 12 <= i <= 23:
             return PIEL["s2"]
-        if 12 <= i <= 16:                                        # iris vino, mirando hacia la nariz
-            if 13 <= i <= 14 and 22 <= j <= 24:
+        if 11 <= i <= 16:                                        # iris vino, mirando hacia la nariz
+            if 13 <= i <= 14 and 21 <= j <= 23:
                 return "#2A0C18"                                 # pupila
-            if (i, j) == (15, 24):
+            if (i, j) == (15, 23):
                 return "#F4E8EC"                                 # brillito
-            if i in (12, 16) or j == 21:
+            if i in (11, 16) or j == 20:
                 return "#4A1428"
-            return "#7E2E50" if j >= 24 else "#9A4468"
+            return "#7E2E50" if j >= 23 else "#9A4468"
         return "#EEE6DC"
-    if j == 20 and 12 <= i <= 21:
+    if j == 19 and 11 <= i <= 24:
         return PIEL["s2"]                                        # parpado de abajo
-    if j == 26 and i in (10, 23):
+    if j == 26 and i in (9, 26):
         return PIEL["o"]                                         # las puntas de las pestanas
     j += OJO_CHICO
     # --- la sonrisa cerrada y chueca: una raya de 2 texeles que sube hacia su izquierda y se curva al medio; la
@@ -202,7 +202,7 @@ def ojo_grande(p):
     g = f"{G}/ojo"
     p.malla(g, "lente", geo.extruir(_lente_perfil(), *LENTE_Z), lente, dens=DC)
     x0, x1, y0, y1 = LENTE
-    m = 0.625                                                    # el blanco ocupa 14 de los 24 texeles
+    m = 0.5                                                      # el blanco ocupa 12 de los 20 texeles
     p.caja(g, "blanco", (x0 + m, y0 + m, BLANCO_Z), (x1 - m, y1 - m, LENTE_Z[0] + 0.05), blanco, dens=DC,
            luz=False)
 
