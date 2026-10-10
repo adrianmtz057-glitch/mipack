@@ -452,6 +452,12 @@ def detalles(p):
 
 
 def construir():
+    """El que se exporta: la version chibi (la que quedo)."""
+    return construir_chibi()
+
+
+def construir_jugador():
+    """La version a tamano de jugador (32 de alto, cuerpo de Steve)."""
     p = Personaje("revolthir", altura=32, cabeza=8, torso=(8, 12, 4), brazo=(4, 4), pierna=(4, 4))
     p.m.luz_desde = LUZ_SIMETRICA                    # la luz horneada pareja: en el juego llega de todos lados
     base = voxel(MUSGO_OSC, -0.15)                  # lo de abajo del manto (se asoma entre las hojas)
@@ -504,4 +510,4 @@ def construir():
 def construir_chibi():
     """La version chibi (cabeza grande, cuerpo chico y achaparrado), del mismo modelo."""
     from .chibi import achibar
-    return achibar(construir(), como_cabeza=())
+    return achibar(construir_jugador(), como_cabeza=())
