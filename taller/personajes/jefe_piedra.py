@@ -29,14 +29,21 @@ GARRA = {"s": "#2A2638", "b": "#3C374E", "l": "#555070"}
 OJO, OJO_CENTRO = "#B26BFF", "#F4DEFF"
 
 
-def esquirla(base, ancho, alto, rot=(0, 0, 0)):
-    """Un pico de piedra: el cuerpo cuadrado que se angosta y acaba en punta (como un cristal), parado en 'base' y
-    girado (rx, ry, rz) desde su base."""
+# las formas de las puas: cortes (a que fraccion del alto, cuanto del ancho en x, cuanto en z) y luego la punta
+FORMAS = {"aguja": ((0.0, 1.0, 1.0), (0.62, 0.36, 0.36)),
+          "gruesa": ((0.0, 1.0, 1.0), (0.42, 0.78, 0.78)),
+          "hoja": ((0.0, 1.0, 0.36), (0.6, 0.62, 0.24)),
+          "pilar": ((0.0, 1.0, 1.0), (0.8, 0.82, 0.82)),
+          "cristal": ((0.0, 0.8, 0.8), (0.32, 1.0, 1.0), (0.72, 0.55, 0.55))}
+
+
+def esquirla(base, ancho, alto, rot=(0, 0, 0), forma="aguja"):
+    """Una pua de piedra parada en 'base' y girada (rx, ry, rz) desde su base: sus cortes cuadrados (ver FORMAS) que
+    se angostan y la punta."""
     x, y, z = base
-    abajo = geo.anillo(x, y, z, ancho / 2, ancho / 2, 4, 45)
-    medio = geo.anillo(x, y + alto * 0.62, z, ancho * 0.36, ancho * 0.36, 4, 45)
-    m = geo.unir(geo.tronco(abajo, medio, tapa_abajo=True, tapa_arriba=False),
-                 geo.piramide(medio, (x, y + alto, z), tapa=False))
+    cortes = [geo.anillo(x, y + f * alto, z, ancho / 2 * fx, ancho / 2 * fz, 4, 45) for f, fx, fz in FORMAS[forma]]
+    partes = [geo.tronco(a, b, tapa_abajo=(i == 0), tapa_arriba=False) for i, (a, b) in enumerate(zip(cortes, cortes[1:]))]
+    m = geo.unir(*partes, geo.piramide(cortes[-1], (x, y + alto, z), tapa=False))
     return geo.girar(m, rot, base)
 
 
@@ -104,8 +111,8 @@ CUERPO = ((-22.0, 26.0, 11.0, 9.0), (-15.0, 28.0, 14.5, 12.0), (-8.0, 28.5, 15.0
 COLA = ((21.0, 23.5, 8.5, 7.5), (28.0, 18.0, 6.6, 5.4), (36.0, 11.5, 4.2, 3.4), (44.0, 7.0, 3.3, 2.7),
         (52.0, 4.2, 2.5, 2.1), (60.0, 2.6, 1.7, 1.5), (67.0, 1.8, 1.0, 1.0), (72.0, 1.4, 0.3, 0.3))
 # el cuello y la cabeza (baja, hacia adelante)
-CUELLO = ((-21.0, 26.0, 10.0, 8.5), (-26.0, 22.5, 8.5, 7.5), (-30.0, 20.0, 7.8, 6.8))
-CABEZA = ((-30.0, 20.0, 8.2, 7.0), (-34.0, 19.0, 7.4, 6.3), (-37.5, 17.5, 5.9, 5.2))
+CUELLO = ((-21.0, 27.0, 11.5, 10.0), (-26.0, 24.0, 10.5, 9.0), (-30.5, 21.5, 9.2, 8.2))
+CABEZA = ((-30.5, 21.5, 9.4, 8.2), (-34.5, 20.0, 8.0, 6.8), (-38.0, 18.0, 6.4, 5.6))
 
 
 def corte_en(tabla, z):
@@ -125,21 +132,34 @@ def en_superficie(tabla, z, fi, hundido=0.9):
     return (math.sin(a) * mx * hundido, yc + math.cos(a) * my * hundido, z), (math.sin(a), math.cos(a), 0.0)
 
 
-def picos(p, grupo, tabla, nombre, zs, fis, alto, ancho, atras, semilla):
-    """Picos que salen del lomo en abanico: cada uno hacia afuera de donde nace (arriba, de lado...), echados un poco
-    hacia atras y cada uno un poco distinto."""
+def picos(p, grupo, tabla, nombre, n, zona, alto, ancho, atras, semilla, formas=tuple(FORMAS)):
+    """n puas repartidas parejo (en espiral, no en filas) por la zona (z de, z a, angulo maximo desde arriba) del
+    lomo: cada una sale hacia afuera de donde nace, echada un poco atras y distinta (forma, tamano, giro); algunas
+    con una o dos chicas a su lado (racimo)."""
     amatista = voxel(AMATISTA, 0.1)
+    z0, z1, fi_max = zona
     k = 0
-    for i, z in enumerate(zs):
-        for fi in fis:
-            sem = semilla + k * 5.3
-            fi_ = fi + 14 * (_azar(sem) - 0.5) + (7 if i % 2 else -7) * (fi != 0)
-            base, fuera = en_superficie(tabla, z + 1.2 * (_azar(sem + 1) - 0.5), fi_)
-            d = (fuera[0], fuera[1], atras + 0.35 * (_azar(sem + 2) - 0.5))
-            h = alto(z, fi) * (0.8 + 0.4 * _azar(sem + 3))
-            p.malla(grupo, f"{nombre}{k}", esquirla(base, ancho * (0.8 + 0.4 * _azar(sem + 4)), h, hacia(d)),
-                    amatista, dens=D)
-            k += 1
+    for i in range(n):
+        sem = semilla + i * 5.3
+        z = z0 + (z1 - z0) * (i + 0.5 + 0.6 * (_azar(sem) - 0.5)) / n
+        fi = (((i * 0.6180339) % 1.0) * 2 - 1) * fi_max
+        base, fuera = en_superficie(tabla, z, fi)
+        tam = 0.55 + 0.9 * _azar(sem + 1)
+        forma = formas[int(_azar(sem + 2) * len(formas))]
+        h = alto(z, fi) * tam * (0.75 if forma in ("gruesa", "pilar") else 1.0)
+        w = ancho * (0.7 + 0.6 * _azar(sem + 3)) * (1.5 if forma in ("gruesa", "pilar") else 1.0)
+        d = (fuera[0], fuera[1], atras + 0.5 * (_azar(sem + 4) - 0.5))
+        rx, ry, rz = hacia(d)
+        p.malla(grupo, f"{nombre}{k}", esquirla(base, w, h, (rx, 90 * _azar(sem + 5), rz), forma), amatista, dens=D)
+        k += 1
+        if _azar(sem + 6) > 0.62:                              # racimo: una o dos chicas al lado
+            for j in range(1 + int(_azar(sem + 7) > 0.5)):
+                lado = 1 if j == 0 else -1
+                d2 = (d[0] + lado * 0.45 * fuera[1], d[1] - lado * 0.45 * fuera[0], d[2] + 0.2)
+                b2 = (base[0] + lado * 0.6 * w * fuera[1], base[1] - lado * 0.6 * w * fuera[0], base[2] + 0.4 * w)
+                p.malla(grupo, f"{nombre}{k}", esquirla(b2, w * 0.6, h * (0.4 + 0.2 * j), hacia(d2), "aguja"), amatista,
+                        dens=D)
+                k += 1
 
 
 def bloque(p, grupo, nombre, centro, tam, ex, ey, pintor):
@@ -209,25 +229,25 @@ def cabeza(p):
     p.malla(g, "craneo", loft_z([octagono(z, y, mx, my) for z, y, mx, my in CABEZA]), clara, dens=D)
     rocas(p, g, "roca_cuello", [octagono(z, y, mx, my) for z, y, mx, my in CUELLO], (3.4, 1.4), [clara, piedra], 11)
     rocas(p, g, "roca_craneo", [octagono(z, y, mx, my) for z, y, mx, my in CABEZA[:2]], (3.0, 1.2), [piedra, clara], 21)
-    # el hocico (la boca): un pico ancho de piedra palida pegado a la cara abajo de los ojos, con la quilla al
-    # centro, que baja y sale hacia adelante hasta una punta roma
+    # el hocico (la boca): la parte de abajo de la cara, de piedra palida, bien pegada a la cabeza y saliendo hacia
+    # adelante, con la quilla al centro
     from .bloques import tubo
-    perfil = ((0.0, 17.2), (4.8, 16.8), (4.3, 12.2), (1.6, 7.6), (0.0, 6.8), (-1.6, 7.6), (-4.3, 12.2), (-4.8, 16.8))
-    atras = [(x, y, -36.8) for x, y in perfil]
-    adelante = [(x * 0.82, y - 0.8, -40.2 - (1.0 if x == 0 else 0.0) + 0.12 * abs(y - 12.0)) for x, y in perfil]
+    perfil = ((0.0, 18.8), (5.0, 18.4), (4.8, 16.0), (3.0, 14.2), (0.0, 13.6), (-3.0, 14.2), (-4.8, 16.0), (-5.0, 18.4))
+    atras = [(x, y, -37.6) for x, y in perfil]
+    adelante = [(x * 0.86, y, -40.6 - (0.8 if x == 0 else 0.0)) for x, y in perfil]
     p.malla(g, "hocico", loft_z([atras, adelante], abanico=True), hocico, dens=D)
     # las cejas salidas sobre los ojos
     for s in (1, -1):
-        p.malla(g, f"ceja{s}", tubo((s * 0.8, 20.9, -38.0), (s * 6.0, 22.1, -36.0), 1.0, 0.8, 4), clara, dens=D)
+        p.malla(g, f"ceja{s}", tubo((s * 0.8, 21.6, -38.4), (s * 6.4, 22.8, -36.4), 1.1, 0.9, 4), clara, dens=D)
     # los ojos que brillan (en la cara de enfrente)
     for s in (1, -1):
-        a, b = sorted((s * 1.6, s * 4.0))
-        p.caja(g, f"ojo{s}", (a, 18.7, -37.6), (b, 20.0, -37.45), lambda t: hex_(OJO), dens=4, luz=False)
-        a, b = sorted((s * 2.4, s * 3.2))
-        p.caja(g, f"brillo{s}", (a, 19.05, -37.7), (b, 19.65, -37.55), lambda t: hex_(OJO_CENTRO), dens=4, luz=False)
+        a, b = sorted((s * 1.8, s * 4.3))
+        p.caja(g, f"ojo{s}", (a, 19.5, -38.1), (b, 20.8, -37.95), lambda t: hex_(OJO), dens=4, luz=False)
+        a, b = sorted((s * 2.6, s * 3.4))
+        p.caja(g, f"brillo{s}", (a, 19.85, -38.2), (b, 20.45, -38.05), lambda t: hex_(OJO_CENTRO), dens=4, luz=False)
     # solo los cuernos: de los lados de la cabeza, hacia afuera y apenas arriba, y la punta curvea adelante
-    camino = ((6.5, 22.0, -32.0, 2.9), (11.5, 24.8, -31.0, 2.4), (15.8, 27.6, -31.5, 1.8), (18.2, 29.8, -34.0, 1.2),
-              (18.9, 31.0, -37.0, 0.6), (18.6, 31.6, -39.5, 0.1))
+    camino = ((7.0, 23.5, -33.0, 3.1), (12.5, 26.3, -32.0, 2.6), (17.0, 29.0, -32.5, 1.9), (19.4, 31.2, -35.0, 1.3),
+              (20.1, 32.4, -38.0, 0.6), (19.8, 33.0, -40.5, 0.1))
     for s in (1, -1):
         for i, (a, b) in enumerate(zip(camino, camino[1:])):
             p.malla(g, f"cuerno{s}_{i}", tubo((s * a[0], a[1], a[2]), (s * b[0], b[1], b[2]), a[3], b[3], 6), amatista,
@@ -242,13 +262,12 @@ def cuerpo(p):
     rocas(p, "Body/rocas", "roca", [octagono(z, y, mx, my) for z, y, mx, my in CUERPO], (3.8, 1.6), [clara, piedra], 7)
     rocas(p, "Body/cola", "roca_cola", [octagono(z, y, mx, my) for z, y, mx, my in COLA[:6]], (2.8, 1.1),
           [clara, piedra], 40)
-    # los picos del lomo en abanico (los mas altos en los hombros) y los de la cola
+    # las puas del lomo (las mas altas en los hombros, mas chicas a los lados) y las de la cola
     def alto(z, fi):
-        return (18.0 - abs(z + 9.0) * 0.38) * (1.0 - abs(fi) / 150.0)
-    picos(p, "Body/picos", CUERPO, "pico", [-19.0 + 3.4 * i for i in range(12)], (0, 28, -28, 55, -55, 82, -82),
-          alto, 4.2, 0.55, 1)
-    picos(p, "Body/cola", COLA, "pico_cola", [23.0 + 4.0 * i for i in range(11)], (0, 45, -45),
-          lambda z, fi: max(1.5, 8.0 - (z - 21.0) * 0.15) * (1.0 - abs(fi) / 130.0), 2.8, 0.9, 50)
+        return (19.0 - abs(z + 9.0) * 0.38) * (1.0 - abs(fi) / 160.0)
+    picos(p, "Body/picos", CUERPO, "pico", 120, (-21.0, 20.0, 105), alto, 4.4, 0.55, 1)
+    picos(p, "Body/cola", COLA, "pico_cola", 48, (22.0, 66.0, 70),
+          lambda z, fi: max(1.6, 8.5 - (z - 21.0) * 0.15) * (1.0 - abs(fi) / 140.0), 3.0, 0.9, 50)
 
 
 def pata(p, hueso, s, articulaciones, radios, pie, garras):
@@ -263,7 +282,7 @@ def pata(p, hueso, s, articulaciones, radios, pie, garras):
         p.malla(g, f"tramo{i}", loft_z(anillos), piedra if i % 2 == 0 else clara, dens=D)
         rocas(p, g, f"roca{i}_", anillos, (3.0, 1.3), [clara, piedra], 200 + 13 * i + s)
     for i, c in enumerate(puntos[:-1]):                       # las rocas de las articulaciones (hombro y codo)
-        t = radios[i] * 2.1
+        t = radios[i] * 1.45
         rot = tuple(40 * (_azar(i * 9.1 + s + j) - 0.5) for j in range(3))
         p.caja(g, f"articulacion{i}", (c[0] - t / 2, c[1] - t / 2, c[2] - t / 2),
                (c[0] + t / 2, c[1] + t / 2, c[2] + t / 2), clara if i % 2 == 0 else piedra, rot=rot, piv=c, dens=D)
@@ -277,11 +296,11 @@ def pata(p, hueso, s, articulaciones, radios, pie, garras):
 def patas(p):
     for s in (1, -1):
         # las de enfrente: el hombro sale del cuerpo, el codo abierto hacia afuera y el antebrazo baja a la mano
-        pata(p, "RightArm" if s > 0 else "LeftArm", s, ((11.5, 27.0, -11.0), (22.0, 17.5, -9.5), (19.5, 4.5, -12.5)),
-             (6.2, 4.9, 3.7), (19.5, 2.5, -9.0, -18.5, 3.4), (-2.1, 0.0, 2.1))
+        pata(p, "RightArm" if s > 0 else "LeftArm", s, ((12.0, 27.0, -11.0), (23.5, 17.5, -9.5), (21.0, 4.8, -12.5)),
+             (7.4, 6.0, 4.6), (21.0, 2.8, -8.5, -19.0, 4.0), (-2.4, 0.0, 2.4))
         # las de atras: la cadera, la rodilla hacia afuera y adelante, el tobillo
-        pata(p, "RightLeg" if s > 0 else "LeftLeg", s, ((10.0, 25.0, 14.0), (17.5, 15.0, 10.5), (16.0, 4.0, 15.5)),
-             (5.4, 4.3, 3.3), (16.0, 2.3, 19.0, 9.5, 3.0), (-1.6, 1.6))
+        pata(p, "RightLeg" if s > 0 else "LeftLeg", s, ((10.5, 25.0, 14.0), (18.5, 15.0, 10.5), (17.0, 4.4, 15.5)),
+             (6.6, 5.3, 4.1), (17.0, 2.6, 19.5, 9.0, 3.6), (-1.8, 1.8))
 
 
 def construir():
@@ -290,9 +309,9 @@ def construir():
     cabeza(p)
     cuerpo(p)
     patas(p)
-    p.m.pivotes.update({"Head": (0.0, 26.0, -20.0), "Body": (0.0, 26.0, 0.0), "Body/cola": (0.0, 22.5, 21.0),
-                        "RightArm": (11.5, 27.0, -11.0), "LeftArm": (-11.5, 27.0, -11.0),
-                        "RightLeg": (10.0, 25.0, 14.0), "LeftLeg": (-10.0, 25.0, 14.0)})
+    p.m.pivotes.update({"Head": (0.0, 27.0, -20.0), "Body": (0.0, 26.0, 0.0), "Body/cola": (0.0, 22.5, 21.0),
+                        "RightArm": (12.0, 27.0, -11.0), "LeftArm": (-12.0, 27.0, -11.0),
+                        "RightLeg": (10.5, 25.0, 14.0), "LeftLeg": (-10.5, 25.0, 14.0)})
     return p
 
 
