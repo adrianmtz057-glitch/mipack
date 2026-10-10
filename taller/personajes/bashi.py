@@ -200,6 +200,7 @@ def maniqui(p, parte):
 
 def construir(partes=PARTES):
     p = Personaje("bashi", altura=ALTURA, cabeza=CABEZA, torso=TORSO, brazo=BRAZO, pierna=PIERNA)
+    p.m.luz = False                     # sin luz horneada: todo plano, con sus tonos pintados (y se arma rapido)
     for parte in PARTES:
         if parte in partes:
             modulo = importlib.import_module(f"{__package__}.bashi_{parte}")

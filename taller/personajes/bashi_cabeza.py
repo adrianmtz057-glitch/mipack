@@ -3,16 +3,15 @@ Bashi: la cabeza (ver bashi.py). Hecha a mano segun referencias/personajes/bashi
 cara y las cuatro vistas).
 
 Lo que lleva, de adentro hacia afuera:
-  CABEZA: cubo de 8 x 8 x 8 a densidad 8 (la cara es un pixel art de 64 x 64), piel durazno lisa y sin luz
-    horneada: solo la sombra a mano donde hace falta (bajo la cinta del sombrero, la cuenca del ojo, la nariz, la
-    boca y el menton). Arriba, a los costados y en la nuca va pintado el pelo de mas adentro (gris oscuro), asi entre
+  CABEZA: cubo de 8 x 8 x 8 a densidad 8 (la cara es un pixel art de 64 x 64), piel durazno lisa, sin
+    sombras (solo el contorno de la cuenca del ojo grande, la boca y las arrugas de la risa). Arriba, a los costados y en la nuca va pintado el pelo de mas adentro (gris oscuro), asi entre
     mechon y mechon nunca se ve piel.
   OJO DERECHO (a la izquierda de quien lo ve): enorme, cuadrado y que BRILLA: un lente en 3D con las esquinas
     cortadas que sale de la cara, con contorno cian oscuro, aro cian, un cuadro blanco que sale un poco mas (el ojo
     se abomba) y la pupila cuadrada cian al medio. Encima, la ceja gris gruesa en bloque, levantada y chueca.
-  OJO IZQUIERDO: chico y entrecerrado, de picaro: blanco con el iris vino mirando de lado, un parpado de bloque que
+  OJO IZQUIERDO: chico, entrecerrado y mas alto que el grande, de picaro: blanco con el iris vino mirando de lado, un parpado de bloque que
     lo tapa a la mitad con la raya gruesa de las pestanas, la ojera abajo y la ceja gris baja y caida hacia adentro.
-  NARIZ de bloque que sale casi un px, con el puente arriba, pintada con su luz y su sombra.
+  NARIZ delgada de bloque que sale casi un px, con el puente arriba.
   SONRISA chueca y abierta que sube hacia su izquierda: adentro rojo oscuro con la lengua, la fila de dientes de
     arriba, el labio marcado y las arrugas de la risa en las comisuras.
   PELO gris revuelto en mechones de bloque (cajas, sin luz y sin sombras adentro): una capa pegada a los costados y
@@ -49,13 +48,14 @@ LENTE = (0.25, 3.25, 32.75, 35.75)      # x0, x1, y0, y1 del ojo grande (3 x 3)
 LENTE_Z = (-4.175, -3.95)               # sale 0.175 de la cara
 CHAFLAN = 0.375                         # esquinas cortadas del lente
 BLANCO_Z = -4.25                        # el cuadro blanco sale un poco mas: el ojo se abomba
-NARIZ = ((-1.0, 32.0, -5.0), (0.125, 33.75, -4.0))
-PUENTE = ((-0.875, 33.75, -4.5), (0.0, 34.5, -4.0))
-PARPADO = ((-3.375, 33.25, -4.125), (-1.125, 33.75, -3.9))
+NARIZ = ((-0.75, 32.0, -4.875), (-0.125, 33.75, -4.0))          # delgada: 5 texeles de ancho
+PUENTE = ((-0.625, 33.75, -4.375), (-0.25, 34.5, -4.0))
+PARPADO = ((-3.375, 34.75, -4.125), (-1.125, 35.25, -3.9))
 CEJA_DER = ((0.0, 35.875, -4.625), (3.25, 36.5, -3.95), 8.0)      # sobre el ojo grande: levantada, la punta de afuera arriba
-CEJA_IZQ = ((-3.375, 34.0, -4.5), (-0.75, 34.75, -3.95), -7.0)   # sobre el ojo chico: baja y caida hacia adentro
+CEJA_IZQ = ((-3.375, 35.5, -4.5), (-0.75, 36.25, -3.95), -7.0)   # sobre el ojo chico: baja y caida hacia adentro
 BOCA_IZQ, BOCA_DER = (-2.25, 1.375), (2.5, 2.0)                 # comisuras (u, v) en la cara: sube hacia su izquierda
 BOCA_HONDO = 0.875
+OJO_CHICO = 12                          # texeles que sube el ojo chico (queda mas alto que el grande)
 
 
 def _boca_arriba(u):
@@ -89,9 +89,8 @@ def cara(u, v):
         if li0 <= i <= li1 and lj0 <= j <= lj1:
             return CIAN["o"]                                     # detras del lente (se ve en las esquinas cortadas)
         return PIEL["s2"]
-    if li0 <= i <= li1 and j == lj0 - 2:
-        return PIEL["s"]
-    # --- el ojo chico (el parpado de bloque tapa la mitad de arriba)
+    # --- el ojo chico (el parpado de bloque tapa la mitad de arriba); OJO_CHICO lo sube
+    j -= OJO_CHICO
     if 10 <= i <= 25 and 20 <= j <= 25:
         if j == 20 and not 12 <= i <= 23:
             return PIEL["s2"]
@@ -112,6 +111,7 @@ def cara(u, v):
         return PIEL["s"]                                         # la ojera
     if j == 26 and i in (9, 26):
         return PIEL["o"]                                         # las puntas de las pestanas
+    j += OJO_CHICO
     # --- la sonrisa
     ua = (i + 0.5) / 8
     va = (j + 0.5) / 8
@@ -134,16 +134,6 @@ def cara(u, v):
             return PIEL["l"]                                     # el brillo del labio de abajo
     if (i, j) in ARRUGAS:
         return PIEL["s2"]
-    # --- sombras de la nariz (la luz viene de su derecha: la sombra cae a su izquierda y abajo)
-    if i == 9 and 16 <= j <= 29:
-        return PIEL["s"]
-    if 1 <= i <= 9 and j == 15:
-        return PIEL["s"]
-    # --- la sombra bajo la cinta del sombrero y el contorno del menton
-    if j >= 51:
-        return PIEL["s"]
-    if j == 0:
-        return PIEL["s"]
     return PIEL["b"]
 
 
