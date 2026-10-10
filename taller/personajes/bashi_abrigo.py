@@ -3,10 +3,12 @@ Bashi: la bata (ver bashi.py), segun referencias/personajes/bashi_hoja2.png. Por
 lisos (sin accesorios ni textura).
 
   TORSO: la bata morada, cerrada (toda unida) y de 12 lados, con la solapa que cruza al medio; los hombros bajan
-    redondos hacia el CUELLO alto de la bata (12 lados, con el filo olivo).
+    redondos hacia el CUELLO alto de la bata (12 lados, con el filo olivo) y adentro el cuello de piel.
   MANGAS en tres ESCALONES redondos (12 lados), cada uno mas ancho que el de arriba, despegadas del brazo y hasta
     la muneca, con el final olivo (en los huesos de los brazos, abiertas como los brazos). Por dentro asoma la
     CAMISA beige de manga larga hasta la muneca.
+  CINTURON de cuero donde empieza el faldon, con la hebilla dorada; BUFANDA verde en rollo alrededor del cuello
+    con dos puntas que cuelgan adelante; MOCHILA de cuero en la espalda con tapa, broche dorado y correas.
   FALDON: de la cintura para abajo en TIRAS al ras del estomago que se abren apenas, cada una de un largo distinto (al azar, fijo) y con la
     punta escalonada, en dos capas (la de abajo mas oscura tapa los huecos), cerrado todo alrededor. Algunas tiras
     olivo entre las moradas.
@@ -16,7 +18,7 @@ import math
 
 from .. import malla as geo
 from ..textura import hex_a_rgba as hex_
-from .bashi import BEIGE, C, D, MORADO, OLIVO, OSCURO, azar, giro_brazo
+from .bashi import BEIGE, C, CUERO, CUERO_OSC, D, MORADO, OLIVO, ORO, OSCURO, PIEL, azar, giro_brazo
 from .meron import tubo_hueco
 
 CINTURA_Y = 22.4                        # de aqui cuelga el faldon
@@ -75,9 +77,10 @@ def cuello(p, g, giro):
     tela = lambda t: olivo(t) if t.y > y1 - FILO_CUELLO else morado(t)
     p.malla(g, "cuello", malla, [tela] * n_fuera + [plano({**OSCURO, "b": OSCURO["s"]})] * (len(malla[1]) - n_fuera),
             dens=D)
-    p.malla(g, "cuello_hueco", geo.tronco(geo.anillo(0.0, y0 + 0.4, 0.0, rx0 - 0.2, rz0 - 0.2, LADOS, giro),
-                                          geo.anillo(0.0, y0 + 0.5, 0.0, rx0 - 0.2, rz0 - 0.2, LADOS, giro)),
-            plano({**OSCURO, "m": OSCURO["s"]}), dens=D)
+    # adentro del cuello, el cuello de piel
+    p.malla(g, "cuello_piel", geo.loft_puntos([geo.anillo(0.0, y0, 0.0, rx0 - 0.3, rz0 - 0.3, LADOS, giro),
+                                               geo.anillo(0.0, y1 - 0.2, 0.0, rx0 - 0.3, rz0 - 0.3, LADOS, giro)]),
+            plano(PIEL), dens=D)
 
 
 # ---------------------------------------------------------------------------------------------- mangas
@@ -176,7 +179,66 @@ def faldon(p):
             k += 1
 
 
+# ---------------------------------------------------------------------------------------------- lo de encima
+def aro_grueso(y0, y1, abajo, arriba, grosor, giro):
+    """Anillo grueso de 12 lados (como una dona de caras): pared de afuera, de adentro y las tapas de arriba y abajo.
+    abajo / arriba: (medio ancho, medio hondo) de afuera."""
+    afuera = [geo.anillo(0.0, y0, 0.0, *abajo, LADOS, giro), geo.anillo(0.0, y1, 0.0, *arriba, LADOS, giro)]
+    adentro = [geo.anillo(0.0, y0, 0.0, abajo[0] - grosor, abajo[1] - grosor, LADOS, giro),
+               geo.anillo(0.0, y1, 0.0, arriba[0] - grosor, arriba[1] - grosor, LADOS, giro)]
+    vs, cs = geo.tronco(*afuera, tapa_abajo=False, tapa_arriba=False)
+    vi, ci = geo.tronco(*adentro, tapa_abajo=False, tapa_arriba=False)
+    vs, cs = geo.unir((vs, cs), (vi, [tuple(reversed(c)) for c in ci]))
+    n = LADOS
+    for k in range(n):                                           # tapas: entre el anillo de afuera y el de adentro
+        k2 = (k + 1) % n
+        cs.append((n + k, n + k2, 3 * n + k2, 3 * n + k))        # arriba
+        cs.append((2 * n + k, 2 * n + k2, k2, k))                # abajo
+    return vs, cs
+
+
+def bufanda(p):
+    """La bufanda verde: un rollo grueso alrededor del cuello alto, y dos puntas que cuelgan adelante, a su
+    derecha, con el final escalonado."""
+    g = "Body/bufanda"
+    giro = 180.0 / LADOS
+    p.malla(g, "rollo", aro_grueso(29.9, 31.6, (3.75, 3.35), (3.55, 3.15), 0.9, giro), plano(OLIVO), dens=D)
+    p.malla(g, "rollo_alto", aro_grueso(30.7, 31.2, (3.95, 3.5), (3.95, 3.5), 0.6, giro), plano(OLIVO), dens=D)
+    for k, (x, ancho, largo, z, giro_punta, oscuro) in enumerate(((1.45, 1.6, 4.6, -3.25, 5, False),
+                                                                  (2.1, 1.3, 3.4, -3.05, -4, True))):
+        m = geo.mover(geo.girar(tira(ancho, largo, 300 + k, grueso=0.45), (0, 0, giro_punta)), (x, 30.7, z))
+        rampa = {**OLIVO, "b": OLIVO["s"]} if oscuro else OLIVO
+        p.malla(g, f"punta{k}", m, plano(rampa), dens=D)
+
+
+def cinturon(p):
+    """El cinturon de cuero donde empieza el faldon, con la hebilla dorada adelante."""
+    g = "Body/cinturon"
+    giro = 180.0 / LADOS
+    anillos = [geo.anillo(0.0, 21.7, 0.0, 4.6, 2.95, LADOS, giro), geo.anillo(0.0, 22.9, 0.0, 4.6, 2.95, LADOS, giro)]
+    p.malla(g, "cinto", geo.loft_puntos(anillos), plano(CUERO), dens=D)
+    zf = -2.95 * math.cos(math.radians(giro))
+    caja(p, g, "hebilla", (-0.75, 21.45, zf - 0.25), (0.75, 23.15, zf + 0.1), ORO)
+    caja(p, g, "hebilla_hueco", (-0.4, 21.85, zf - 0.32), (0.4, 22.75, zf - 0.2), CUERO_OSC)
+
+
+def mochila(p):
+    """La mochila de cuero en la espalda: el cuerpo, la tapa mas oscura con el broche dorado y las dos correas que
+    suben por la espalda, pasan bajo la bufanda y bajan por el pecho."""
+    g = "Body/mochila"
+    caja(p, g, "cuerpo", (-2.4, 23.4, 2.25), (2.4, 28.0, 4.2), CUERO)
+    caja(p, g, "tapa", (-2.55, 26.0, 2.25), (2.55, 28.3, 4.4), CUERO_OSC)
+    caja(p, g, "broche", (-0.45, 25.2, 4.35), (0.45, 26.6, 4.6), ORO)
+    for s in (1, -1):
+        a, b = sorted((s * 1.55, s * 2.3))
+        caja(p, g, f"correa_atras{s}", (a, 27.8, 2.45), (b, 30.6, 2.95), CUERO_OSC)
+        caja(p, g, f"correa_frente{s}", (a, 25.6, -2.95), (b, 30.6, -2.5), CUERO_OSC)
+
+
 def abrigo(p):
     torso(p)
     mangas(p)
     faldon(p)
+    cinturon(p)
+    bufanda(p)
+    mochila(p)
