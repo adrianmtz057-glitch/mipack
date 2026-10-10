@@ -122,22 +122,40 @@ def liso(col):
     return lambda t: c
 
 
-# el pelo: por ahora UNA sola pieza atras de la cabeza, con la silueta del boceto: angosta arriba (del ancho de la
-# cabeza), los costados que se abren en curva hacia abajo y la base plana con las puntas un poco hacia afuera.
-PUNTA = (3.0, 1.6)                      # la esquina termina en punta: cuanto se mete hacia adentro y cuanto mas arriba queda
-PELO_ATRAS = (5.6, 9.8, 21.0, 12.2, (5.0, 6.2))   # medio ancho arriba (sobresale apenas de los lados) y abajo, y de arriba y abajo, z
+# el pelo: por ahora UNA sola pieza atras, como un bob con las puntas hacia adentro: cuelga de la parte de atras de
+# la cabeza, se abre hacia atras y hacia los costados conforme baja, hace punta y abajo el borde se mete por debajo
+# de la nuca. De lado se ve como un "<" detras de la cabeza; de atras, una campana con las esquinas en punta.
+# Cada nivel es una U (abierta hacia la cabeza): (y, medio ancho, z de atras, z de las puntas de la U)
+NIVELES_PELO = ((22.2, 6.0, 5.9, 4.6), (19.5, 7.0, 7.3, 4.8), (16.0, 8.3, 9.0, 5.0), (12.8, 9.4, 10.0, 5.0),
+                (11.3, 8.2, 7.8, 4.6), (10.0, 6.8, 5.6, 3.6))
+GROSOR_PELO = 0.7
+ESQUINA_PELO = 1.5
+
+
+def _u(y, w, zb, zf, g=0.0):
+    """Una U de esquinas redondas atras: de la punta izquierda, por atras, a la punta derecha (adentro si g > 0)."""
+    import math
+    w, zb, r = w - g, zb - g, max(0.2, ESQUINA_PELO - g)
+    pts = [(-w, y, zf), (-w, y, zb - r)]
+    for k in range(1, 4):                                        # la esquina de atras a su izquierda
+        a = math.radians(90 * k / 4)
+        pts.append((-w + r - r * math.cos(a), y, zb - r + r * math.sin(a)))
+    pts += [(-w + r, y, zb), (w - r, y, zb)]
+    for k in range(1, 4):
+        a = math.radians(90 * k / 4)
+        pts.append((w - r + r * math.sin(a), y, zb - r + r * math.cos(a)))
+    pts += [(w, y, zb - r), (w, y, zf)]
+    return pts
 
 
 def pelo(p, C, T):
-    """El pelo: solo la pieza de atras, con la silueta del boceto."""
+    """El pelo: la pieza de atras, una sola forma (ver NIVELES_PELO)."""
     from .. import malla as geo
-    w0, w1, y0, y1, (z0, z1) = PELO_ATRAS
-    n = 8
-    y_punta = y1 + PUNTA[1]
-    lado = [(w0 + (w1 - w0) * (i / n) ** 2.2, y0 - (y0 - y_punta) * i / n) for i in range(n + 1)]
-    lado.append((w1 - PUNTA[0], y1))                      # de la punta el borde se mete hacia adentro y abajo
-    perfil = lado[::-1] + [(-x, y) for x, y in lado]      # baja por un costado, cruza la base y sube por el otro
-    p.malla("Head/pelo", "atras", geo.extruir(perfil, z0, z1), liso(PELO["b"]), dens=D)
+    anillos = []
+    for y, w, zb, zf in NIVELES_PELO:
+        afuera = _u(y, w, zb, zf)
+        anillos.append(afuera + _u(y, w, zb, zf, GROSOR_PELO)[::-1])
+    p.malla("Head/pelo", "atras", geo.loft_puntos(anillos[::-1]), liso(PELO["b"]), dens=D)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
