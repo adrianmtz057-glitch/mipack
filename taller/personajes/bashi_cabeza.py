@@ -4,13 +4,15 @@ bashi_hoja2.png.
 
 Lo que lleva, de adentro hacia afuera:
   CABEZA: no es un cubo: los pomulos van cortados en diagonal hacia los costados y la quijada se angosta en una
-    barbilla mas chica. La cara es una PLACA delante del frente de la cabeza, con un hueco: la CUENCA del ojo grande,
-    hundida, que baja hasta donde iria la ojera. Piel durazno con textura de bloques y la sombra y el brillo pintados
+    barbilla mas chica. Como en revolthir, el frente de la cabeza va hundido y la cara es una PLACA encima con
+    huecos: cada ojo queda metido solo lo que mide. Piel durazno con textura de bloques y la sombra y el brillo pintados
     a mano (la cara no lleva luz horneada: el ala no la oscurece). Densidad 8: la cara es un pixel art.
-  OJO DERECHO (a la izquierda de quien lo ve): grande, REDONDO y que BRILLA, metido en la cuenca: contorno cian
+  OJO DERECHO (a la izquierda de quien lo ve): grande, un CIRCULO DE PANELES (12 lados, se ven sus caras) que
+    BRILLA, hundido en un hueco de 12 lados: contorno cian
     oscuro, aro cian con brillo arriba y mas oscuro abajo, y al medio un cuadro blanco que sale un poco con la pupila
     cian. Encima, la ceja gris en bloque, levantada.
-  OJO IZQUIERDO: entrecerrado y mas alto que el grande, de picaro: blanco con el iris vino mirando de lado, un
+  OJO IZQUIERDO: entrecerrado y mas alto que el grande, hundido, con la OJERA abajo (medio ovalo acostado,
+    hundido, color ojera, que se parte justo donde termina el ojo), de picaro: blanco con el iris vino mirando de lado, un
     parpado de bloque que lo tapa a la mitad con la raya de las pestanas, y la ceja gris baja y caida hacia adentro.
   NARIZ delgada con su forma: nace fina en el puente entre los ojos y baja saliendo hasta la punta.
   SONRISA cerrada y tranquila: una raya corta con las puntas apenas levantadas (la de su izquierda un poco mas).
@@ -27,7 +29,7 @@ Arriba de la cabeza no hay nada: ahi va el sombrero.
 import math
 
 from .. import malla as geo
-from ..textura import hex_a_rgba as hex_
+from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 from .bashi import C, T, DC, PIEL, CANAS, CIAN, azar
 
 G = "Head"
@@ -49,11 +51,18 @@ PIEL_SB = _mezcla(PIEL["s"], PIEL["b"])  # sombra suave de la cara
 
 # ---------------------------------------------------------------------------------------------- medidas de la cara
 # en px del modelo; la cara mira a -Z y la derecha del personaje es +X (a la izquierda de quien lo ve)
-FRENTE_Z = -3.625                       # el frente de la cabeza; la placa de la cara sale hasta z = -4
-OJO = (1.75, 34.25, 1.25)               # centro (x, y) y radio del ojo grande
-CUENCA = (0.25, 3.25, 32.25, 35.75)     # el hueco del ojo grande con la ojera abajo: x0, x1, y0, y1
-LENTE_Z = (-3.875, FRENTE_Z)            # el ojo queda metido en la cuenca
-BLANCO, BLANCO_Z = 0.625, -3.95         # medio lado y frente del cuadro blanco (sale un poco del ojo)
+# como los ojos de revolthir: el frente de la cabeza va HUNDIDO y la cara es una placa encima con huecos, asi los
+# ojos quedan metidos solo lo que mide cada ojo
+HUNDIDO = 0.3
+FRENTE_Z = -4.0 + HUNDIDO               # el frente de la cabeza (lo que se ve por los huecos)
+PLACA_ATRAS = FRENTE_Z - 0.02           # la placa de la cara va de z = -4 hasta aqui (sin chocar con el frente)
+OJO = (1.75, 34.25, 1.25, 12)           # centro (x, y), radio y lados del ojo grande: un circulo de paneles
+OJO_CUADRO = (0.375, 3.125, 32.875, 35.625)   # el cuadro de la placa que ocupa el marco del ojo grande
+LENTE_Z = (-3.85, FRENTE_Z - 0.01)      # el ojo, metido en su hueco
+BLANCO, BLANCO_Z = 0.625, -3.92         # medio lado y frente del cuadro blanco (sale un poco del ojo)
+OJERA = (2.25, 1.0, 0.5)                # medio ovalo bajo el ojo chico: centro u, medio ancho y alto (y = el borde
+                                        # de abajo del ojo, ahi se parte el ovalo)
+OJERA_COLOR, OJERA_BORDE = "#B07C74", "#94625E"
 NARIZ_X = -0.4375                       # la nariz va entre los dos ojos, apenas hacia su izquierda
 NARIZ = ((32.0, 0.375, -4.7), (32.375, 0.375, -4.9), (32.875, 0.3125, -4.7), (33.75, 0.25, -4.35),
          (34.5, 0.1875, -4.08))         # (y, medio ancho, z de la punta) de abajo (las fosas) al puente entre los ojos
@@ -63,16 +72,15 @@ CEJA_IZQ = ((-3.375, 35.5, -4.5), (-0.75, 36.25, -3.95), -7.0)   # sobre el ojo 
 OJO_CHICO = 12                          # texeles que sube el ojo chico (queda mas alto que el grande)
 BOCA = (-1.25, 1.5, 12)                 # u de punta a punta (de izquierda a derecha de quien lo ve) y fila de la raya
 
-# la placa de la cara, en pedazos alrededor de la cuenca: ((x0, y0), (x1, y1)); abajo se angosta con la quijada
-PLACA = (((-3.375, 32.0), (0.25, 36.75)), ((3.25, 32.0), (3.375, 36.75)), ((0.25, 35.75), (3.25, 36.75)),
-         ((0.25, 32.0), (3.25, 32.25)), ((-2.75, 31.0), (2.75, 32.0)), ((-2.25, 30.0), (2.25, 31.0)))
+# la placa de la cara: ((x0, y0), (x1, y1)); abajo se angosta con la quijada
+PLACA = (((-3.375, 32.0), (3.375, 36.75)), ((-2.75, 31.0), (2.75, 32.0)), ((-2.25, 30.0), (2.25, 31.0)))
 
 # la forma de la cabeza: secciones de abajo (la barbilla) hacia arriba. Adelante es plana y los pomulos van cortados
 # en diagonal hacia los costados; abajo la quijada se angosta en una barbilla mas chica.
 # (y, medio ancho del frente, medio ancho de los costados, z donde el corte llega al costado, medio ancho atras,
 #  z de atras)
-FORMA = ((30.0, 2.25, 2.75, -3.125, 2.0, 1.5), (31.0, 2.75, 3.5, -2.875, 3.0, 3.0), (32.0, 3.375, 4.0, -3.0, 3.5, 4.0),
-         (T, 3.375, 4.0, -3.0, 3.5, 4.0))
+FORMA = ((30.0, 2.25, 2.75, -3.2, 2.0, 1.5), (31.0, 2.75, 3.5, -3.0, 3.0, 3.0), (32.0, 3.375, 4.0, -3.1, 3.5, 4.0),
+         (T, 3.375, 4.0, -3.1, 3.5, 4.0))
 
 
 def boca(i, j):
@@ -102,8 +110,6 @@ def cara(u, v):
                 return "#4A1428"
             return "#7E2E50" if j >= 23 else "#9A4468"
         return "#EEE6DC"
-    if j == 19 and 11 <= i <= 24:
-        return PIEL["s2"]                                        # parpado de abajo
     if j == 26 and i in (9, 26):
         return PIEL["o"]                                         # las puntas de las pestanas
     j += OJO_CHICO
@@ -143,11 +149,75 @@ def piel_cara(t):
     return hex_(sombra_cara(u, v, col))
 
 
+def en_ojo_chico(i, j):
+    """Si el texel (i, j) de la cara cae en el ojo chico (sin las esquinas de abajo, que son piel)."""
+    j -= OJO_CHICO
+    return (10 <= i <= 25 and 21 <= j <= 25) or (12 <= i <= 23 and j == 20)
+
+
+def en_ojera(u, v):
+    """Si (u, v) cae en la ojera: la mitad de abajo de un ovalo acostado, partido justo donde termina el ojo."""
+    cu, a, b = OJERA
+    y0 = (20 + OJO_CHICO) / 8                                    # el borde de abajo del ojo chico
+    return v < y0 and ((u - cu) / a) ** 2 + ((v - y0) / b) ** 2 <= 1.0
+
+
+def en_cuadro_ojo(x, y):
+    x0, x1, y0, y1 = OJO_CUADRO
+    return x0 < x < x1 and y0 < y < y1
+
+
 def placa(t):
-    """Pintor de los pedazos de la placa: el frente es la cara; los cantos (las paredes de la cuenca) en sombra."""
-    if t.cara == "north":
-        return piel_cara(t)
+    """Pintor de la placa de la cara: el frente es la cara, con huecos (transparente) en el ojo chico con su ojera y
+    en el cuadro del ojo grande, donde va su marco de paneles; los cantos en sombra."""
+    if t.cara in ("north", "south"):
+        u, v = -t.x, t.y - C
+        if en_cuadro_ojo(t.x, t.y) or en_ojo_chico(math.floor(u * 8), math.floor(v * 8)) or en_ojera(u, v):
+            return TRANSPARENTE
+        return piel_cara(t) if t.cara == "north" else hex_(PIEL["s"])
     return hex_(PIEL["s"])
+
+
+def marco_ojo():
+    """El marco del ojo grande: el cuadro de la placa con un hueco de 12 lados (un circulo de paneles, se ven sus
+    caras) y las paredes del hueco hasta el frente hundido."""
+    cx, cy, r, n = OJO
+    x0, x1, y0, y1 = OJO_CUADRO
+    h = (x1 - x0) / 2
+    dentro = [(cx + r * math.cos(math.radians(15 + 360 * k / n)), cy + r * math.sin(math.radians(15 + 360 * k / n)))
+              for k in range(n)]
+    fuera = []
+    for px, py in dentro:                                        # cada vertice, llevado al borde del cuadro
+        dx, dy = px - cx, py - cy
+        f = h / max(abs(dx), abs(dy))
+        fuera.append((cx + dx * f, cy + dy * f))
+    vs, cs = [], []
+
+    def cara(puntos, hacia):
+        """Agrega una cara; la da vuelta si su normal no mira hacia 'hacia'."""
+        nrm = geo.normal(puntos)
+        if sum(a * b for a, b in zip(nrm, hacia)) < 0:
+            puntos = puntos[::-1]
+        base = len(vs)
+        vs.extend(puntos)
+        cs.append(tuple(range(base, base + len(puntos))))
+
+    z0, z1 = -4.0, PLACA_ATRAS
+    for k in range(n):
+        k2 = (k + 1) % n
+        (ax, ay), (bx, by) = dentro[k], dentro[k2]
+        (cx2, cy2), (dx2, dy2) = fuera[k2], fuera[k]
+        cara([(ax, ay, z0), (bx, by, z0), (cx2, cy2, z0), (dx2, dy2, z0)], (0, 0, -1))      # el frente del marco
+        mx, my = (ax + bx) / 2 - cx, (ay + by) / 2 - cy
+        cara([(ax, ay, z0), (bx, by, z0), (bx, by, z1), (ax, ay, z1)], (-mx, -my, 0))        # la pared del hueco
+    return vs, cs
+
+
+def pintor_marco(t):
+    """El frente del marco es la cara; las paredes del hueco, en sombra."""
+    if t.n[2] < -0.9:
+        return piel_cara(t)
+    return hex_(PIEL["s2"])
 
 
 def cabeza_malla():
@@ -167,9 +237,14 @@ def piel_cabeza(t):
     sobre la piel."""
     nx, ny, nz = t.n
     v = t.y - C
-    if nz < -0.95:
-        x0, x1, y0, y1 = CUENCA
-        return hex_(PIEL["s"] if x0 <= t.x <= x1 and y0 <= t.y <= y1 else PIEL["b"])
+    if nz < -0.95:                                               # el frente hundido: se ve por los huecos
+        u = -t.x
+        i, j = math.floor(u * 8), math.floor(v * 8)
+        if en_ojo_chico(i, j):
+            return hex_(cara(u, v))
+        if en_ojera(u, v):
+            return hex_(OJERA_BORDE if j == 19 + OJO_CHICO else OJERA_COLOR)
+        return hex_(PIEL["s"])
     if ny > 0.6:
         return hex_(CANAS["s"])
     if ny < -0.6:
@@ -187,8 +262,9 @@ def _disparejo(u, semilla):
 
 
 # ---------------------------------------------------------------------------------------------- el ojo grande
-def _circulo(cx, cy, r, lados=16):
-    return [(cx + r * math.cos(2 * math.pi * k / lados), cy + r * math.sin(2 * math.pi * k / lados))
+def _circulo(cx, cy, r, lados=12):
+    """Poligono de 'lados' caras (con un lado plano arriba, abajo y a los costados)."""
+    return [(cx + r * math.cos(math.radians(15 + 360 * k / lados)), cy + r * math.sin(math.radians(15 + 360 * k / lados)))
             for k in range(lados)]
 
 
@@ -197,7 +273,7 @@ def lente(t):
     (del lado de quien lo ve a la izquierda) y mas oscuro abajo del otro lado, y una linea clara junto al blanco."""
     if abs(t.n[2]) < 0.9:
         return hex_(CIAN["o"])
-    cx, cy, r = OJO
+    cx, cy, r, _ = OJO
     dx, dy = t.x - cx, t.y - cy
     d = math.hypot(dx, dy)
     if d > r - 0.2:
@@ -227,8 +303,9 @@ def blanco(t):
 
 def ojo_grande(p):
     g = f"{G}/ojo"
-    cx, cy, r = OJO
-    p.malla(g, "lente", geo.extruir(_circulo(cx, cy, r), *LENTE_Z), lente, dens=DC, luz=False)
+    cx, cy, r, n = OJO
+    p.malla(g, "marco", marco_ojo(), pintor_marco, dens=DC, luz=False)
+    p.malla(g, "lente", geo.extruir(_circulo(cx, cy, r - 0.01, n), *LENTE_Z), lente, dens=DC, luz=False)
     p.caja(g, "blanco", (cx - BLANCO, cy - BLANCO, BLANCO_Z), (cx + BLANCO, cy + BLANCO, LENTE_Z[0] + 0.05), blanco,
            dens=DC, luz=False)
 
@@ -276,7 +353,7 @@ def ceja(t):
 def facciones(p):
     g = f"{G}/cara"
     for k, (a, b) in enumerate(PLACA):
-        p.caja(g, f"placa{k}", (a[0], a[1], -4.0), (b[0], b[1], FRENTE_Z), placa, dens=DC, luz=False)
+        p.caja(g, f"placa{k}", (a[0], a[1], -4.0), (b[0], b[1], PLACA_ATRAS), placa, dens=DC, luz=False)
     p.malla(g, "nariz", nariz_malla(), nariz, dens=DC, luz=False)
     p.caja(g, "parpado", *PARPADO, parpado, dens=DC, luz=False)
     for nombre, (a, b, giro) in (("ceja_der", CEJA_DER), ("ceja_izq", CEJA_IZQ)):
