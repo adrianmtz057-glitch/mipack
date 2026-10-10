@@ -322,40 +322,43 @@ def pelo(p, C, T):
     frente(p, C, T)
 
 
-PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
+# las orejas de zorro, low-poly como el pelo: nacen al ras del costado de la cabeza (el borde de afuera sigue la linea
+# del costado) y se angostan hacia la punta, a media cabeza; un poco abiertas hacia afuera y con el adentro rosa
+# adelante. Cada anillo de la oreja: (y sobre el tope, x de adentro, x de afuera, z de enfrente, z de atras)
+OREJA_ANILLOS = ((0.4, 0.9, 5.5, -0.75, 0.95), (3.0, 2.3, 5.35, -0.6, 0.8), (4.8, 3.5, 4.95, -0.4, 0.55))
+OREJA_PUNTA = (4.35, 6.0, 0.1)                          # x, y sobre el tope, z
+ROSA = ((0.5, "#E8979A"), (9.0, ROSA_OREJA))
+
+
+def _anillo_oreja(y, xa, xb, zf, zb):
+    """Hexagono aplanado de la oreja, antihorario visto desde arriba (de +X hacia -Z)."""
+    w, zc = xb - xa, (zf + zb) / 2
+    return [(xb, y, zc), (xb - 0.25 * w, y, zf), (xa + 0.25 * w, y, zf), (xa, y, zc), (xa + 0.25 * w, y, zb),
+            (xb - 0.25 * w, y, zb)]
+
+
+def oreja_malla(T, escala=1.0, z=0.0, hondo=1.0):
+    """La oreja derecha (+X): anillos que se angostan y una punta. escala/z/hondo sirven para el adentro rosa."""
+    from .. import malla as geo
+    cx = (OREJA_ANILLOS[0][1] + OREJA_ANILLOS[0][2]) / 2
+    anillos = []
+    for dy, xa, xb, zf, zb in OREJA_ANILLOS:
+        anillos.append(_anillo_oreja(T + dy * escala, cx + (xa - cx) * escala, cx + (xb - cx) * escala,
+                                     z + zf * hondo, z + zb * hondo))
+    px, py, pz = OREJA_PUNTA
+    punta = (cx + (px - cx) * escala, T + py * escala, z + pz * hondo)
+    return geo.unir(geo.loft_puntos(anillos, tapa_arriba=False), geo.piramide(anillos[-1], punta, tapa=False))
 
 
 def orejas(p, T):
-    """Orejas de zorro grandes y en punta: nacen al ras del costado de la cabeza (el borde de afuera sigue la linea
-    del costado) y se angostan hacia adentro hasta la punta, a media cabeza; el adentro rosa adelante."""
+    from .. import malla as geo
     g = "Head/orejas"
-    afuera = 5.5
-    for s in (1, -1):
-        y = T + 0.4
-        for k, (ancho, alto) in enumerate(((5.0, 1.0), (4.4, 1.0), (3.8, 1.0), (3.1, 0.9), (2.4, 0.9), (1.6, 0.8),
-                                           (0.9, 0.7))):
-            a, b = sorted((s * (afuera - 0.25 * k), s * (afuera - 0.25 * k - ancho)))
-            p.caja(g, f"oreja{s}_{k}", (a, y, -0.6), (b, y + alto, 0.8), liso(PELO["b"]), dens=D,
-                   rot=(-6, 0, 0), piv=(s * 3.0, T + 0.4, 0.2))
-            if k < 6:
-                c, d = sorted((s * (afuera - 0.25 * k - 0.6), s * (afuera - 0.25 * k - ancho + 0.9)))
-                p.caja(g, f"adentro{s}_{k}", (c, y + 0.1, -0.75), (d, y + alto, -0.6), liso(ROSA_OREJA), dens=D,
-                       rot=(-6, 0, 0), piv=(s * 3.0, T + 0.4, 0.2))
-            y += alto
-
-
-def _inclinar(c, piv, rz):
-    """Lleva un cubo suelto al giro de la oreja: mueve su centro alrededor de piv y le suma el giro en Z."""
-    import math
-    a = math.radians(rz)
-    cx, cy = [(c.desde[i] + c.hasta[i]) / 2 for i in range(2)]
-    dx, dy = cx - piv[0], cy - piv[1]
-    nx, ny = piv[0] + dx * math.cos(a) - dy * math.sin(a), piv[1] + dx * math.sin(a) + dy * math.cos(a)
-    for i, d in ((0, nx - cx), (1, ny - cy)):
-        c.desde[i] += d
-        c.hasta[i] += d
-    c.origen = [nx, ny, c.origen[2]]
-    c.rot = [c.rot[0], c.rot[1], c.rot[2] + rz] if c.rot else [0, 0, rz]
+    cx = (OREJA_ANILLOS[0][1] + OREJA_ANILLOS[0][2]) / 2
+    giro, piv = (8, 0, -8), (cx, T + 0.4, 0.1)                # un poco hacia atras y abierta hacia afuera
+    afuera = geo.girar(oreja_malla(T), giro, piv)
+    adentro = geo.girar(oreja_malla(T + 0.35, escala=0.68, z=-0.55, hondo=0.45), giro, piv)
+    p.malla_par(g, "oreja", afuera, faceta(), dens=D)
+    p.malla_par(g, "adentro", adentro, faceta(paleta=ROSA), dens=D)
 
 
 def pestanas(p, C):
@@ -399,7 +402,7 @@ CAPUCHA = ((7.2, 0.9, 0.3, 2.2), (7.9, 2.0, 0.55, 2.4), (9.0, 2.6, 0.72, 2.55), 
 ORILLA = ((0.1, 9.55), (2.15, 10.85), 0.28)              # la orilla de la capucha en el pecho: de, a, medio ancho
 
 
-def _rect(y, mx, mz, r, n=2, cz=0.0):
+def _rect(y, mx, mz, r, n=2, cz=0.0, cx=0.0):
     """Rectangulo de esquinas redondas en pocos tramos (low-poly), antihorario visto desde arriba (de +X hacia -Z)."""
     import math
     r = min(r, mx - 0.05, mz - 0.05)
@@ -407,7 +410,7 @@ def _rect(y, mx, mz, r, n=2, cz=0.0):
     for sx, sz, a0 in ((1, -1, 0), (-1, -1, 90), (-1, 1, 180), (1, 1, 270)):
         for k in range(n + 1):
             a = math.radians(a0 + 90 * k / n)
-            pts.append((sx * (mx - r) + r * math.cos(a), y, cz + sz * (mz - r) - r * math.sin(a)))
+            pts.append((cx + sx * (mx - r) + r * math.cos(a), y, cz + sz * (mz - r) - r * math.sin(a)))
     return pts
 
 
@@ -562,6 +565,47 @@ def cola(p):
                    rot=((i * 37 + k * 11) % 60 - 30, (i * 53 + k * 7) % 60 - 30, (i * 29 + k * 13) % 60 - 30), dens=D)
 
 
+# las piernas, un poquito mas largas: todo lo de arriba sube esto (ver subir)
+PIERNA_EXTRA = 0.6
+# el pantalon negro (otro negro que la sudadera, para que se distingan), cada pierna: (y, medio ancho, esquina)
+PANTALON = ((1.95, 1.33, 0.4), (3.2, 1.35, 0.4), (4.6, 1.33, 0.4), (5.0 + PIERNA_EXTRA, 1.36, 0.4))
+DOBLADILLO = (1.35, 1.95, 1.48, 0.45)                  # el dobladillo enrollado abajo: de y a y, medio ancho, esquina
+GRIS_NEGRO = ((0.34, "#1C1C21"), (0.5, "#26262C"), (0.66, "#313138"), (9.0, "#3C3C45"))
+
+
+def pantalon(p):
+    from .. import malla as geo
+    tela = faceta(paleta=GRIS_NEGRO)
+    for s in (1, -1):
+        g = f"{'RightLeg' if s > 0 else 'LeftLeg'}/ropa"
+        cx = s * 1.3
+        p.malla(g, "pantalon", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y, m, r in PANTALON]), tela, dens=D)
+        ya, yb, m, r = DOBLADILLO
+        p.malla(g, "dobladillo", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y in (ya, yb)]),
+                faceta(0.08, GRIS_NEGRO), dens=D)
+
+
+def subir(p, dy, quedan=("RightLeg", "LeftLeg")):
+    """Sube dy todo lo que no es de las piernas (con sus pivotes; la cadera tambien), y cada pieza se sigue pintando
+    igual (su pintor la ve donde estaba): asi las piernas quedan mas largas sin mover nada mas."""
+    from .bashi import _bajar
+    m = p.m
+    for c in m.cubos:
+        if c.hueso.split("/")[0] not in quedan:
+            c.desde[1] += dy
+            c.hasta[1] += dy
+            c.origen[1] += dy
+            c.pintor = _bajar(c.pintor, dy)
+    for ma in m.mallas:
+        if ma.hueso.split("/")[0] not in quedan:
+            ma.vertices = [(x, y + dy, z) for x, y, z in ma.vertices]
+            ma.grupos = [(_bajar(pin, dy), poli) for pin, poli in ma.grupos]
+    for k, v in list(m.pivotes.items()):
+        if k.split("/")[0] not in quedan or "/" not in k:
+            m.pivotes[k] = (v[0], v[1] + dy, v[2])
+    p.lh, p.cuello, p.tope = p.lh + dy, p.cuello + dy, p.tope + dy
+
+
 def construir():
     p = Personaje("moles", altura=21, cabeza=CABEZA_ALTO, torso=(5.6, 6, 3.2), brazo=(2.0, 2.0), pierna=(2.4, 2.4))
     C, T, L = p.cuello, p.tope, p.lh                           # 11, 21, 5
@@ -570,6 +614,7 @@ def construir():
     p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA, luz=False)   # sin sombra en la cara
     pestanas(p, C)
     pelo(p, C, T)
+    orejas(p, T)
 
     p.caja("Body/cuerpo", "torso", (-2.8, L, -1.6), (2.8, C, 1.6), piel, dens=D, luz=False)
     for s in (1, -1):
@@ -578,9 +623,11 @@ def construir():
         p.caja(f"{hueso}/brazo", "brazo", (x1, L - 1.9, -1.0), (x2, C, 1.0), piel, dens=D, luz=False)
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         x1, x2 = sorted((s * 0.1, s * 2.5))
-        p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L, 1.2), piel, dens=D, luz=False)
+        p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L + PIERNA_EXTRA, 1.2), piel, dens=D, luz=False)
         b1, b2 = sorted((s * 0.0, s * 2.8))
         p.caja(f"{hueso}/pata", "pata", (b1, 0.0, -1.8), (b2, 1.4, 1.4), pata, dens=D, luz=False)
     ropa(p, C, L)
+    pantalon(p)
     cola(p)
+    subir(p, PIERNA_EXTRA)
     return p
