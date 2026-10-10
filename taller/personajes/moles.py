@@ -117,70 +117,83 @@ def pata(t):
     return piel(t)
 
 
+TONOS_MECHON = ("b", "l", "b", "s", "l", "b")             # cada mechon con su tono liso (se separan entre si)
+
+
+def liso(col):
+    c = hex_(col)
+    return lambda t: c
+
+
+def mechon(p, nombre, x0, x1, z0, z1, abajo, arriba, k, onda=0.0, eje="x"):
+    """Un mechon de bloque que cuelga de 'arriba' a 'abajo' en tres tramos; con onda cada tramo se corre a un lado y
+    al otro (se ve ondulado). eje: hacia donde se corre ('x' adelante/atras, 'z' en los costados)."""
+    tono = liso(PELO[TONOS_MECHON[k % len(TONOS_MECHON)]])
+    largo = (arriba - abajo) / 3
+    for i in range(3):
+        d = onda * (0, 1, -1)[i]
+        dx, dz = (d, 0) if eje == "x" else (0, d)
+        y1, y0 = arriba - i * largo, arriba - (i + 1) * largo
+        p.caja("Head/pelo", f"{nombre}_{i}", (x0 + dx, y0, z0 + dz), (x1 + dx, y1 + 0.02, z1 + dz), tono, dens=D)
+
+
 def pelo(p, C, T):
+    """El pelo rubio en mechones lisos (cada uno de su tono): el casco, el flequillo disparejo arriba de los ojos,
+    los mechones de adelante que enmarcan la cara (ondulados), los costados en mechones, y atras la melena que
+    termina recta en la nuca con una capa de arriba mas corta al medio."""
     g = "Head/pelo"
-    # casco redondeado: tres escalones que se angostan hacia arriba
-    for k, (ancho, y0, y1) in enumerate(((6.1, T - 2.6, T + 0.6), (5.5, T + 0.6, T + 1.4), (4.4, T + 1.4, T + 1.9))):
-        p.caja(g, f"casco{k}", (-ancho, y0, -ancho + 0.1), (ancho, y1, ancho), PELO_TEX, dens=D)
-    # volumen a los costados: bloques que bajan en escalon
+    p.caja(g, "casco", (-5.5, T - 2.8, -5.5), (5.5, T + 0.5, 5.5), liso(PELO["b"]), dens=D)
+    p.caja(g, "casco_alto", (-4.8, T + 0.5, -4.8), (4.8, T + 1.0, 4.8), liso(PELO["l"]), dens=D)
+    k = 0
+    # flequillo: arriba de las cejas, disparejo
+    ancho = 11.0 / 8
+    for i, abajo in enumerate((5.9, 6.4, 5.6, 6.2, 5.5, 6.3, 5.8, 6.5)):
+        x = -5.5 + i * ancho
+        z0 = -6.0 if i % 2 else -5.8
+        mechon(p, f"fleco{i}", x, x + ancho, z0, -5.4, C + abajo, T + 0.4, k)
+        k += 1
     for s in (1, -1):
-        for k, (x0, x1, y0, z0, z1) in enumerate(((5.0, 6.4, C + 1.0, -4.4, 4.8), (5.8, 6.9, C + 3.2, -3.6, 3.6))):
-            a, b = sorted((s * x0, s * x1))
-            p.caja(g, f"costado{s}_{k}", (a, y0, z0), (b, T - 1.0, z1), PELO_TEX, dens=D)
-        for k, (z0, abajo) in enumerate(((-4.4, C - 0.6), (-1.6, C - 1.4), (1.4, C - 0.8))):   # puntas del costado
-            a, b = sorted((s * 5.0, s * 6.3))
-            p.caja(g, f"punta{s}_{k}", (a, abajo, z0), (b, C + 1.0, z0 + 2.6), PELO_TEX, dens=D)
-    # melena de atras: un bloque ancho que llega a la nuca con puntas, y dos mechones largos en las esquinas
-    for k, abajo in enumerate((C + 0.6, C + 1.2, C + 0.3, C + 1.0, C + 0.5, C + 1.3, C + 0.4, C + 1.1, C + 0.7)):
-        x = -6.4 + k * (12.8 / 9)
-        p.caja(g, f"atras{k}", (x, abajo, 3.8), (x + 12.8 / 9, T - 0.6, 6.7), PELO_TEX, dens=D)
-    for s in (1, -1):
-        a, b = sorted((s * 4.6, s * 6.5))
-        p.caja(g, f"cola_pelo{s}", (a, C - 3.4, 4.0), (b, C + 1.5, 6.5), PELO_TEX, dens=D)
-    # flequillo: mechones gruesos de distinto largo; un par baja entre los ojos
-    ancho = 11.2 / 8
-    for k, abajo in enumerate((C + 3.6, C + 5.6, C + 6.1, C + 4.9, C + 5.0, C + 6.2, C + 5.7, C + 3.6)):
-        x = -5.6 + k * ancho
-        p.caja(g, f"fleco{k}", (x, abajo, -6.7), (x + ancho, T + 0.2, -5.0), PELO_TEX, dens=D)
-    p.caja(g, "fleco_esponja", (-6.0, T - 1.6, -7.2), (6.0, T + 0.7, -5.0), PELO_TEX, dens=D)   # el copete esponjado
-    # mechones largos adelante que enmarcan la cara y bajan hasta el pecho
-    for s in (1, -1):
-        for k, (x0, x1, abajo) in enumerate(((5.0, 6.5, C - 3.6), (4.2, 5.3, C - 1.2))):
-            a, b = sorted((s * x0, s * x1))
-            p.caja(g, f"mechon{s}_{k}", (a, abajo, -6.7), (b, T - 1.5, -3.8), PELO_TEX, dens=D)
+        # mechones de adelante, a los lados de la cara, ondulados
+        for i, (xa, xb, abajo) in enumerate(((4.3, 5.5, C - 1.0), (5.3, 6.3, C + 0.4))):
+            a, b = sorted((s * xa, s * xb))
+            mechon(p, f"lado_frente{s}_{i}", a, b, -6.0, -4.4, abajo, T - 0.5, k, onda=0.3 * s)
+            k += 1
+        # costados: mechones a lo largo, cada uno de su largo
+        for i, (za, zb, abajo) in enumerate(((-4.4, -2.6, C + 1.6), (-2.6, -0.8, C + 2.4), (-0.8, 1.0, C + 1.4),
+                                              (1.0, 2.8, C + 2.2), (2.8, 4.6, C + 1.2))):
+            a, b = sorted((s * 5.5, s * 6.3))
+            mechon(p, f"costado{s}_{i}", a, b, za, zb, abajo, T - 0.3, k, onda=0.2 * (1 if i % 2 else -1), eje="z")
+            k += 1
+    # atras: la capa de abajo termina recta en la nuca; la de arriba es mas corta al medio (forma de trapecio)
+    ancho = 11.0 / 7
+    for i in range(7):
+        x = -5.5 + i * ancho
+        mechon(p, f"nuca{i}", x, x + ancho, 5.5, 6.2, C + 0.8, T - 0.3, k)
+        k += 1
+        medio = abs(i - 3) / 3                                   # 0 al medio, 1 en las orillas
+        mechon(p, f"capa{i}", x + 0.05, x + ancho - 0.05, 6.1, 6.7, C + 4.6 - 2.6 * medio, T - 0.2, k + 1)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
 
 
 def orejas(p, T):
-    """Orejas grandes, redondeadas y esponjosas en las esquinas de arriba, abiertas hacia afuera: escalones crema,
-    el adentro rosa con pelusa blanca y copos de pelo en el borde."""
+    """Orejas de zorro grandes, altas y en punta, en las esquinas de arriba, abiertas hacia afuera: escalones que se
+    angostan hasta la punta, con el adentro rosa adelante."""
     g = "Head/orejas"
     for s in (1, -1):
-        cx = s * 4.1
-        piv = (cx, T + 1.0, 0.6)
-        giro = dict(rot=(-8, 0, -32 * s), piv=piv)
-        y = T + 0.6
-        for k, (ancho, alto) in enumerate(((4.8, 2.0), (4.4, 1.6), (3.6, 1.4), (2.4, 1.0))):
-            p.caja(g, f"oreja{s}_{k}", (cx - ancho / 2, y, -0.2), (cx + ancho / 2, y + alto, 1.4), PELO_TEX,
+        cx = s * 3.3
+        giro = dict(rot=(-6, 0, -14 * s), piv=(cx, T + 0.6, 0.2))
+        y = T + 0.4
+        for k, (ancho, alto) in enumerate(((5.0, 1.0), (4.5, 1.0), (3.9, 1.0), (3.2, 0.9), (2.5, 0.9), (1.7, 0.8),
+                                           (0.9, 0.7))):
+            p.caja(g, f"oreja{s}_{k}", (cx - ancho / 2, y, -0.6), (cx + ancho / 2, y + alto, 0.8), liso(PELO["b"]),
                    dens=D, **giro)
+            if k < 6:
+                w = ancho - 1.6
+                p.caja(g, f"adentro{s}_{k}", (cx - w / 2, y + 0.1, -0.75), (cx + w / 2, y + alto, -0.6),
+                       liso(ROSA_OREJA), dens=D, **giro)
             y += alto
-        p.caja(g, f"adentro{s}", (cx - 1.5, T + 1.4, -0.35), (cx + 1.5, T + 5.0, -0.2), oreja_adentro, dens=D, **giro)
-        # pelusa blanca que sale de adentro, abajo
-        for k, (dx, dy, l) in enumerate(((-0.9, 1.2, 1.3), (0.3, 1.0, 1.5), (1.1, 1.6, 1.1), (-0.3, 2.2, 1.0))):
-            x0, y0 = cx + dx, T + dy
-            p.caja(g, f"pelusa{s}_{k}", (x0 - l / 2, y0 - l / 2, -0.9), (x0 + l / 2, y0 + l / 2, -0.15),
-                   voxel(PELUSA, claro=0.2), rot=(0, 0, (k * 27) % 40 - 20 - 32 * s), piv=(x0, y0, -0.5), dens=D)
-        # copos de pelo en el borde de afuera: lo vuelven redondo y esponjoso
-        for k, (dx, dy, l) in enumerate(((2.4, 1.8, 1.2), (2.2, 3.4, 1.1), (1.5, 4.8, 1.0), (0.2, 5.9, 1.1),
-                                         (-1.4, 4.9, 1.0), (-2.3, 3.3, 1.1), (-2.5, 1.7, 1.2))):
-            x0, y0 = cx + dx, T + dy
-            p.caja(g, f"copo{s}_{k}", (x0 - l / 2, y0 - l / 2, -0.05), (x0 + l / 2, y0 + l / 2, 1.25),
-                   PELO_TEX, rot=(0, 0, (k * 31) % 50 - 25), piv=(x0, y0, 0.6), dens=D)
-            # los copos giran con la oreja: se arman en su lugar ya inclinado
-        for c in p.m.cubos[-7:]:
-            _inclinar(c, piv, -32 * s)
 
 
 def _inclinar(c, piv, rz):
