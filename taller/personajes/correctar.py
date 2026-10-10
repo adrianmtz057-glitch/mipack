@@ -382,3 +382,9 @@ def construir():
     bata_y_falda(p)
     detalles(p)
     return p
+
+
+def construir_chibi():
+    """La version chibi (cabeza grande, cuerpo chico y achaparrado), del mismo modelo."""
+    from .chibi import achibar
+    return achibar(construir(), como_cabeza=("Body/cristales",))
