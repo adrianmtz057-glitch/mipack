@@ -4,8 +4,9 @@ Luz horneada: le da volumen a CUALQUIER modelo (cubos, planos y mallas) sin sabe
 Despues de que el pintor de una cara da el color de cada texel, el motor lo corre unos PASOS de su propia rampa
 (hue shifting: la sombra se va hacia el azul/violeta y se satura, la luz se va hacia el amarillo) segun la geometria
 de todo el modelo, en pose de reposo:
-  - oclusion de contacto: donde otra pieza tapa el cielo del texel (pelo sobre la frente, ropa sobre el cuerpo,
-    el cuello bajo la cabeza, entre las piernas...)
+  - oclusion de contacto: donde otra pieza DEL MISMO HUESO tapa el cielo del texel (pelo sobre la frente, ropa
+    sobre el cuerpo...). Entre huesos no hay sombra: la cabeza, los brazos y las piernas se mueven por separado
+    al caminar y una sombra de uno sobre otro quedaria pintada fuera de lugar
   - sombra proyectada de una luz que viene de arriba, un poco de frente y de la derecha del personaje
   - canto con luz arriba y contorno abajo en cada cara de costado
 La oclusion y la sombra se calculan en una grilla gruesa sobre cada cara y se interpolan, asi las bandas salen
@@ -106,13 +107,14 @@ CARA_DE_EJE = (("west", "east"), ("down", "up"), ("north", "south"))   # (cara d
 
 class _Caja:
     """Un cubo (o plano) del modelo. Un rayo solo choca donde la cara tiene un texel opaco."""
-    __slots__ = ("lo", "hi", "R", "o", "alo", "ahi", "dueno", "caras", "opaco")
+    __slots__ = ("lo", "hi", "R", "o", "alo", "ahi", "dueno", "caras", "opaco", "hueso")
 
     def __init__(self, c, opaco):
         from .modelo import esquinas            # aca y no arriba: modelo.py importa este modulo
         lo, hi, o = tuple(c.desde), tuple(c.hasta), tuple(c.origen)
         R = rot_matriz(*c.rot) if c.rot else None
         self.lo, self.hi, self.R, self.o, self.dueno, self.opaco = lo, hi, R, o, id(c), opaco
+        self.hueso = c.hueso.split("/")[0]
         self.caras = {}
         for cara in c.caras:
             tl, tr, bl = esquinas(lo, hi, cara)
@@ -161,7 +163,7 @@ class _Caja:
 
 class _Tri:
     """Un triangulo de una malla, con su UV para saber si donde choca el rayo es opaco."""
-    __slots__ = ("a", "e1", "e2", "alo", "ahi", "dueno", "uv", "opaco")
+    __slots__ = ("a", "e1", "e2", "alo", "ahi", "dueno", "uv", "opaco", "hueso")
 
     def __init__(self, a, b, c, uv, dueno, opaco):
         self.a, self.dueno, self.uv, self.opaco = a, dueno, uv, opaco
@@ -258,7 +260,13 @@ class Luz:
                 vs = [m.vertices[i] for i in cara]
                 uv = uvs[id(m)][k]
                 for j in range(1, len(vs) - 1):
-                    self.piezas.append(_Tri(vs[0], vs[j], vs[j + 1], (uv[0], uv[j], uv[j + 1]), id(m), opaco))
+                    t = _Tri(vs[0], vs[j], vs[j + 1], (uv[0], uv[j], uv[j + 1]), id(m), opaco)
+                    t.hueso = m.hueso.split("/")[0]
+                    self.piezas.append(t)
+        # de que hueso es cada pieza: solo se hacen sombra las del mismo hueso (un brazo, una pierna, la cabeza y
+        # el cuerpo se mueven por separado al caminar; una sombra de una sobre otra quedaria pintada fuera de lugar)
+        self.hueso_de = {id(c): c.hueso.split("/")[0] for c in modelo.cubos}
+        self.hueso_de.update({id(m): m.hueso.split("/")[0] for m in modelo.mallas})
 
     # ---------------------------------------------------------- una cara
     def cara(self, pos, n, ancho, alto, dueno, lateral, filas, cruza=None, n_luz=None):
@@ -277,14 +285,15 @@ class Luz:
         zs = [p[2] for fila in puntos for p in fila]
         lo, hi = (min(xs), min(ys), min(zs)), (max(xs), max(ys), max(zs))
         R = RADIO_OCLUSION
-        cerca = [q for q in self.piezas if not (isinstance(q, _Caja) and q.dueno == dueno)
+        hueso = self.hueso_de.get(dueno)
+        cerca = [q for q in self.piezas if not (isinstance(q, _Caja) and q.dueno == dueno) and q.hueso == hueso
                  and _solapa((lo[0] - R, lo[1] - R, lo[2] - R), (hi[0] + R, hi[1] + R, hi[2] + R), q.alo, q.ahi)]
         mira_luz = _punto(_norm(n_luz) if n_luz else n, L)
         sombra_de = []
         if mira_luz > 0.05:
             fin_lo = tuple(min(lo[i], lo[i] + L[i] * LARGO_SOMBRA) for i in range(3))
             fin_hi = tuple(max(hi[i], hi[i] + L[i] * LARGO_SOMBRA) for i in range(3))
-            sombra_de = [q for q in self.piezas if not (isinstance(q, _Caja) and q.dueno == dueno)
+            sombra_de = [q for q in self.piezas if not (isinstance(q, _Caja) and q.dueno == dueno) and q.hueso == hueso
                          and _solapa(fin_lo, fin_hi, q.alo, q.ahi)]
         # marco de la cara para girar los rayos fijos
         t1 = _norm(_cruz(n, (0, 1, 0)) if abs(n[1]) < 0.9 else _cruz(n, (1, 0, 0)))
