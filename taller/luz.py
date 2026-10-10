@@ -251,6 +251,8 @@ class Luz:
             return True
         self.piezas = [_Caja(c, opaco) for c in modelo.cubos if c.luz]       # luz=False: no hace sombra
         for m in modelo.mallas:
+            if not m.luz:                                                     # luz=False: no hace sombra
+                continue
             for k, cara in enumerate(m.caras):
                 vs = [m.vertices[i] for i in cara]
                 uv = uvs[id(m)][k]

@@ -102,10 +102,11 @@ class Malla:
     Cada poligono original (grupo) tiene su pintor y su rectangulo en el atlas, proyectado sobre su plano:
     la textura nunca se estira aunque la cara este inclinada, y los triangulos de un mismo poligono
     comparten textura."""
-    __slots__ = ("nombre", "hueso", "vertices", "caras", "grupo", "grupos", "normales", "lado", "dens")
+    __slots__ = ("nombre", "hueso", "vertices", "caras", "grupo", "grupos", "normales", "lado", "dens", "luz")
 
-    def __init__(self, nombre, hueso, vertices, lado=1, dens=1):
+    def __init__(self, nombre, hueso, vertices, lado=1, dens=1, luz=True):
         self.nombre, self.hueso, self.lado, self.dens = nombre, hueso, lado, dens
+        self.luz = luz           # False: como en los cubos, la luz horneada no la toca y no hace sombra
         self.vertices = [tuple(float(c) for c in v) for v in vertices]
         self.caras = []          # triangulos y quads que se exportan
         self.grupo = []          # por cara: indice del grupo (poligono original)
@@ -121,7 +122,7 @@ class Modelo:
         self.pivotes = dict(HUESOS)
         self.luz = True          # luz horneada (taller/luz.py): volumen con sombras y cantos de luz
 
-    def malla(self, hueso, nombre, vertices, caras, pintor, lado=1, dens=1):
+    def malla(self, hueso, nombre, vertices, caras, pintor, lado=1, dens=1, luz=True):
         """Malla de caras planas antihorarias vistas desde afuera. Una cara puede tener 3, 4 o mas vertices
         (los poligonos de 5+ o concavos se triangulan; un quad torcido se parte en dos triangulos).
         pintor: uno para todas las caras o una lista (uno por cara)."""
@@ -129,7 +130,7 @@ class Modelo:
         pintores = pintor if isinstance(pintor, (list, tuple)) else [pintor] * len(caras)
         if len(pintores) != len(caras):
             raise ValueError(f"{nombre}: {len(pintores)} pintores para {len(caras)} caras")
-        m = Malla(nombre, hueso, vertices, lado, dens)
+        m = Malla(nombre, hueso, vertices, lado, dens, luz)
         vs = m.vertices
 
         def grupo_nuevo(pin, poli, tris):
@@ -161,7 +162,7 @@ class Modelo:
         self.mallas.append(m)
         return m
 
-    def malla_par(self, hueso, nombre, vertices, caras, pintor, dens=1):
+    def malla_par(self, hueso, nombre, vertices, caras, pintor, dens=1, luz=True):
         """Malla del lado DERECHO (+X) que se copia en espejo a la izquierda (hueso Left...)."""
         for lado in (1, -1):
             h = hueso if lado == 1 else ESPEJO_HUESO.get(hueso.split("/")[0], hueso.split("/")[0])
@@ -169,7 +170,7 @@ class Modelo:
                 h += "/" + hueso.split("/", 1)[1]
             vs, cs = (vertices, caras) if lado == 1 else geo.espejo_x((vertices, caras))
             pint = pintor if lado == 1 or not isinstance(pintor, (list, tuple)) else list(pintor)
-            self.malla(h, f"{nombre}_{'der' if lado == 1 else 'izq'}", vs, cs, pint, lado=lado, dens=dens)
+            self.malla(h, f"{nombre}_{'der' if lado == 1 else 'izq'}", vs, cs, pint, lado=lado, dens=dens, luz=luz)
 
     def huesos_usados(self):
         return {e.hueso.split("/")[0] for e in list(self.cubos) + list(self.mallas)}
@@ -382,7 +383,7 @@ class Modelo:
                                       u1 > u2, v1 > v2))
             uvs[id(c)] = uvc
         for m in self.mallas:
-            cantos = self._cantos_malla(m) if self.luz else None
+            cantos = self._cantos_malla(m) if self.luz and m.luz else None
             xs, ys, zs = zip(*m.vertices)
             tx.f, tx.t, tx.nombre, tx.lado = (min(xs), min(ys), min(zs)), (max(xs), max(ys), max(zs)), m.nombre, m.lado
             marcos = []
@@ -402,7 +403,7 @@ class Modelo:
                         tx.z = d * n[2] + s * der[2] - t * arr[2]
                         tx.i, tx.j = ix, jy
                         lienzo.poner(ux + ix, uy + jy, pintor(tx) if pintor else TRANSPARENTE)
-                if self.luz:
+                if self.luz and m.luz:
                     # en la malla la textura no se da vuelta: s y r salen directo de la columna y la fila
                     marco = self._marco_luz_malla(m, g, d, n, der, arr, s0, t0, w, h, cantos)
                     caras_luz.append((marco[:6] + (th, marco[6], marco[7]), ux, uy, tw, th, False, False))

@@ -489,7 +489,8 @@ def cristales(p):
         ((-1.0, BANDA_Y[1] - 0.2, -4.0), 1.6, 0.7, 0.5, (-30, -15, -8), CRISTAL),
     )
     for k, (base, alto, ancho, hondo, rot, rampa) in enumerate(lista):
-        p.malla(G, f"cristal{k}", _cristal(base, alto, ancho, hondo, rot, rampa, k), pintor_cristal(rampa), dens=D)
+        p.malla(G, f"cristal{k}", _cristal(base, alto, ancho, hondo, rot, rampa, k), pintor_cristal(rampa), dens=D,
+                luz=False)                                       # ya trae sus caras con luz y brillo pintados
     p.caja(G, "piedra_beige", (-4.0, BANDA_Y[1] - 0.5, -3.6), (-2.9, BANDA_Y[1] + 0.5, -2.5), plano(BEIGE),
            rot=(0, 18, 8), piv=(-3.45, BANDA_Y[1] - 0.5, -3.05), dens=D)
     p.caja(G, "piedra_mostaza", (-5.6, ALA_Y - 0.3, -1.2), (-4.6, ALA_Y + 0.6, -0.1), plano(MOSTAZA),

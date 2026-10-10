@@ -4,8 +4,8 @@ cara y las cuatro vistas).
 
 Lo que lleva, de adentro hacia afuera:
   CABEZA: no es un cubo: la cara plana adelante con los pomulos cortados en diagonal hacia los costados y la
-    quijada que se angosta en una barbilla mas chica (densidad 8: la cara es un pixel art), piel durazno lisa, sin
-    sombras (solo el contorno de la cuenca del ojo grande, la boca y las arrugas de la risa). Arriba, a los costados y en la nuca va pintado el pelo de mas adentro (gris oscuro), asi entre
+    quijada que se angosta en una barbilla mas chica (densidad 8: la cara es un pixel art), piel blanca durazno con
+    textura de bloques y la sombra y el brillo pintados a mano (la cara no lleva luz horneada: el ala no la oscurece). Arriba, a los costados y en la nuca va pintado el pelo de mas adentro (gris oscuro), asi entre
     mechon y mechon nunca se ve piel.
   OJO DERECHO (a la izquierda de quien lo ve): enorme, cuadrado y que BRILLA: un lente en 3D con las esquinas
     cortadas que sale de la cara, con contorno cian oscuro, aro cian, un cuadro blanco que sale un poco mas (el ojo
@@ -15,7 +15,7 @@ Lo que lleva, de adentro hacia afuera:
   NARIZ delgada con su forma: nace fina en el puente entre los ojos y baja saliendo hasta la punta redondeada.
   SONRISA chueca y cerrada (la boca cerrada se lee mejor en Minecraft): una raya que sube hacia su izquierda, con
     esa comisura levantada y las arrugas de la risa.
-  PELO gris revuelto en mechones de bloque con hebras de color (sin sombras): una capa pegada a los costados y
+  PELO gris revuelto en mechones de bloque con hebras de color y luz horneada: una capa pegada a los costados y
     a la nuca con las puntas disparejas, otra encima con mechones que se abren hacia afuera (mas locos a su
     derecha), copetes que salen de lado justo bajo el ala y mechones que caen sobre las esquinas de la frente.
   BIGOTE caido en dos mechones de bloque que cuelgan de las comisuras (el de su derecha mas largo) y BARBA corta de
@@ -162,22 +162,54 @@ def hebra(u, k, tono=3):
     return _t(CANAS, tono + PATRON_HEBRAS[(math.floor(u * DC) + 5 * k) % len(PATRON_HEBRAS)])
 
 
+def _mezcla(a, b):
+    ca, cb = hex_(a), hex_(b)
+    return "#%02X%02X%02X" % tuple((x + y) // 2 for x, y in zip(ca[:3], cb[:3]))
+
+
+PIEL_SB = _mezcla(PIEL["s"], PIEL["b"])  # sombra suave de la cara (la cara no lleva luz horneada: va pintada)
+NARIZ_SOMBRA = {(j, i) for j in range(16, 30) for i in (2, 3)} | {(15, i) for i in range(-1, 4)}   # (j, i) a su izquierda
+
+
+def textura_piel(u, v):
+    """La piel con textura de bloques de 2 x 2 texeles: casi todos base y algunos un poco mas claros (patron fijo)."""
+    r = azar(math.floor(u * 4), math.floor(v * 4), 31)
+    return PIEL["m"] if r > 0.85 else PIEL["b"]
+
+
+def sombra_cara(u, v, col):
+    """Sombra y brillo pintados sobre la piel de la cara: la sombra suave bajo el pelo y el ala, la que hace la
+    nariz hacia su izquierda (la luz viene de su derecha) y la del menton; el brillo en los pomulos bajo los ojos."""
+    if col != PIEL["b"] and col not in (PIEL["m"], PIEL_SB):
+        return col                                               # lo pintado (ojos, boca, arrugas) no se toca
+    i, j = math.floor(u * 8), math.floor(v * 8)
+    if j >= 54 or j <= 1 or (j, i) in NARIZ_SOMBRA:
+        return PIEL_SB if j < 60 else PIEL["s"]
+    if (16 <= j <= 18 and -24 <= i <= -10) or (25 <= j <= 27 and 10 <= i <= 22):
+        return PIEL["l"]                                         # brillo en los pomulos
+    return col
+
+
 def piel_cabeza(t):
-    """Pintor de la cabeza: la cara en el frente plano; en los pomulos, piel; arriba, a los costados y atras el pelo
-    de mas adentro (con sus hebras y las puntas disparejas sobre la piel). Sin sombras: piel lisa."""
+    """Pintor de la cabeza: la cara en el frente plano, con textura, sombra y brillo pintados; los pomulos cortados
+    en sombra suave; arriba, a los costados y atras el pelo de mas adentro (con sus hebras y las puntas disparejas
+    sobre la piel)."""
     nx, ny, nz = t.n
     v = t.y - C
     if nz < -0.95:
-        return hex_(cara(-t.x, v))
+        col = cara(-t.x, v)
+        if col == PIEL["b"]:
+            col = textura_piel(-t.x, v)
+        return hex_(sombra_cara(-t.x, v, col))
     if ny > 0.6:
         return hex_(hebra(t.x, 1, 2))
     if ny < -0.6:
-        return hex_(PIEL["b"])
+        return hex_(PIEL["s"])
     u = t.x if abs(nz) > abs(nx) else t.z
     if t.z < -2.5:                                               # los pomulos y la sien
-        return hex_(hebra(u, 2, 2) if v > 6.25 else PIEL["b"])
+        return hex_(hebra(u, 2, 2) if v > 6.25 else PIEL_SB)
     borde = 0.5 + _disparejo(t.z, 1 if nx > 0 else 2) if t.z < -1.0 else -1.0
-    return hex_(hebra(u, 3, 2) if v > borde else PIEL["b"])
+    return hex_(hebra(u, 3, 2) if v > borde else PIEL["s"])
 
 
 # ---------------------------------------------------------------------------------------------- el ojo grande
@@ -228,7 +260,7 @@ def blanco(t):
 
 def ojo_grande(p):
     g = f"{G}/ojo"
-    p.malla(g, "lente", geo.extruir(_lente_perfil(), *LENTE_Z), lente, dens=DC)
+    p.malla(g, "lente", geo.extruir(_lente_perfil(), *LENTE_Z), lente, dens=DC, luz=False)
     x0, x1, y0, y1 = LENTE
     m = 0.5                                                      # el blanco ocupa 12 de los 20 texeles
     p.caja(g, "blanco", (x0 + m, y0 + m, BLANCO_Z), (x1 - m, y1 - m, LENTE_Z[0] + 0.05), blanco, dens=DC,
@@ -285,7 +317,7 @@ def ceja(t):
 
 def facciones(p):
     g = f"{G}/cara"
-    p.malla(g, "nariz", nariz_malla(), nariz, dens=DC)
+    p.malla(g, "nariz", nariz_malla(), nariz, dens=DC, luz=False)
     p.caja(g, "parpado", *PARPADO, parpado, dens=DC, luz=False)
     for nombre, (a, b, giro) in (("ceja_der", CEJA_DER), ("ceja_izq", CEJA_IZQ)):
         centro = tuple((a[k] + b[k]) / 2 for k in range(3))
@@ -321,7 +353,7 @@ def mechon(p, nombre, raiz, lado, ancho, largo, grueso=0.5, abre=0.0, abanico=0.
             desde, hasta, rot = (x - an / 2, y - la, z), (x + an / 2, y + (0.15 if n != nombre else 0), z + gr), (-ab, 0, abn)
         else:
             desde, hasta, rot = (x - an / 2, y - la, z - gr), (x + an / 2, y + (0.15 if n != nombre else 0), z), (ab, 0, abn)
-        p.caja(g, n, desde, hasta, pintor_mechon(tn, k), rot=rot, piv=r, dens=DC, luz=False)
+        p.caja(g, n, desde, hasta, pintor_mechon(tn, k), rot=rot, piv=r, dens=DC)
         return rot
 
     rot = caja(nombre, raiz, ancho, largo, grueso, abre, abanico, tono)
@@ -385,7 +417,7 @@ def _raiz(lado, w, y, fuera):
 
 
 def pelo(p):
-    """El pelo gris revuelto en capas de mechones de bloque (sin luz: sin sombras adentro), como una nube de bloques
+    """El pelo gris revuelto en capas de mechones de bloque (con luz horneada: sombra entre mechones), como una nube de bloques
     que sale por debajo del ala: una capa pegada a los costados y a la nuca, colgando derecho con las puntas
     disparejas; la capa del medio, de mechones anchos que bajan abriendose (le dan el bulto); la de afuera, mas abajo,
     con mechones que salen mas de lado; copetes casi horizontales justo bajo el ala; y adelante los mechones que caen
@@ -436,7 +468,7 @@ def bigote_y_barba(p):
     mechon(p, "bigote_izq", (-2.75, 32.0, -4.0), "n", 1.0, 1.25, grueso=0.625, abre=10, abanico=-26, tono=4,
            k=201, largo2=1.0, gira2=12, dobla=-4, grupo="bigote")
     g = f"{G}/barba"
-    p.caja(g, "base", (-1.875, 29.875, -4.375), (1.625, 30.5, -4.0), pintor_mechon(3, 202), dens=DC, luz=False)
+    p.caja(g, "base", (-1.875, 29.875, -4.375), (1.625, 30.5, -4.0), pintor_mechon(3, 202), dens=DC)
     k = 210
     for n, (x, an, la, gr, abn, tn) in enumerate(BARBA):
         mechon(p, f"barba{n}", (x, 30.5, -4.375), "n", an, la, grueso=gr, abre=6, abanico=abn, tono=tn, k=k,
@@ -450,7 +482,7 @@ def bigote_y_barba(p):
 
 # ---------------------------------------------------------------------------------------------- armado
 def cabeza(p):
-    p.malla(f"{G}/cabeza", "cabeza", cabeza_malla(), piel_cabeza, dens=DC)
+    p.malla(f"{G}/cabeza", "cabeza", cabeza_malla(), piel_cabeza, dens=DC, luz=False)
     ojo_grande(p)
     facciones(p)
     pelo(p)

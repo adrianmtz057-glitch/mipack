@@ -7,7 +7,7 @@ Lo que se lee en la hoja:
     ancho), chueco, con la punta doblada hacia un lado y cascabeles dorados colgando del ala y de la punta. Abrigo
     largo que se abre hacia abajo y termina en TIRAS disparejas a la altura de la rodilla; botas grandes y distintas.
     Nada es simetrico.
-  Cabeza: piel durazno, OJO DERECHO enorme cian que brilla (cuadro cian, blanco adentro y pupila cian), ceja gris
+  Cabeza: piel blanca durazno, OJO DERECHO enorme cian que brilla (cuadro cian, blanco adentro y pupila cian), ceja gris
     levantada encima; el izquierdo entrecerrado, con el iris vino; SONRISA chueca abierta con los dientes de arriba;
     nariz de bloque que sale; pelo gris revuelto en mechones de bloque que salen por debajo del ala; bigote y barba
     gris en mechones que cuelgan.
@@ -91,27 +91,29 @@ def _rampa(hexa):
     return r
 
 
-MORADO = _rampa("#5A3566")
-VINO = _rampa("#6B3330")                # cafe vino del sombrero y el abrigo
-OLIVO = _rampa("#7A8634")
-MOSTAZA = _rampa("#A8923E")
-BEIGE = _rampa("#D6C6A0")
-CUERO = _rampa("#7A4226")
-CUERO_OSC = _rampa("#4E2A1A")
-ORO = _rampa("#D9A23C")
-PIEL = _rampa("#C99470")
-CANAS = _rampa("#B8B4AA")               # pelo, cejas, bigote y barba
-CRISTAL = _rampa("#8CC8E8")
-SUELA = _rampa("#2E2226")
+# colores de la paleta de referencias/personajes/bashi_hoja2.png
+MORADO = _rampa("#4F2F51")
+OSCURO = _rampa("#2E2A36")              # gris azulado oscuro: parches, suelas, lo de mas adentro
+OLIVO = _rampa("#636442")
+VINO = _rampa("#442934")                # vino oscuro del sombrero y el abrigo
+BEIGE = _rampa("#B29A84")
+ORO = _rampa("#C08F51")
+MOSTAZA = _rampa("#9A8048")             # entre el olivo y el oro (bloques de la cinta)
+CUERO = _rampa("#6E4A33")
+CUERO_OSC = _rampa("#4A3226")
+PIEL = _rampa("#DDAE8E")                # durazno claro: blanco pero no tanto
+CANAS = _rampa("#B5ADA8")               # pelo, cejas, bigote y barba
+CRISTAL = _rampa("#80C0B8")
+SUELA = OSCURO
 PIEDRA = _rampa("#8A8078")
 
 # lo que brilla (va con luz=False: no le cae sombra)
-CIAN = {"o": "#0E5B66", "s": "#1FA9B0", "b": "#3FE6E0", "l": "#9AF7F2", "h": "#E8FFFD"}
-VIOLETA = {"o": "#2A1260", "s": "#5A34C8", "b": "#8E4FE0", "l": "#B98CFF", "h": "#EBD8FF"}
-AZUL_FRASCO = {"s": "#2C3C9A", "b": "#4E6BE0", "l": "#86A2FF"}
+CIAN = {"o": "#16465A", "s": "#3B91AF", "b": "#59B9C2", "l": "#8FD8CF", "h": "#E6FFFB"}
+VIOLETA = {"o": "#3A2560", "s": "#6A4AA0", "b": "#926DC7", "l": "#B898E6", "h": "#E8DCFF"}
+AZUL_FRASCO = {"s": "#4A3C8C", "b": "#6A5CC0", "l": "#9A8CE6"}
 
-PARCHES_SOMBRERO = (MORADO, VINO, VINO, OLIVO, MOSTAZA, MORADO)
-PARCHES_ABRIGO = (MORADO, MORADO, OLIVO, VINO, BEIGE, OLIVO)
+PARCHES_SOMBRERO = (MORADO, OLIVO, MORADO, VINO, OLIVO, MORADO, OSCURO)
+PARCHES_ABRIGO = (MORADO, MORADO, OLIVO, VINO, OSCURO, OLIVO, BEIGE)
 
 
 # ---------------------------------------------------------------------------------------------- texturas
@@ -200,7 +202,7 @@ def maniqui(p, parte):
 
 def construir(partes=PARTES):
     p = Personaje("bashi", altura=ALTURA, cabeza=CABEZA, torso=TORSO, brazo=BRAZO, pierna=PIERNA)
-    p.m.luz = False                     # sin luz horneada: todo plano, con sus tonos pintados (y se arma rapido)
+    # luz horneada en el sombrero, el pelo, la barba y la ropa; la cara va sombreada a mano (luz=False)
     for parte in PARTES:
         if parte in partes:
             modulo = importlib.import_module(f"{__package__}.bashi_{parte}")
