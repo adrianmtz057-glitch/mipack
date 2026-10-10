@@ -108,15 +108,6 @@ def oreja_adentro(t):
     return hex_(ROSA_OREJA)
 
 
-def pata(t):
-    """Pata blanca con tres almohadillas rosas adelante."""
-    if t.cara == "north" and t.y < 1.1:
-        u = (t.x - t.f[0]) / max(1e-6, t.t[0] - t.f[0])
-        if 0.3 < t.y < 0.9 and any(abs(u - c) < 0.11 for c in (0.22, 0.5, 0.78)):
-            return hex_(RUBOR_FUERTE)
-    return piel(t)
-
-
 def liso(col):
     c = hex_(col)
     return lambda t: c
@@ -322,43 +313,50 @@ def pelo(p, C, T):
     frente(p, C, T)
 
 
-# las orejas de zorro, low-poly como el pelo: nacen al ras del costado de la cabeza (el borde de afuera sigue la linea
-# del costado) y se angostan hacia la punta, a media cabeza; un poco abiertas hacia afuera y con el adentro rosa
-# adelante. Cada anillo de la oreja: (y sobre el tope, x de adentro, x de afuera, z de enfrente, z de atras)
-OREJA_ANILLOS = ((0.4, 0.9, 5.5, -0.75, 0.95), (3.0, 2.3, 5.35, -0.6, 0.8), (4.8, 3.5, 4.95, -0.4, 0.55))
-OREJA_PUNTA = (4.35, 6.0, 0.1)                          # x, y sobre el tope, z
-ROSA = ((0.5, "#E8979A"), (9.0, ROSA_OREJA))
+# las orejas de zorro, a los costados de la cabeza: de 2 de grueso (de enfrente hacia atras) y derechitas (sin
+# inclinar). De frente son una hoja grande que sale de arriba de la cabeza, sube y se abre hacia afuera hasta la punta,
+# y baja por fuera hasta el bulto del pelo. La orilla en picos de pelusa (felpudas) y el adentro crema adelante.
+# Contorno de frente de la oreja derecha (x, y): la orilla de adentro hasta la punta, la de afuera hacia abajo, y la
+# base metida en el pelo
+OREJA_FRENTE = ((1.8, 21.6), (2.0, 22.6), (2.75, 24.3), (3.9, 25.6), (5.35, 26.8), (6.9, 27.7))
+OREJA_ATRAS = ((7.75, 26.5), (8.05, 24.1), (7.95, 21.7), (7.55, 19.3), (6.8, 16.9))
+OREJA_BASE = ((6.0, 16.9), (5.2, 19.5), (4.0, 21.3), (2.8, 21.6))
+OREJA_Z = (-0.6, 1.4)                                    # de enfrente a atras: 2 de grueso
+PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
+CREMA = ((0.5, PELUSA["s"]), (0.66, PELUSA["b"]), (9.0, PELUSA["l"]))
 
 
-def _anillo_oreja(y, xa, xb, zf, zb):
-    """Hexagono aplanado de la oreja, antihorario visto desde arriba (de +X hacia -Z)."""
-    w, zc = xb - xa, (zf + zb) / 2
-    return [(xb, y, zc), (xb - 0.25 * w, y, zf), (xa + 0.25 * w, y, zf), (xa, y, zc), (xa + 0.25 * w, y, zb),
-            (xb - 0.25 * w, y, zb)]
-
-
-def oreja_malla(T, escala=1.0, z=0.0, hondo=1.0):
-    """La oreja derecha (+X): anillos que se angostan y una punta. escala/z/hondo sirven para el adentro rosa."""
-    from .. import malla as geo
-    cx = (OREJA_ANILLOS[0][1] + OREJA_ANILLOS[0][2]) / 2
-    anillos = []
-    for dy, xa, xb, zf, zb in OREJA_ANILLOS:
-        anillos.append(_anillo_oreja(T + dy * escala, cx + (xa - cx) * escala, cx + (xb - cx) * escala,
-                                     z + zf * hondo, z + zb * hondo))
-    px, py, pz = OREJA_PUNTA
-    punta = (cx + (px - cx) * escala, T + py * escala, z + pz * hondo)
-    return geo.unir(geo.loft_puntos(anillos, tapa_arriba=False), geo.piramide(anillos[-1], punta, tapa=False))
+def _felpa(pts, alto, k0=0):
+    """Una orilla en picos de pelusa: entre cada dos puntos, uno que sale hacia afuera (lejos del centro de la oreja)
+    un poco al azar."""
+    import math
+    cx = sum(x for x, _ in OREJA_FRENTE + OREJA_ATRAS) / len(OREJA_FRENTE + OREJA_ATRAS)
+    cy = sum(y for _, y in OREJA_FRENTE + OREJA_ATRAS) / len(OREJA_FRENTE + OREJA_ATRAS)
+    out = []
+    for k, (a, b) in enumerate(zip(pts, pts[1:])):
+        mx, my = (a[0] + b[0]) / 2, (a[1] + b[1]) / 2
+        dx, dy = mx - cx, my - cy
+        d = math.hypot(dx, dy) or 1.0
+        h = alto * (0.6 + 0.8 * _azar(k + k0))
+        out += [a, (mx + dx / d * h, my + dy / d * h)]
+    return out + [pts[-1]]
 
 
 def orejas(p, T):
     from .. import malla as geo
     g = "Head/orejas"
-    cx = (OREJA_ANILLOS[0][1] + OREJA_ANILLOS[0][2]) / 2
-    giro, piv = (8, 0, -8), (cx, T + 0.4, 0.1)                # un poco hacia atras y abierta hacia afuera
-    afuera = geo.girar(oreja_malla(T), giro, piv)
-    adentro = geo.girar(oreja_malla(T + 0.35, escala=0.68, z=-0.55, hondo=0.45), giro, piv)
-    p.malla_par(g, "oreja", afuera, faceta(), dens=D)
-    p.malla_par(g, "adentro", adentro, faceta(paleta=ROSA), dens=D)
+    dy = T - 21.0
+    contorno = _felpa(list(OREJA_FRENTE) + list(OREJA_ATRAS), 0.35) + list(OREJA_BASE)
+    z0, z1 = OREJA_Z
+    oreja = geo.extruir([(x, y + dy) for x, y in contorno], z0, z1)
+    # el adentro crema, adelante: la misma hoja mas chica (sin la base), apenas salida
+    visible = list(OREJA_FRENTE) + list(OREJA_ATRAS)
+    cx = sum(x for x, _ in visible) / len(visible) - 0.3
+    cy = sum(y for _, y in visible) / len(visible) + 0.3
+    adentro = [(cx + (x - cx) * 0.62, cy + (y - cy) * 0.62 + dy) for x, y in visible]
+    crema = geo.extruir(adentro, z0 - 0.12, z0 + 0.1)
+    p.malla_par(g, "oreja", oreja, faceta(), dens=D)
+    p.malla_par(g, "adentro", crema, faceta(paleta=CREMA), dens=D)
 
 
 def pestanas(p, C):
@@ -567,22 +565,59 @@ def cola(p):
 
 # las piernas, un poquito mas largas: todo lo de arriba sube esto (ver subir)
 PIERNA_EXTRA = 0.6
-# el pantalon negro (otro negro que la sudadera, para que se distingan), cada pierna: (y, medio ancho, esquina)
-PANTALON = ((1.95, 1.33, 0.4), (3.2, 1.35, 0.4), (4.6, 1.33, 0.4), (5.0 + PIERNA_EXTRA, 1.36, 0.4))
-DOBLADILLO = (1.35, 1.95, 1.48, 0.45)                  # el dobladillo enrollado abajo: de y a y, medio ancho, esquina
+# el short negro (otro negro que la sudadera, para que se distingan), corto: apenas sale de la sudadera. Cada pierna:
+# (y, medio ancho, esquina)
+SHORT = ((4.2, 1.42, 0.4), (5.0 + PIERNA_EXTRA, 1.38, 0.4))
 GRIS_NEGRO = ((0.34, "#1C1C21"), (0.5, "#26262C"), (0.66, "#313138"), (9.0, "#3C3C45"))
+# las botas de pelaje crema (como las de la referencia): la pata grande con las rayitas rosas adelante, la cana de la
+# bota mas ancha que la pierna y copos de pelusa arriba y en el tobillo (como la cola, pero menos)
+PATA = ((-0.05, 2.9), (0.0, 1.5), (-2.0, 1.5))           # de x a x (pierna derecha), de y a y, de z a z
+CANA = ((1.3, 1.5, 0.45), (2.4, 1.48, 0.45), (3.0, 1.52, 0.45))       # (y, medio ancho, esquina)
+COPOS_BOTA = ((3.05, 7, 0.75),)                         # (y, cuantos, tamano): el borde de arriba de la bota
 
 
-def pantalon(p):
+def short(p):
     from .. import malla as geo
-    tela = faceta(paleta=GRIS_NEGRO)
     for s in (1, -1):
         g = f"{'RightLeg' if s > 0 else 'LeftLeg'}/ropa"
         cx = s * 1.3
-        p.malla(g, "pantalon", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y, m, r in PANTALON]), tela, dens=D)
-        ya, yb, m, r = DOBLADILLO
-        p.malla(g, "dobladillo", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y in (ya, yb)]),
+        p.malla(g, "short", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y, m, r in SHORT]),
+                faceta(paleta=GRIS_NEGRO), dens=D)
+        p.malla(g, "basta", geo.loft_puntos([_rect(y, 1.5, 1.5, 0.45, cx=cx) for y in (4.05, 4.45)]),
                 faceta(0.08, GRIS_NEGRO), dens=D)
+
+
+def pata(t):
+    """La pata de la bota: pelaje crema y tres rayitas rosas adelante que suben y pasan por arriba (los dedos)."""
+    u = (t.x - t.f[0]) / max(1e-6, t.t[0] - t.f[0])
+    rayas = any(abs(u - c) < 0.55 / max(1, t.tw) for c in (0.25, 0.5, 0.75))      # de un texel de ancho
+    if rayas and ((t.cara == "north" and t.y > t.f[1] + 0.35) or (t.cara == "up" and t.z < t.f[2] + 0.8)):
+        return hex_(RUBOR_FUERTE)
+    return voxel(PELUSA, claro=0.25)(t)
+
+
+def botas(p):
+    import math
+    from .. import malla as geo
+    pelusa = voxel(PELUSA, claro=0.3)
+    for s in (1, -1):
+        hueso = "RightLeg" if s > 0 else "LeftLeg"
+        (xa, xb), (ya, yb), (za, zb) = PATA
+        a, b = sorted((s * xa, s * xb))
+        p.caja(f"{hueso}/pata", "pata", (a, ya, za), (b, yb, zb), pata, dens=D, luz=False)
+        cx = s * 1.3
+        p.malla(f"{hueso}/pata", "cana", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y, m, r in CANA]),
+                faceta(paleta=CREMA), dens=D)
+        k = 0
+        for y, n, lado in COPOS_BOTA:
+            for i in range(n):
+                a = math.radians(360 * i / n + 20 * s)
+                x, z = cx + 1.45 * math.cos(a), 1.45 * math.sin(a) - (0.25 if y < 2 else 0.0)
+                l = lado * (0.75 + 0.35 * _azar(k + 300))
+                p.caja(f"{hueso}/pata", f"copo{k}", (x - l / 2, y - l / 2, z - l / 2), (x + l / 2, y + l / 2, z + l / 2),
+                       pelusa, rot=(30 * (_azar(k + 310) - 0.5), 40 * (_azar(k + 320) - 0.5),
+                                    30 * (_azar(k + 330) - 0.5)), dens=D)
+                k += 1
 
 
 def subir(p, dy, quedan=("RightLeg", "LeftLeg")):
@@ -624,10 +659,9 @@ def construir():
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         x1, x2 = sorted((s * 0.1, s * 2.5))
         p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L + PIERNA_EXTRA, 1.2), piel, dens=D, luz=False)
-        b1, b2 = sorted((s * 0.0, s * 2.8))
-        p.caja(f"{hueso}/pata", "pata", (b1, 0.0, -1.8), (b2, 1.4, 1.4), pata, dens=D, luz=False)
     ropa(p, C, L)
-    pantalon(p)
+    short(p)
+    botas(p)
     cola(p)
     subir(p, PIERNA_EXTRA)
     return p
