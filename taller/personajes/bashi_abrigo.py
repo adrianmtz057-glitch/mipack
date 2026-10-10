@@ -2,7 +2,8 @@
 Bashi: la bata (ver bashi.py), segun referencias/personajes/bashi_hoja2.png. Por ahora solo la forma con colores
 lisos (sin accesorios ni textura).
 
-  TORSO: la bata morada, cerrada (toda unida) y de 12 lados, con la solapa que cruza al medio.
+  TORSO: la bata morada, cerrada (toda unida) y de 12 lados, con la solapa que cruza al medio; los hombros bajan
+    redondos hacia el CUELLO alto de la bata (12 lados, con el filo olivo).
   MANGAS en tres ESCALONES redondos (12 lados), cada uno mas ancho que el de arriba, despegadas del brazo y hasta
     la muneca, con el final olivo (en los huesos de los brazos, abiertas como los brazos). Por dentro asoma la
     CAMISA beige de manga larga hasta la muneca.
@@ -44,9 +45,12 @@ def caja(p, grupo, nombre, desde, hasta, rampa, **kw):
 
 # ---------------------------------------------------------------------------------------------- torso
 LADOS = 12                              # todo redondo pero de caras: el torso y las mangas son de 12 lados
-TORSO = ((19.0, 4.35, 2.72), (22.4, 4.37, 2.73), (24.5, 4.45, 2.8), (28.5, 4.5, 2.85), (C + 0.35, 4.3, 2.6))
-# secciones del torso de la bata, de abajo del estomago (tapado por el faldon) a los hombros: (y, medio ancho,
-# medio hondo)
+TORSO = ((19.0, 4.35, 2.72), (22.4, 4.37, 2.73), (24.5, 4.45, 2.8), (27.6, 4.5, 2.85), (29.4, 4.45, 2.8),
+         (30.3, 3.9, 2.65), (30.75, 3.0, 2.4))
+# secciones del torso de la bata, de abajo del estomago (tapado por el faldon) a los hombros redondos que bajan al
+# cuello: (y, medio ancho, medio hondo)
+CUELLO = ((30.4, 2.75, 2.45), (32.2, 2.95, 2.65))    # el cuello alto de la bata: abajo y arriba (y, medio ancho, hondo)
+FILO_CUELLO = 0.45                      # la franja olivo del borde de arriba del cuello
 
 
 def torso(p):
@@ -57,23 +61,45 @@ def torso(p):
     anillos = [geo.anillo(0.0, y, 0.0, rx, rz, LADOS, giro) for y, rx, rz in TORSO]
     p.malla(g, "cuerpo", geo.loft_puntos(anillos), plano(MORADO), dens=D)
     zf = min(-rz * math.cos(math.radians(giro)) for _, _, rz in TORSO)     # el frente plano mas adelante
-    caja(p, g, "solapa", (-1.0, 22.4, zf - 0.2), (0.5, C + 0.1, zf + 0.3), MORADO)
+    caja(p, g, "solapa", (-1.0, 22.4, zf - 0.2), (0.5, 29.4, zf + 0.3), MORADO)
+    cuello(p, g, giro)
+
+
+def cuello(p, g, giro):
+    """El cuello alto de la bata, de 12 lados, que se abre apenas hacia arriba, con el filo olivo y adentro oscuro."""
+    (y0, rx0, rz0), (y1, rx1, rz1) = CUELLO
+    abajo = geo.anillo(0.0, y0, 0.0, rx0, rz0, LADOS, giro)
+    arriba = geo.anillo(0.0, y1, 0.0, rx1, rz1, LADOS, giro)
+    malla, n_fuera = tubo_hueco(abajo, arriba, grosor=0.25, tapa=False)
+    morado, olivo = plano(MORADO), plano(OLIVO)
+    tela = lambda t: olivo(t) if t.y > y1 - FILO_CUELLO else morado(t)
+    p.malla(g, "cuello", malla, [tela] * n_fuera + [plano({**OSCURO, "b": OSCURO["s"]})] * (len(malla[1]) - n_fuera),
+            dens=D)
+    p.malla(g, "cuello_hueco", geo.tronco(geo.anillo(0.0, y0 + 0.4, 0.0, rx0 - 0.2, rz0 - 0.2, LADOS, giro),
+                                          geo.anillo(0.0, y0 + 0.5, 0.0, rx0 - 0.2, rz0 - 0.2, LADOS, giro)),
+            plano({**OSCURO, "m": OSCURO["s"]}), dens=D)
 
 
 # ---------------------------------------------------------------------------------------------- mangas
 # la manga en tres escalones, cada uno mas ancho que el de arriba y separado del brazo; abajo redonda (8 lados) y
 # termina en la muneca. (y de abajo, y de arriba, medio ancho en x, medio ancho en z, corrimiento hacia afuera)
-ESCALONES = ((25.8, C + 0.4, 1.8, 1.9, 0.0), (22.6, 25.9, 2.1, 2.2, 0.15), (19.6, 22.7, 2.45, 2.55, 0.35))
+ESCALONES = ((25.8, C - 0.2, 1.8, 1.9, 0.0), (22.6, 25.9, 2.1, 2.2, 0.15), (19.6, 22.7, 2.45, 2.55, 0.35))
 CENTRO_BRAZO = 5.5                      # x del medio del brazo (sin girar)
 FINAL = 0.7                             # alto de la franja olivo en el borde de la manga
 
 
-def escalon(cx, y0, y1, rx, rz):
+def escalon(cx, y0, y1, rx, rz, hombro=False):
     """Un escalon de la manga: tubo hueco de 12 lados (redondo de caras), con la tapa de arriba (el escalon) y
-    abierto abajo."""
-    abajo = geo.anillo(cx, y0, 0.0, rx * 1.04, rz * 1.04, LADOS, 180.0 / LADOS)
-    arriba = geo.anillo(cx, y1, 0.0, rx, rz, LADOS, 180.0 / LADOS)
-    return tubo_hueco(abajo, arriba, grosor=0.15)
+    abierto abajo. El del hombro termina arriba redondeado (se cierra en dos anillos), no en una tapa plana."""
+    giro = 180.0 / LADOS
+    abajo = geo.anillo(cx, y0, 0.0, rx * 1.04, rz * 1.04, LADOS, giro)
+    arriba = geo.anillo(cx, y1, 0.0, rx, rz, LADOS, giro)
+    if not hombro:
+        return tubo_hueco(abajo, arriba, grosor=0.15)
+    malla, n_fuera = tubo_hueco(abajo, arriba, grosor=0.15, tapa=False)
+    domo = geo.loft_puntos([arriba, geo.anillo(cx, y1 + 0.4, 0.0, rx * 0.8, rz * 0.82, LADOS, giro),
+                            geo.anillo(cx, y1 + 0.6, 0.0, rx * 0.45, rz * 0.5, LADOS, giro)], tapa_abajo=False)
+    return geo.unir(domo, malla), n_fuera + len(domo[1])
 
 
 def tela_manga(giro):
@@ -96,7 +122,7 @@ def mangas(p):
         hueso = "RightArm" if s > 0 else "LeftArm"
         giro = giro_brazo(s)
         for k, (y0, y1, rx, rz, fuera) in enumerate(ESCALONES):
-            malla, n_fuera = escalon(s * (CENTRO_BRAZO + fuera), y0, y1, rx, rz)
+            malla, n_fuera = escalon(s * (CENTRO_BRAZO + fuera), y0, y1, rx, rz, hombro=k == 0)
             malla = geo.girar(malla, giro["rot"], giro["piv"])
             pint = [tela_manga(giro)] * n_fuera + [forro] * (len(malla[1]) - n_fuera)
             p.malla(f"{hueso}/manga", f"escalon{k}", malla, pint, dens=D)
