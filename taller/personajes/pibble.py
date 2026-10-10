@@ -102,15 +102,28 @@ CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"
 
 
 GIRO_TRIANGULO = 20.0                                    # grados que se gira sobre su punta: lo de afuera baja
+HACIA_ADENTRO = 25.0                                     # grados que lo de afuera se dobla hacia la cabeza
+ALARGA = 2.5                                             # cuanto se alargan las dos esquinas de afuera (en punta)
 
 
 def _triangulo():
+    """La punta en la frente y las dos esquinas de afuera: equilatero, con las esquinas alargadas hacia afuera (desde
+    el centro), girado sobre su punta (lo de afuera baja) y doblado hacia la cabeza."""
     x0, y0, z0 = PUNTA_FRENTE
     l = LADO_TRIANGULO
     x = math.sqrt(l * l - (l / 2) ** 2 - (Z_AFUERA - z0) ** 2)
-    g = math.radians(-GIRO_TRIANGULO)
-    gira = lambda dx, dy: (x0 + dx * math.cos(g) - dy * math.sin(g), y0 + dx * math.sin(g) + dy * math.cos(g), Z_AFUERA)
-    return (PUNTA_FRENTE, gira(x, l / 2), gira(x, -l / 2))
+    cx = x * 2 / 3                                       # el centro del triangulo (respecto a la punta)
+    g, h = math.radians(-GIRO_TRIANGULO), math.radians(HACIA_ADENTRO)
+
+    def esquina(dy):
+        ex, ey = x - cx, dy
+        d = math.hypot(ex, ey)
+        dx, dy = cx + ex * (1 + ALARGA / d), ey * (1 + ALARGA / d)     # alargada desde el centro
+        dx, dy = dx * math.cos(g) - dy * math.sin(g), dx * math.sin(g) + dy * math.cos(g)
+        dz = Z_AFUERA - z0
+        dx, dz = dx * math.cos(h) - dz * math.sin(h), dx * math.sin(h) + dz * math.cos(h)
+        return (x0 + dx, y0 + dy, z0 + dz)
+    return (PUNTA_FRENTE, esquina(l / 2), esquina(-l / 2))
 
 
 def _resta(p, q):
