@@ -41,8 +41,9 @@ GP = G + "/punta"
 # ---------------------------------------------------------------------------------------------- medidas
 BANDA_R = 4.45                          # medio ancho de la cinta (la cabeza mide 4)
 BANDA_Y = (T - 1.2, T + 1.6)            # de donde a donde va la cinta
-ALA_Y = T + 0.2                         # arriba del ala, junto a la cinta
-ALA_GROSOR = (0.85, 0.75, 0.65)         # adentro, al medio y en la orilla
+ALA_Y = T + 0.4                         # arriba del ala, junto a la cinta
+ALA_GROSOR = (1.0, 1.0, 0.75)           # adentro, al medio (desde el escalon de arriba) y en la orilla
+ESCALON = 0.3                           # el ala tiene dos pisos: el de adentro un escalon mas alto
 ALA_LADOS = 16                          # vertices de la orilla del ala (un poligono chueco)
 ALA_RADIOS = {"der": 11.0, "izq": 10.2, "frente": 9.4, "atras": 10.2}   # hasta donde llega el ala
 ALA_MEDIO = 0.45                        # donde va el anillo del medio (de la cinta a la orilla)
@@ -82,15 +83,18 @@ def _cae(x, z, k):
 
 
 def _anillos_ala():
-    """Los anillos del ala: (adentro, medio, orilla), cada uno como lista de (x, z, y arriba, grosor)."""
+    """Los anillos del ala por vertice: adentro (x, z, arriba, abajo), medio (x, z, arriba del piso de adentro,
+    arriba del piso de afuera, abajo) y orilla (x, z, arriba, abajo)."""
     out = []
     for k in range(ALA_LADOS):
         xi, zi = _adentro(k)
         xo, zo = _orilla(k)
         xm, zm = xi + (xo - xi) * ALA_MEDIO, zi + (zo - zi) * ALA_MEDIO
         cae = _cae(xo, zo, k)
-        out.append(((xi, zi, ALA_Y, ALA_GROSOR[0]), (xm, zm, ALA_Y - 0.3 * cae, ALA_GROSOR[1]),
-                    (xo, zo, ALA_Y - cae, ALA_GROSOR[2])))
+        ym = ALA_Y - 0.3 * cae
+        yo = ALA_Y - cae - ESCALON
+        out.append(((xi, zi, ALA_Y, ALA_Y - ALA_GROSOR[0]), (xm, zm, ym, ym - ESCALON, ym - ALA_GROSOR[1]),
+                    (xo, zo, yo, yo - ALA_GROSOR[2])))
     return out
 
 
@@ -98,14 +102,14 @@ def ala_abajo(x, z):
     """Altura de la cara de abajo del ala cerca de (x, z) (para que el pelo y las runas no la atraviesen). Toma el
     vertice del ala en esa direccion e interpola de la cinta a la orilla."""
     k = round(math.degrees(math.atan2(-z, x)) / (360.0 / ALA_LADOS)) % ALA_LADOS
-    (xi, zi, yi, gi), (xm, zm, ym, gm), (xo, zo, yo, go) = _anillos_ala()[k]
-    d, dm, do = math.hypot(x, z), math.hypot(xm, zm), math.hypot(xo, zo)
-    di = math.hypot(xi, zi)
+    adentro, medio, orilla = _anillos_ala()[k]
+    d = math.hypot(x, z)
+    di, dm, do = (math.hypot(a[0], a[1]) for a in (adentro, medio, orilla))
     if d <= dm:
         f = max(0.0, (d - di) / max(1e-6, dm - di))
-        return (yi - gi) + ((ym - gm) - (yi - gi)) * f
+        return adentro[3] + (medio[4] - adentro[3]) * f
     f = min(1.0, (d - dm) / max(1e-6, do - dm))
-    return (ym - gm) + ((yo - go) - (ym - gm)) * f
+    return medio[4] + (orilla[3] - medio[4]) * f
 
 
 # ---------------------------------------------------------------------------------------------- pintores
@@ -147,19 +151,30 @@ def en_cara(pintor):
     return p
 
 
+def _region_ala(x, z):
+    """En que lado del ala cae (x, z) (0 derecha, 1 frente, 2 izquierda, 3 atras) y sus (u, v): v es la distancia
+    hacia afuera y u corre a lo largo de la orilla. Asi las filas de ladrillos dan la vuelta como un marco."""
+    rx = ALA_RADIOS["der"] if x > 0 else ALA_RADIOS["izq"]
+    rz = ALA_RADIOS["frente"] if z < 0 else ALA_RADIOS["atras"]
+    if abs(x) / rx >= abs(z) / rz:
+        return (0, z, x) if x > 0 else (2, -z, -x)
+    return (1, x, -z) if z < 0 else (3, -x, z)
+
+
 def pintor_ala():
-    """El ala: arriba ladrillos en parches grandes; abajo los mismos un paso mas oscuros; el canto, ladrillos de un
-    solo alto (solo juntas verticales: se ven las puntas de los ladrillos)."""
-    arriba = ladrillos(PARCHES_SOMBRERO, w=1.25, h=0.75, celda=(3, 3), semilla=3)
-    abajo = ladrillos(PARCHES_ABAJO, w=1.25, h=0.75, celda=(3, 3), semilla=3)
+    """El ala: arriba ladrillos en parches grandes cuyas filas siguen la orilla (como tablas que dan la vuelta);
+    abajo los mismos un paso mas oscuros; el canto, ladrillos de un solo alto (se ven las puntas)."""
+    arriba = [ladrillos(PARCHES_SOMBRERO, w=1.25, h=0.75, celda=(3, 3), semilla=3 + 13 * k) for k in range(4)]
+    abajo = [ladrillos(PARCHES_ABAJO, w=1.25, h=0.75, celda=(3, 3), semilla=3 + 13 * k) for k in range(4)]
     canto = en_cara(ladrillos(PARCHES_SOMBRERO, w=0.75, h=4.0, celda=(3, 1), semilla=5))
+    q = _EnCara()
 
     def p(t):
-        if t.n[1] > 0.3:
-            return arriba(t)
-        if t.n[1] < -0.3:
-            return abajo(t)
-        return canto(t)
+        if abs(t.n[1]) <= 0.3:
+            return canto(t)
+        k, q.x, q.y = _region_ala(t.x, t.z)
+        q.z, q.n = 0.0, (0.0, 0.0, -1.0)
+        return (arriba if t.n[1] > 0 else abajo)[k](q)
     return p
 
 
@@ -266,12 +281,13 @@ def pintor_gota(t):
 # ---------------------------------------------------------------------------------------------- piezas
 def ala(p):
     """El ala: una sola malla gruesa por anillos (la cinta, el medio y la orilla) que se dobla hacia abajo hacia la
-    orilla, mucho mas del lado derecho del personaje. Arriba, el canto, abajo y el canto de adentro (escondido en la
-    cinta) cierran el solido."""
+    orilla, mucho mas del lado derecho del personaje, en dos pisos: el de adentro un escalon mas alto. Arriba, el
+    canto, abajo y el canto de adentro (escondido en la cinta) cierran el solido."""
     anillos = _anillos_ala()
-    sec = []                                     # la seccion del ala, de abajo-afuera dando la vuelta (antihorario)
-    for idx, abajo in ((2, True), (2, False), (1, False), (0, False), (0, True), (1, True)):
-        sec.append([(a[idx][0], a[idx][2] - (a[idx][3] if abajo else 0.0), a[idx][1]) for a in anillos])
+    # la seccion del ala dando la vuelta (antihorario visto de lado, asi las caras miran afuera): orilla abajo,
+    # orilla arriba, piso de afuera, escalon, piso de adentro, adentro (escondido en la cinta) y abajo
+    pasos = ((2, 3), (2, 2), (1, 3), (1, 2), (0, 2), (0, 3), (1, 4))
+    sec = [[(a[i][0], a[i][j], a[i][1]) for a in anillos] for i, j in pasos]
     sec.append(sec[0])
     p.malla(G, "ala", geo.loft_puntos(sec, tapa_abajo=False, tapa_arriba=False), pintor_ala(), dens=D)
 
@@ -439,10 +455,10 @@ def cascabeles(p):
     uno al medio del brazo y otro colgando de la puntita."""
     anillos = _anillos_ala()
     for n, (k, hilo) in enumerate(((1, 0.9), (6, 0.55), (9, 1.2), (11, 0.7), (14, 1.0))):
-        (_, _, _, _), (xm, zm, ym, gm), (xo, zo, yo, go) = anillos[k]
+        _, medio, orilla = anillos[k]
         f = 0.88                                     # un poco antes de la orilla, bajo el ala
-        x, z = xm + (xo - xm) * f, zm + (zo - zm) * f
-        y = (ym - gm) + ((yo - go) - (ym - gm)) * f
+        x, z = medio[0] + (orilla[0] - medio[0]) * f, medio[1] + (orilla[1] - medio[1]) * f
+        y = medio[4] + (orilla[3] - medio[4]) * f
         cascabel(p, G, f"cascabel{n}", (x, y + 0.05, z), hilo)
     q, _ = punto_espina(6, 0.5)
     cascabel(p, GP, "cascabel5", (q[0], q[1] - TRAMOS[6][3] * 0.9, q[2]), 0.8)
