@@ -169,8 +169,9 @@ def _dentro(pts, x, y, margen):
 
 def _paneles(a, b, c, estorbos):
     """Un lado entero como una sola malla 2D (reticula pegada), su punta (ya recorrida) y la mitad de su orilla de
-    arriba. Todo el lado se recorre hacia enfrente lo justo para que nada de 'estorbos' (los vertices de la cabeza y los
-    ojos) quede a menos de HOLGURA detras de lo mas hondo: muy cerca de la cara, sin meterse."""
+    arriba. Todo el lado se recorre hacia enfrente (solo en z, asi las puntas de los dos lados siguen juntas en el medio)
+    lo justo para que nada de 'estorbos' (los vertices de la cabeza y los ojos) quede a menos de HOLGURA detras de lo
+    mas hondo: muy cerca de la cara, sin meterse."""
     u = _unit(_resta(b, a))
     n = _unit(_cruz(_resta(b, a), _resta(c, a)))
     if n[2] < 0:
@@ -188,7 +189,7 @@ def _paneles(a, b, c, estorbos):
         d = _resta(q, a)
         if _dentro([t0, mitad, punta, b2], _punto(d, u), _punto(d, v), 0.6):
             recorre = max(recorre, HOLGURA + Z_HUECO + CURVA + h - _punto(d, n))
-    a = tuple(a[i] - n[i] * recorre for i in range(3))
+    a = (a[0], a[1], a[2] - recorre / n[2])              # solo hacia enfrente: la punta sigue en el medio (x = 0)
 
     def mezcla(p, q, f):
         return (p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f)
