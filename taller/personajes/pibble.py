@@ -284,17 +284,41 @@ def _fuera_de_cabeza(q, holgura=0.2):
 
 
 FORRO = ((0.34, "#100E12"), (0.5, "#161318"), (0.66, "#1D1A1F"), (9.0, "#252127"))
+AZUL = ((0.34, "#1F2F42"), (0.5, "#283B50"), (0.66, "#31475D"), (9.0, "#3C556C"))
 CENTRO_CABEZA = (0.0, 16.0, 0.0)
+ORO = ((0.34, "#94713C"), (0.5, "#AD874A"), (0.66, "#C8A058"), (9.0, "#DEB974"))
+# las runas azules de la capucha (como en la referencia, una flecha que baja y voltea): rectangulos en (|x|, y) sobre
+# las caras de enfrente y de atras de los lados
+RUNA = ((3.9, 4.3, 18.6, 20.4), (3.9, 5.1, 18.6, 19.0), (4.7, 5.1, 19.0, 19.5))
+OREJA_NEGRA = 2.6                                        # lo que baja lo negro desde la punta de cada oreja
+FILETE = 0.32                                            # lo ancho del filete dorado de la orilla de la cara
 
 
-def capucha_pintor():
-    """Crema por fuera y el forro negro por dentro: cada pieza es 2D (dos caras), la que mira hacia la cabeza es el
-    forro."""
-    crema, forro = faceta(paleta=CREMA, grano=0, simetrico=True), faceta(paleta=FORRO, grano=0, simetrico=True)
+def _a_segmento(q, p0, p1):
+    ex, ey, ez = (p1[i] - p0[i] for i in range(3))
+    f = max(0.0, min(1.0, ((q[0] - p0[0]) * ex + (q[1] - p0[1]) * ey + (q[2] - p0[2]) * ez) / (ex * ex + ey * ey + ez * ez)))
+    return math.dist(q, (p0[0] + ex * f, p0[1] + ey * f, p0[2] + ez * f))
+
+
+def capucha_pintor(oreja_y, orilla):
+    """Crema con grano de pixeles por fuera, con las orejas de punta negra, las runas azules y el filete dorado en la
+    orilla de la cara; el forro negro por dentro (cada pieza es 2D: la cara que mira hacia la cabeza es el forro)."""
+    crema = faceta(paleta=CREMA, grano=0.12, simetrico=True)
+    forro = faceta(paleta=FORRO, grano=0.06, simetrico=True)
+    azul = faceta(paleta=AZUL, grano=0.08, simetrico=True)
+    oro = faceta(0.05, ORO, grano=0.08, simetrico=True)
 
     def pintor(t):
-        hacia_fuera = _punto(t.n, _resta((t.x, t.y, t.z), CENTRO_CABEZA))
-        return forro(t) if hacia_fuera < 0 else crema(t)
+        if t.y > oreja_y - OREJA_NEGRA:                       # la punta de las orejas, negra (por fuera y por dentro)
+            return forro(t)
+        if _punto(t.n, _resta((t.x, t.y, t.z), CENTRO_CABEZA)) < 0:
+            return forro(t)
+        q = (abs(t.x), t.y, t.z)
+        if t.z < 0 and _a_segmento(q, *orilla) < FILETE:
+            return oro(t)
+        if abs(t.n[2]) > 0.35 and any(x0 <= q[0] <= x1 and y0 <= t.y <= y1 for x0, x1, y0, y1 in RUNA):
+            return azul(t)
+        return crema(t)
     return pintor
 
 
@@ -311,20 +335,20 @@ def capucha(p):
         j, i = divmod(idx, k + 1)
         x, y, z = atras_z(q)
         vs_atras.append((x, y, z + jalon * (i / k) * (j / k)))
-    crema = capucha_pintor()
-    p.malla_par("Head/capucha", "lado", (vs, cs), crema, dens=4, luz=False)
-    p.malla_par("Head/capucha", "lado_atras", (vs_atras, cs), crema, dens=4, luz=False)
+    crema = capucha_pintor(esquina[1], (vs[0], vs[k]))      # la orilla de la cara: de la punta a la esquina de abajo
+    p.malla_par("Head/capucha", "lado", (vs, cs), crema, dens=4)
+    p.malla_par("Head/capucha", "lado_atras", (vs_atras, cs), crema, dens=4)
     # el costado: une la orilla de afuera de enfrente (i = k, de la esquina de abajo a la de arriba) con la de atras
     orilla = [vs[j * (k + 1) + k] for j in range(k + 1)]
     orilla_atras = [vs_atras[j * (k + 1) + k] for j in range(k + 1)]
     filas = [[_fuera_de_cabeza(tuple(f[c] + (b_[c] - f[c]) * t / 4 for c in range(3))) for t in range(5)]
              for f, b_ in zip(orilla, orilla_atras)]
-    p.malla_par("Head/capucha", "costado", _reticula_2d(filas), crema, dens=4, luz=False)
+    p.malla_par("Head/capucha", "costado", _reticula_2d(filas), crema, dens=4)
     # atras no hay cara: la V de la copia se cierra uniendo la orilla de adentro de sus dos lados (j = 0, de la punta a
     # la esquina de abajo)
     adentro = [vs_atras[i] for i in range(k + 1)]
     filas = [[tuple(q[c] * (1 - 2 * t / 4) if c == 0 else q[c] for c in range(3)) for t in range(5)] for q in adentro]
-    p.malla("Head/capucha", "cierre_atras", _reticula_2d(filas), crema, dens=4, luz=False)
+    p.malla("Head/capucha", "cierre_atras", _reticula_2d(filas), crema, dens=4)
     # el techo de enfrente y su copia atras: pegados a la orilla de arriba de cada lado (la punta, la mitad y la
     # esquina de arriba); sus brazos se juntan en la muesca hundida, que comparten
     espejo = lambda q: (-q[0], q[1], q[2])
@@ -333,7 +357,7 @@ def capucha(p):
         for tri in ((f, m, esquina), (f, esquina, MUESCA), (f, MUESCA, espejo(esquina)),
                     (f, espejo(esquina), espejo(m))):
             techo.append(_panel(list(tri)))
-    p.malla("Head/capucha", "techo", geo.unir(*techo), crema, dens=4, luz=False)
+    p.malla("Head/capucha", "techo", geo.unir(*techo), crema, dens=4)
 
 
 def liso(col):
