@@ -12,6 +12,8 @@ chiquito y piernas cortas con patas.
   OREJAS de zorro grandes y redondeadas, en las esquinas de arriba y abiertas hacia afuera
 """
 
+import math
+
 from ..kit import Personaje, tonos
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 from .revolthir import BAYER, color, voxel
@@ -434,7 +436,7 @@ def orejas(p, T):
         giro = (40 * (_azar(k + 510) - 0.5), 40 * (_azar(k + 520) - 0.5), 60 * (_azar(k + 530) - 0.5))
         for s in (1, -1):
             p.caja(g, f"copo{s}_{k}", (s * x - l / 2, y + dy - l / 2, z - l / 2),
-                   (s * x + l / 2, y + dy + l / 2, z + l / 2), COLA_RUBIA, rot=giro, dens=D, luz=False)
+                   (s * x + l / 2, y + dy + l / 2, z + l / 2), copo_luz(COLA_RUBIA), rot=giro, dens=D, luz=False)
 
 
 def pestanas(p, C):
@@ -609,6 +611,25 @@ COLA_RUBIA = voxel(PELO, claro=0.3)
 COLA_CREMA = voxel({"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}, claro=0.3)        # crema calida
 
 
+def copo_luz(pintor, k=0):
+    """Volumen a mano para los copos de pelusa (cola, orejas, patas), que no llevan la luz horneada (entre tantos
+    cubos encimados la oclusion los ensucia): la misma rampa del motor de luz (luz.paso) corrida por cara: arriba y
+    lo que mira a la luz sube, abajo baja; en los costados la fila de arriba con canto de luz y la de abajo con
+    contorno. k: pasos de todo el copo (los de abajo de la cola, en sombra)."""
+    from ..luz import LUZ, paso
+    largo = math.sqrt(sum(c * c for c in LUZ))
+    luz = tuple(c / largo for c in LUZ)
+
+    def pintar(t):
+        n = k + (1 if t.cara == "up" else -2 if t.cara == "down" else 0)
+        if sum(a * b for a, b in zip(t.n, luz)) > 0.55:
+            n += 1
+        if t.cara not in ("up", "down"):
+            n += 1 if t.j == 0 else -1 if t.fila_abajo == 0 else 0
+        return paso(pintor(t), max(-2, min(2, n)))
+    return pintar
+
+
 def _cola_puntos(pasos=4):
     out = []
     for k in range(len(CAMINO_COLA) - 1):
@@ -630,15 +651,16 @@ def cola(p):
         pint = COLA_RUBIA if f / total < 0.62 else COLA_CREMA
         lado = r * 1.25
         p.caja("Body/cola", f"cola{k}", (x - lado / 2, y - lado / 2, z - lado / 2),
-               (x + lado / 2, y + lado / 2, z + lado / 2), pint,
+               (x + lado / 2, y + lado / 2, z + lado / 2), copo_luz(pint),
                rot=((k * 23) % 45 - 22, (k * 31) % 45 - 22, (k * 17) % 45 - 22), dens=D, luz=False)
         for i in range(6):
             a = math.radians(i * 60 + k * 27)
             d = r * 0.78
             cx, cy, cz = x + d * math.cos(a), y + d * math.sin(a) * 0.8, z + d * math.sin(a + 1.1) * 0.7
             l2 = r * (0.62 + 0.18 * ((i + k) % 3) / 2)
+            abajo = -1 if math.sin(a) < -0.3 else 0                    # los copos de abajo de la cola, en sombra
             p.caja("Body/cola", f"copo{k}_{i}", (cx - l2 / 2, cy - l2 / 2, cz - l2 / 2),
-                   (cx + l2 / 2, cy + l2 / 2, cz + l2 / 2), pint,
+                   (cx + l2 / 2, cy + l2 / 2, cz + l2 / 2), copo_luz(pint, abajo),
                    rot=((i * 37 + k * 11) % 60 - 30, (i * 53 + k * 7) % 60 - 30, (i * 29 + k * 13) % 60 - 30), dens=D,
                    luz=False)
 
@@ -680,7 +702,7 @@ def pata(t):
 def patas(p):
     import math
     from .. import malla as geo
-    pelusa = voxel(PELAJE, claro=0.3)
+    pelusa = copo_luz(voxel(PELAJE, claro=0.3))
     for s in (1, -1):
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         (xa, xb), (ya, yb), (za, zb) = PATA
