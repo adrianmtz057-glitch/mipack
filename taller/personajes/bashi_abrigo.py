@@ -3,9 +3,9 @@ Bashi: la bata (ver bashi.py), segun referencias/personajes/bashi_hoja2.png. Por
 lisos (sin accesorios ni textura).
 
   TORSO: la bata morada, cerrada (toda unida), con la solapa que cruza al medio.
-  MANGAS de kimono como las de meron (en los huesos de los brazos, abiertas como los brazos): anchas, se abren hacia
-    afuera y hacia abajo; adelante terminan en la muneca y atras cuelgan mas, como la bolsa del kimono. Por dentro
-    asoma la CAMISA beige de manga larga hasta la muneca.
+  MANGAS en tres ESCALONES redondos (8 lados), cada uno mas ancho que el de arriba, despegadas del brazo y hasta
+    la muneca, con el final olivo (en los huesos de los brazos, abiertas como los brazos). Por dentro asoma la
+    CAMISA beige de manga larga hasta la muneca.
   FALDON: de la cintura para abajo en TIRAS que se abren, cada una de un largo distinto (al azar, fijo) y con la
     punta escalonada, en dos capas (la de abajo mas oscura tapa los huecos), cerrado todo alrededor. Algunas tiras
     olivo entre las moradas.
@@ -52,50 +52,47 @@ def torso(p):
 
 
 # ---------------------------------------------------------------------------------------------- mangas
-MANGA = (4.1, 7.0, 8.2, C + 0.4, 21.0, 17.0, -2.3, 2.6)
-# x de adentro, x de afuera arriba y abajo; y del hombro, de la muneca (adelante) y de la bolsa (atras); z de
-# adelante y de atras abajo
+# la manga en tres escalones, cada uno mas ancho que el de arriba y separado del brazo; abajo redonda (8 lados) y
+# termina en la muneca. (y de abajo, y de arriba, medio ancho en x, medio ancho en z, corrimiento hacia afuera)
+ESCALONES = ((25.8, C + 0.4, 1.8, 1.9, 0.0), (22.6, 25.9, 2.1, 2.2, 0.15), (19.6, 22.7, 2.45, 2.55, 0.35))
+CENTRO_BRAZO = 5.5                      # x del medio del brazo (sin girar)
+FINAL = 0.7                             # alto de la franja olivo en el borde de la manga
 
 
-def manga_kimono():
-    """Manga ancha de kimono del lado derecho (como la de meron): se abre hacia afuera y hacia abajo; adelante
-    termina en la muneca y atras cuelga mas, como la bolsa. Hueca, con forro."""
-    xi, xo_arriba, xo_abajo, arriba, puno, bolsa, zf, zb = MANGA
-    sup = [(xo_arriba, arriba, 1.9), (xo_arriba, arriba, -1.9), (xi, arriba, -1.9), (xi, arriba, 1.9)]
-    inf = [(xo_abajo, bolsa, zb), (xo_abajo, puno, zf), (xi + 0.05, puno, zf), (xi + 0.05, bolsa, zb)]
-    return tubo_hueco(inf, sup)
+def escalon(cx, y0, y1, rx, rz):
+    """Un escalon de la manga: tubo hueco de 8 lados (redondo), con la tapa de arriba (el escalon) y abierto abajo."""
+    abajo = geo.anillo(cx, y0, 0.0, rx * 1.04, rz * 1.04, 8, 22.5)
+    arriba = geo.anillo(cx, y1, 0.0, rx, rz, 8, 22.5)
+    return tubo_hueco(abajo, arriba, grosor=0.15)
 
 
 def tela_manga(giro):
-    """La manga morada con el final olivo: una franja en el borde de abajo, que sigue el corte (adelante en la
-    muneca, atras en la bolsa)."""
-    _, _, _, _, puno, bolsa, zf, zb = MANGA
-    morado = plano(MORADO)
-    olivo = plano(OLIVO)
+    """La manga morada con el final olivo: una franja en el borde de abajo del ultimo escalon."""
+    morado, olivo = plano(MORADO), plano(OLIVO)
+    y_final = ESCALONES[-1][0] + FINAL
 
     def p(t):
-        x, y, z = geo.desgirar((t.x, t.y, t.z), giro["rot"], giro["piv"])        # relativo al hombro
-        y, z = y + giro["piv"][1], z + giro["piv"][2]
-        k = max(0.0, min(1.0, (z - zf) / (zb - zf)))
-        return olivo(t) if y < puno + (bolsa - puno) * k + 0.75 else morado(t)
+        y = geo.desgirar((t.x, t.y, t.z), giro["rot"], giro["piv"])[1] + giro["piv"][1]
+        return olivo(t) if y < y_final else morado(t)
     return p
 
 
 def mangas(p):
-    """Las mangas de kimono (moradas, con el forro oscuro) y adentro la camisa beige de manga larga hasta la
-    muneca, todo abierto con el brazo."""
+    """Las mangas en tres escalones redondos que se abren hacia la muneca, despegadas del brazo (moradas, con el
+    forro oscuro y el final olivo), y adentro la camisa beige de manga larga hasta la muneca; todo abierto con el
+    brazo."""
+    forro = plano({**OSCURO, "b": OSCURO["s"]})
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
         giro = giro_brazo(s)
-        malla, n_fuera = manga_kimono()
-        if s < 0:
-            malla = geo.espejo_x(malla)
-        malla = geo.girar(malla, giro["rot"], giro["piv"])
-        pint = [tela_manga(giro)] * n_fuera + [plano({**OSCURO, "b": OSCURO["s"]})] * (len(malla[1]) - n_fuera)
-        p.malla(f"{hueso}/manga", "manga", malla, pint, dens=D)
+        for k, (y0, y1, rx, rz, fuera) in enumerate(ESCALONES):
+            malla, n_fuera = escalon(s * (CENTRO_BRAZO + fuera), y0, y1, rx, rz)
+            malla = geo.girar(malla, giro["rot"], giro["piv"])
+            pint = [tela_manga(giro)] * n_fuera + [forro] * (len(malla[1]) - n_fuera)
+            p.malla(f"{hueso}/manga", f"escalon{k}", malla, pint, dens=D)
         g = f"{hueso}/camisa"
-        xa, xb = sorted((s * 4.15, s * 6.85))
-        caja(p, g, "manga_camisa", (xa, 19.4, -1.3), (xb, 27.0, 1.3), BEIGE, **giro)
+        xa, xb = sorted((s * 4.4, s * 6.6))                     # angosta: sus esquinas no pasan la manga redonda
+        caja(p, g, "manga_camisa", (xa, 19.4, -1.1), (xb, 27.0, 1.1), BEIGE, **giro)
         xa, xb = sorted((s * 4.0, s * 7.0))
         caja(p, g, "puno_camisa", (xa, 19.0, -1.45), (xb, 19.8, 1.45), BEIGE, **giro)
 
