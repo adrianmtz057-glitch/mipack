@@ -158,31 +158,41 @@ def pelo(p, C, T):
             a, b = sorted((s * xa, s * xb))
             mechon(p, f"lado_frente{s}_{i}", a, b, -6.0, -4.4, abajo, T - 0.5, k, onda=0.3 * s)
             k += 1
-        # costados: mechones a lo largo, cada uno de su largo
-        for i, (za, zb, abajo) in enumerate(((-4.4, -2.6, C + 1.6), (-2.6, -0.8, C + 2.4), (-0.8, 1.0, C + 1.4),
-                                              (1.0, 2.8, C + 2.2), (2.8, 4.6, C + 1.2))):
-            a, b = sorted((s * 5.5, s * 6.3))
-            mechon(p, f"costado{s}_{i}", a, b, za, zb, abajo, T - 0.3, k, onda=0.2 * (1 if i % 2 else -1), eje="z")
-            k += 1
-    # atras: una capa corta pegada a la nuca y el PENDULO: los mechones de las orillas se juntan hacia el medio y de
-    # ahi cuelga un mechon que baja curvandose hacia afuera y termina en una punta mas gruesa (el peso)
-    ancho = 11.0 / 7
-    for i in range(7):
-        x = -5.5 + i * ancho
-        mechon(p, f"nuca{i}", x, x + ancho, 5.5, 6.2, C + 2.6 + 0.5 * (i % 2), T - 0.3, k)
-        k += 1
-    for s in (1, -1):                                            # se juntan hacia el medio
-        for i, (x, giro) in enumerate(((3.6, 28), (2.0, 16))):
-            a, b = sorted((s * (x - 0.8), s * (x + 0.8)))
-            p.caja(g, f"junta{s}_{i}", (a, C + 3.0, 6.0), (b, T - 0.4, 6.7), liso(PELO[TONOS_MECHON[i + 2]]),
-                   rot=(0, 0, -s * giro), piv=(s * x, T - 0.4, 6.35), dens=D)
-    y = T - 0.6
-    for i, (w, largo, z) in enumerate(((1.3, 2.4, 6.1), (1.2, 2.2, 6.4), (1.15, 2.0, 6.8))):   # la cuerda del pendulo
-        p.caja(g, f"pendulo{i}", (-w, y - largo, z), (w, y + 0.05, z + 0.8), liso(PELO[TONOS_MECHON[i]]), dens=D)
-        y -= largo
-    for i, (w, alto, z0, z1) in enumerate(((1.8, 0.6, 6.9, 8.0), (2.3, 1.4, 6.7, 8.3), (1.9, 0.7, 6.9, 8.1))):
-        p.caja(g, f"peso{i}", (-w, y - alto, z0), (w, y + 0.05, z1), liso(PELO["l" if i == 1 else "b"]), dens=D)
-        y -= alto
+    campana(p, C, T, k)
+
+
+def tira_pelo(ancho, largo, k, grueso=0.7):
+    """Un mechon plano colgando desde (0, 0), con la punta escalonada (patron fijo por mechon)."""
+    from .. import malla as geo
+    w = ancho / 2
+    a = (0.0, 0.5, 0.8)[k % 3]
+    perfil = [(-w, 0.0), (w, 0.0), (w, -largo + a)] + ([(0.1, -largo + a)] if a else []) + [(0.1, -largo), (-w, -largo)]
+    return geo.extruir(perfil, -grueso / 2, grueso / 2)
+
+
+def campana(p, C, T, k0):
+    """El pelo de los costados y de atras como una CAMPANA: mechones que nacen alrededor de la cabeza (menos en la
+    cara) y se abren hacia afuera y hacia abajo hasta pasar la cabeza; atras son mas largos y hacia la cara mas cortos,
+    asi el borde de abajo queda redondo. Dos capas, la de adentro un tono mas oscuro, tapa los huecos."""
+    import math
+    from .. import malla as geo
+    for capa, (n, fuera, abre, oscuro) in enumerate(((20, 0.35, 16.0, False), (20, 0.0, 11.0, True))):
+        for i in range(n):
+            ang = 180 + 360 * (i + 0.5 * capa) / n
+            frente = abs(((ang - 180 + 180) % 360) - 180)       # 0 adelante, 180 atras
+            if frente < 55:
+                continue                                         # la cara queda libre
+            a = math.radians(ang)
+            sx, sz = math.sin(a), math.cos(a)
+            r = 1.0 / max(abs(sx), abs(sz)) * 5.4
+            x, z = r * sx + sx * fuera, r * sz + sz * fuera
+            atras = (frente - 55) / 125                          # 0 junto a la cara, 1 atras al medio
+            largo = 7.0 + 5.5 * math.sin(atras * math.pi / 2) - 0.4 * capa
+            m = tira_pelo(2.0, largo, k0 + i)
+            m = geo.girar(m, (abre, ang - 180, 0))
+            m = geo.mover(m, (x, T - 0.6, z))
+            tono = PELO["s"] if oscuro else PELO[("b", "l", "b")[i % 3]]
+            p.malla("Head/pelo", f"campana{capa}_{i}", m, liso(tono), dens=D)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
