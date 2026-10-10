@@ -156,13 +156,14 @@ def _u(y, w, zb, zf, g=0.0):
     los lados y la espalda partidos en tramos (mas poligonos)."""
     import math
     w, zb, r = w - g, zb - g, max(0.2, ESQUINA_PELO - g)
-    pts = [(-w, y, zf + (zb - r - zf) * i / 4) for i in range(4)]
-    pts += [(-w + r - r * math.cos(math.radians(90 * k / 6)), y, zb - r + r * math.sin(math.radians(90 * k / 6)))
-            for k in range(6)]
-    pts += [(-w + r + (2 * w - 2 * r) * i / 4, y, zb) for i in range(4)]
-    pts += [(w - r + r * math.sin(math.radians(90 * k / 6)), y, zb - r + r * math.cos(math.radians(90 * k / 6)))
-            for k in range(6)]
-    pts += [(w, y, zb - r - (zb - r - zf) * i / 4) for i in range(5)]
+    na, nl = 12, 10                                              # puntos por esquina y por tramo recto
+    pts = [(-w, y, zf + (zb - r - zf) * i / nl) for i in range(nl)]
+    pts += [(-w + r - r * math.cos(math.radians(90 * k / na)), y, zb - r + r * math.sin(math.radians(90 * k / na)))
+            for k in range(na)]
+    pts += [(-w + r + (2 * w - 2 * r) * i / nl, y, zb) for i in range(nl)]
+    pts += [(w - r + r * math.sin(math.radians(90 * k / na)), y, zb - r + r * math.cos(math.radians(90 * k / na)))
+            for k in range(na)]
+    pts += [(w, y, zb - r - (zb - r - zf) * i / nl) for i in range(nl + 1)]
     return pts
 
 
@@ -182,10 +183,14 @@ def _anillo_redondo(y, m, r=1.5, n=6):
 def mechon_malla(ancho, largo, grueso, k):
     """Un mechon con volumen: ancho arriba, se angosta y termina en una punta corrida a un lado (fija por k)."""
     from .. import malla as geo
+    import math
     w = ancho / 2
     corre = (_azar(k + 7) - 0.5) * 0.5 * ancho
-    perfil = [(-w, 0.0), (w, 0.0), (w * 0.92, -0.55 * largo), (corre + 0.12 * ancho, -largo),
-              (corre - 0.12 * ancho, -largo + 0.15), (-w * 0.9, -0.6 * largo)]
+    n = 10
+    # cada orilla baja angostandose en curva hasta la punta (corrida a un lado): muchos puntos, contorno suave
+    der = [(corre + (w - corre) * math.cos(t * math.pi / 2) ** 0.7, -largo * t) for t in (i / n for i in range(n))]
+    izq = [(corre - (w + corre) * math.cos(t * math.pi / 2) ** 0.7, -largo * t) for t in (i / n for i in range(n))]
+    perfil = [(-w, 0.0)] + [(w, 0.0)] + der[1:] + [(corre, -largo)] + izq[1:][::-1]
     return geo.extruir(perfil, -grueso / 2, grueso / 2)
 
 
@@ -222,13 +227,30 @@ def pelo(p, C, T):
     redonda y el frente en capas."""
     from .. import malla as geo
     anillos = []
-    for y, w, zb, zf in _suave(NIVELES_PELO):
+    niveles = _suave(NIVELES_PELO, pasos=7)
+    for y, w, zb, zf in niveles:
         anillos.append(_u(y, w, zb, zf) + _u(y, w, zb, zf, GROSOR_PELO)[::-1])
     p.malla("Head/pelo", "campana", geo.loft_puntos(anillos[::-1]), liso(PELO["b"]), dens=D)
-    tapa = [_anillo_redondo(y, m, r) for y, m, r in ((T - 0.4, 5.55, 0.9), (T + 0.5, 5.45, 1.0), (T + 1.0, 4.8, 1.6),
-                                                     (T + 1.3, 3.6, 1.6))]
+    tapa = [_anillo_redondo(y, m, r, n=10) for y, m, r in _suave(((T - 0.4, 5.55, 0.9), (T + 0.5, 5.45, 1.0),
+                                                                  (T + 1.0, 4.8, 1.6), (T + 1.3, 3.6, 1.6)), pasos=4)]
     p.malla("Head/pelo", "tapa", geo.loft_puntos(tapa), liso(PELO["l"]), dens=D)
+    doblez(p, niveles)
     frente(p, C, T)
+
+
+def doblez(p, niveles):
+    """El doblez del pelo a los lados de la cara: una pared que va de la orilla de afuera del pelo hasta el costado
+    de la cabeza y sigue la forma de la campana, asi el pelo no queda abierto: se ve doblado hacia la cabeza."""
+    from .. import malla as geo
+    costado = 4.95
+    contorno = [(w, y) for y, w, zb, zf in niveles if w > costado + 0.05]
+    zf = min(n[3] for n in niveles)
+    perfil = [(costado, contorno[0][1])] + contorno + [(costado, contorno[-1][1])]
+    for s in (1, -1):
+        m = geo.extruir(perfil, zf, zf + 0.6)
+        if s < 0:
+            m = geo.espejo_x(m)
+        p.malla("Head/pelo", f"doblez{s}", m, liso(PELO["s"]), dens=D)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
