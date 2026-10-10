@@ -164,35 +164,46 @@ def pelo(p, C, T):
             a, b = sorted((s * 5.5, s * 6.3))
             mechon(p, f"costado{s}_{i}", a, b, za, zb, abajo, T - 0.3, k, onda=0.2 * (1 if i % 2 else -1), eje="z")
             k += 1
-    # atras: la capa de abajo termina recta en la nuca; la de arriba es mas corta al medio (forma de trapecio)
+    # atras: una capa corta pegada a la nuca y el PENDULO: los mechones de las orillas se juntan hacia el medio y de
+    # ahi cuelga un mechon que baja curvandose hacia afuera y termina en una punta mas gruesa (el peso)
     ancho = 11.0 / 7
     for i in range(7):
         x = -5.5 + i * ancho
-        mechon(p, f"nuca{i}", x, x + ancho, 5.5, 6.2, C + 0.8, T - 0.3, k)
+        mechon(p, f"nuca{i}", x, x + ancho, 5.5, 6.2, C + 2.6 + 0.5 * (i % 2), T - 0.3, k)
         k += 1
-        medio = abs(i - 3) / 3                                   # 0 al medio, 1 en las orillas
-        mechon(p, f"capa{i}", x + 0.05, x + ancho - 0.05, 6.1, 6.7, C + 4.6 - 2.6 * medio, T - 0.2, k + 1)
+    for s in (1, -1):                                            # se juntan hacia el medio
+        for i, (x, giro) in enumerate(((3.6, 28), (2.0, 16))):
+            a, b = sorted((s * (x - 0.8), s * (x + 0.8)))
+            p.caja(g, f"junta{s}_{i}", (a, C + 3.0, 6.0), (b, T - 0.4, 6.7), liso(PELO[TONOS_MECHON[i + 2]]),
+                   rot=(0, 0, -s * giro), piv=(s * x, T - 0.4, 6.35), dens=D)
+    y = T - 0.6
+    for i, (w, largo, z) in enumerate(((1.3, 2.4, 6.1), (1.2, 2.2, 6.4), (1.15, 2.0, 6.8))):   # la cuerda del pendulo
+        p.caja(g, f"pendulo{i}", (-w, y - largo, z), (w, y + 0.05, z + 0.8), liso(PELO[TONOS_MECHON[i]]), dens=D)
+        y -= largo
+    for i, (w, alto, z0, z1) in enumerate(((1.8, 0.6, 6.9, 8.0), (2.3, 1.4, 6.7, 8.3), (1.9, 0.7, 6.9, 8.1))):
+        p.caja(g, f"peso{i}", (-w, y - alto, z0), (w, y + 0.05, z1), liso(PELO["l" if i == 1 else "b"]), dens=D)
+        y -= alto
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
 
 
 def orejas(p, T):
-    """Orejas de zorro grandes, altas y en punta, en las esquinas de arriba, abiertas hacia afuera: escalones que se
-    angostan hasta la punta, con el adentro rosa adelante."""
+    """Orejas de zorro grandes y en punta: nacen al ras del costado de la cabeza (el borde de afuera sigue la linea
+    del costado) y se angostan hacia adentro hasta la punta, a media cabeza; el adentro rosa adelante."""
     g = "Head/orejas"
+    afuera = 5.5
     for s in (1, -1):
-        cx = s * 3.3
-        giro = dict(rot=(-6, 0, -14 * s), piv=(cx, T + 0.6, 0.2))
         y = T + 0.4
-        for k, (ancho, alto) in enumerate(((5.0, 1.0), (4.5, 1.0), (3.9, 1.0), (3.2, 0.9), (2.5, 0.9), (1.7, 0.8),
+        for k, (ancho, alto) in enumerate(((5.0, 1.0), (4.4, 1.0), (3.8, 1.0), (3.1, 0.9), (2.4, 0.9), (1.6, 0.8),
                                            (0.9, 0.7))):
-            p.caja(g, f"oreja{s}_{k}", (cx - ancho / 2, y, -0.6), (cx + ancho / 2, y + alto, 0.8), liso(PELO["b"]),
-                   dens=D, **giro)
+            a, b = sorted((s * (afuera - 0.25 * k), s * (afuera - 0.25 * k - ancho)))
+            p.caja(g, f"oreja{s}_{k}", (a, y, -0.6), (b, y + alto, 0.8), liso(PELO["b"]), dens=D,
+                   rot=(-6, 0, 0), piv=(s * 3.0, T + 0.4, 0.2))
             if k < 6:
-                w = ancho - 1.6
-                p.caja(g, f"adentro{s}_{k}", (cx - w / 2, y + 0.1, -0.75), (cx + w / 2, y + alto, -0.6),
-                       liso(ROSA_OREJA), dens=D, **giro)
+                c, d = sorted((s * (afuera - 0.25 * k - 0.6), s * (afuera - 0.25 * k - ancho + 0.9)))
+                p.caja(g, f"adentro{s}_{k}", (c, y + 0.1, -0.75), (d, y + alto, -0.6), liso(ROSA_OREJA), dens=D,
+                       rot=(-6, 0, 0), piv=(s * 3.0, T + 0.4, 0.2))
             y += alto
 
 
