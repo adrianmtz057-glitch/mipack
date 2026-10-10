@@ -409,7 +409,7 @@ BRAZO = ((6.4, 28.2, 0.0, 1.9), (8.2, 24.0, -0.2, 2.2), (9.3, 19.5, -0.3, 2.15),
          (9.7, 13.4, -0.4, 2.1), (9.6, 12.2, -0.4, 1.3))
 
 
-TEXTURA = False                                          # sin grano por ahora (para ver la forma)
+TEXTURA = True                                           # con grano de pixeles (False: para ver la forma)
 ESQUINA = 0.32                                           # cuanto de cada medio ancho se recorta en las esquinas
 
 
