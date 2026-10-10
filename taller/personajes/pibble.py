@@ -7,7 +7,8 @@ los cachetes en pico a los lados, el hocico con la nariz que sale, las cuencas d
 frente redonda; toda de vacio negro, con los ojos de almendra crema (piezas con las puntas afiladas, pegadas en las
 cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al centro de la frente.
 La capucha (base): carpa grande de pocas caras que se abre hacia abajo, la abertura en V invertida con la visera en
-punta sobre la frente, el forro negro y las orejas de gato negras en las esquinas de la cumbrera.
+punta sobre la frente, el forro negro y las orejas de gato negras, grandes y redondeadas, en las esquinas de la
+cumbrera.
 """
 
 import math
@@ -95,7 +96,11 @@ CAPUCHA = ((11.2, 8.2, 6.6, -5.6, 6.6), (15.0, 7.4, 6.8, -6.0, 4.9), (19.0, 6.3,
 CHAFLAN, GROSOR = 1.2, 0.6
 VISERA = (0.4, 0.3)                                      # cuanto sube y cuanto sale la punta de enfrente
 TECHO = ((22.8, 0.97, 0.75), (23.6, 0.9, 0.42), (24.0, 0.82, 0.12))   # hasta la cumbrera: (y, escala x, escala z)
-OREJA = (((5.2, 23.3, 0.0), (3.9, 23.9, -1.3), (2.6, 24.2, 0.0), (3.9, 23.9, 1.3)), (4.6, 27.6, 0.0))
+# la oreja derecha, grande y redondeada: anillos de 8 lados de abajo (metido en el techo) hacia la punta, que se
+# ensancha un poco y luego se cierra en curva: (y, centro x, medio ancho, medio hondo), y la punta
+OREJA = ((23.0, 3.3, 1.7, 1.2), (24.4, 3.6, 1.95, 1.1), (25.6, 3.85, 1.7, 0.95), (26.7, 4.05, 1.25, 0.75),
+         (27.5, 4.2, 0.7, 0.5))
+OREJA_PUNTA = (4.3, 28.1, 0.0)
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 NEGRO = ((0.34, "#100E12"), (0.5, "#161318"), (0.66, "#1D1A1F"), (9.0, "#252127"))
 
@@ -136,9 +141,9 @@ def capucha_pintor():
 
 def capucha(p):
     p.malla("Head/capucha", "capucha", capucha_malla(), capucha_pintor(), dens=4, luz=False)
-    base, punta = OREJA
-    p.malla_par("Head/capucha", "oreja", geo.piramide(list(base), punta, tapa=False), faceta(paleta=NEGRO, grano=0),
-                dens=4, luz=False)
+    anillos = [geo.anillo(cx, y, 0.0, rx, rz, 8, 22.5) for y, cx, rx, rz in OREJA]
+    oreja = geo.unir(geo.loft_puntos(anillos, tapa_arriba=False), geo.piramide(anillos[-1], OREJA_PUNTA, tapa=False))
+    p.malla_par("Head/capucha", "oreja", oreja, faceta(paleta=NEGRO, grano=0), dens=4, luz=False)
 
 
 def liso(col):
