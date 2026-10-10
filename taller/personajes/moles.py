@@ -117,82 +117,38 @@ def pata(t):
     return piel(t)
 
 
-TONOS_MECHON = ("b", "l", "b", "s", "l", "b")             # cada mechon con su tono liso (se separan entre si)
-
-
 def liso(col):
     c = hex_(col)
     return lambda t: c
 
 
-def mechon(p, nombre, x0, x1, z0, z1, abajo, arriba, k, onda=0.0, eje="x"):
-    """Un mechon de bloque que cuelga de 'arriba' a 'abajo' en tres tramos; con onda cada tramo se corre a un lado y
-    al otro (se ve ondulado). eje: hacia donde se corre ('x' adelante/atras, 'z' en los costados)."""
-    tono = liso(PELO[TONOS_MECHON[k % len(TONOS_MECHON)]])
-    largo = (arriba - abajo) / 3
-    for i in range(3):
-        d = onda * (0, 1, -1)[i]
-        dx, dz = (d, 0) if eje == "x" else (0, d)
-        y1, y0 = arriba - i * largo, arriba - (i + 1) * largo
-        p.caja("Head/pelo", f"{nombre}_{i}", (x0 + dx, y0, z0 + dz), (x1 + dx, y1 + 0.02, z1 + dz), tono, dens=D)
+# el pelo: UNA sola pieza. Cada nivel es una herradura (rodea la cabeza menos la cara) con su borde de afuera y el
+# de adentro; de arriba abajo: tapa la cabeza, baja pegada por los costados y atras y abajo se abre en campana.
+# (y, medio ancho de afuera, medio ancho de adentro)
+NIVELES_PELO = ((21.8, 4.6, 0.4), (21.3, 5.6, 2.2), (20.2, 5.9, 5.05), (13.0, 6.5, 5.05), (11.0, 7.1, 5.05),
+                (8.6, 7.6, 6.5), (7.6, 7.1, 6.8))
+ABRE_CARA = 150.0                       # grados desde la nuca hasta donde llega la herradura (la cara queda libre)
+
+
+def _herradura(y, afuera, adentro, n=24):
+    """Un nivel del pelo: herradura cuadrada (sigue la cabeza) de la nuca hacia los dos lados hasta la cara."""
+    import math
+    def punto(ang, r):
+        a = math.radians(ang)
+        sx, sz = math.sin(a), math.cos(a)
+        k = r / max(abs(sx), abs(sz))
+        return (k * sx, y, k * sz)
+    angs = [-ABRE_CARA + 2 * ABRE_CARA * i / n for i in range(n + 1)]
+    return [punto(a, afuera) for a in angs] + [punto(a, adentro) for a in reversed(angs)]
 
 
 def pelo(p, C, T):
-    """El pelo rubio en mechones lisos (cada uno de su tono): el casco, el flequillo disparejo arriba de los ojos,
-    los mechones de adelante que enmarcan la cara (ondulados), los costados en mechones, y atras la melena que
-    termina recta en la nuca con una capa de arriba mas corta al medio."""
-    g = "Head/pelo"
-    p.caja(g, "casco", (-5.5, T - 2.8, -5.5), (5.5, T + 0.5, 5.5), liso(PELO["b"]), dens=D)
-    p.caja(g, "casco_alto", (-4.8, T + 0.5, -4.8), (4.8, T + 1.0, 4.8), liso(PELO["l"]), dens=D)
-    k = 0
-    # flequillo: arriba de las cejas, disparejo
-    ancho = 11.0 / 8
-    for i, abajo in enumerate((5.9, 6.4, 5.6, 6.2, 5.5, 6.3, 5.8, 6.5)):
-        x = -5.5 + i * ancho
-        z0 = -6.0 if i % 2 else -5.8
-        mechon(p, f"fleco{i}", x, x + ancho, z0, -5.4, C + abajo, T + 0.4, k)
-        k += 1
-    for s in (1, -1):
-        # mechones de adelante, a los lados de la cara, ondulados
-        for i, (xa, xb, abajo) in enumerate(((4.3, 5.5, C - 1.0), (5.3, 6.3, C + 0.4))):
-            a, b = sorted((s * xa, s * xb))
-            mechon(p, f"lado_frente{s}_{i}", a, b, -6.0, -4.4, abajo, T - 0.5, k, onda=0.3 * s)
-            k += 1
-    campana(p, C, T, k)
-
-
-def tira_pelo(ancho, largo, k, grueso=0.7):
-    """Un mechon plano colgando desde (0, 0), con la punta escalonada (patron fijo por mechon)."""
+    """El pelo rubio en UNA sola pieza con la forma del boceto: tapa la cabeza, baja pegada por los costados y la
+    nuca, y abajo se abre en campana hasta pasar la cabeza, con el borde redondeado; adelante deja la cara libre."""
     from .. import malla as geo
-    w = ancho / 2
-    a = (0.0, 0.5, 0.8)[k % 3]
-    perfil = [(-w, 0.0), (w, 0.0), (w, -largo + a)] + ([(0.1, -largo + a)] if a else []) + [(0.1, -largo), (-w, -largo)]
-    return geo.extruir(perfil, -grueso / 2, grueso / 2)
-
-
-def campana(p, C, T, k0):
-    """El pelo de los costados y de atras como una CAMPANA: mechones que nacen alrededor de la cabeza (menos en la
-    cara) y se abren hacia afuera y hacia abajo hasta pasar la cabeza; atras son mas largos y hacia la cara mas cortos,
-    asi el borde de abajo queda redondo. Dos capas, la de adentro un tono mas oscuro, tapa los huecos."""
-    import math
-    from .. import malla as geo
-    for capa, (n, fuera, abre, oscuro) in enumerate(((20, 0.35, 16.0, False), (20, 0.0, 11.0, True))):
-        for i in range(n):
-            ang = 180 + 360 * (i + 0.5 * capa) / n
-            frente = abs(((ang - 180 + 180) % 360) - 180)       # 0 adelante, 180 atras
-            if frente < 55:
-                continue                                         # la cara queda libre
-            a = math.radians(ang)
-            sx, sz = math.sin(a), math.cos(a)
-            r = 1.0 / max(abs(sx), abs(sz)) * 5.4
-            x, z = r * sx + sx * fuera, r * sz + sz * fuera
-            atras = (frente - 55) / 125                          # 0 junto a la cara, 1 atras al medio
-            largo = 7.0 + 5.5 * math.sin(atras * math.pi / 2) - 0.4 * capa
-            m = tira_pelo(2.0, largo, k0 + i)
-            m = geo.girar(m, (abre, ang - 180, 0))
-            m = geo.mover(m, (x, T - 0.6, z))
-            tono = PELO["s"] if oscuro else PELO[("b", "l", "b")[i % 3]]
-            p.malla("Head/pelo", f"campana{capa}_{i}", m, liso(tono), dens=D)
+    anillos = [_herradura(y, a, b) for y, a, b in NIVELES_PELO]
+    m = geo.loft_puntos(anillos[::-1])
+    p.malla("Head/pelo", "pelo", m, liso(PELO["b"]), dens=D)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
