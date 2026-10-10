@@ -8,8 +8,8 @@ frente redonda; toda de vacio negro, con los ojos de almendra crema (piezas con 
 cuencas, con orilla dorada) inclinados hacia arriba afuera y el rombo dorado al centro de la frente.
 La capucha, paso a paso: por ahora los dos paneles de enfrente, unidos por la punta en la frente: doblados hacia la
 cabeza, la parte de abajo inclinada hacia enfrente, la esquina de arriba alargada hacia arriba, y el hundido hecho con
-paneles 2D en capas y curvado hacia adentro, cortados a lo largo con la mitad de abajo hundida, muy cerca de la cara
-sin tocarla; y el cuadrado horizontal de arriba que sale de la punta hacia atras.
+cuadritos 2D sueltos que se curvan hacia adentro, cortados a lo largo con la mitad de abajo hundida, muy cerca de la
+cara sin tocarla; y el cuadrado horizontal de arriba que sale de la punta hacia atras.
 """
 
 import math
@@ -93,7 +93,8 @@ def ojos(p):
 # las esquinas de afuera alargadas (en punta), girado sobre su punta (lo de afuera baja), doblado hacia la cabeza e
 # inclinado (la parte de abajo hacia enfrente); y la esquina de arriba alargada hacia arriba desde la mitad de la
 # orilla de arriba. El hundido (un triangulo de la mitad con la base sobre el lado de afuera, de su punta hasta el
-# final) va con PANELES 2D en capas, cada una un poco mas atras y mas oscura: (escala del hueco, que tan atras, sesgo)
+# final) va de cuadritos 2D sueltos que se curvan hacia adentro. CAPAS: la cara de enfrente (escala del hueco, que tan
+# atras, sesgo) y los cuadritos (-, que tan atras empiezan, sesgo)
 LADO_TRIANGULO = 10.5
 PUNTA_FRENTE = (0.0, 21.0, -4.6)                         # arriba de la frente, justo sobre la coronilla
 Z_AFUERA = -3.0
@@ -102,10 +103,11 @@ HACIA_ADENTRO = 25.0                                     # grados que lo de afue
 INCLINA = 20.0                                           # grados que la parte de abajo se inclina hacia enfrente
 ALARGA = 2.5                                             # cuanto se alargan las dos esquinas de afuera (en punta)
 PUNTA_ARRIBA = 4.0                                       # cuanto se alarga hacia arriba la esquina de arriba
-CAPAS = ((0.5, 0.0, 0.0), (0.32, 0.15, -0.1), (None, 0.3, -0.2))
+CAPAS = ((0.5, 0.0, 0.0), (None, 0.15, -0.1))
 HOLGURA = 0.1                                            # lo mas cerca que pasan de la cara, sin tocarla
 HUNDE_MITAD = 0.35                                       # la mitad de abajo (cortada a lo largo) se hunde esto
 CURVA = 0.6                                              # el hundido se curva hacia adentro: lo mas hondo, en la orilla
+CUADRITO = (1.0, 0.9)                                    # el hundido va de cuadritos 2D sueltos: cada cuanto y su lado
 # el cuadrado de arriba: horizontal, con la esquina de enfrente en la punta de los triangulos y hacia atras; su
 # diagonal de enfrente a atras
 DIAGONAL_CUADRADO = 9.6
@@ -187,31 +189,56 @@ def _paneles(a, b, c, estorbos):
     def hueco(k):                                         # el triangulo achicado hacia el medio del lado de afuera
         return [(mx + (x - mx) * k, my + (y - my) * k) for x, y in (t0, b1, b2)]
 
-    (k0, z0, s0), (k1, z1, s1), (_, z2, s2) = CAPAS
+    (k0, z0, s0), (_, z1, s1) = CAPAS
     p, q1, q2 = hueco(k0)
-    r, w1, w2 = hueco(k1)
-    m = (mx, my)
     eje = math.hypot(mx - p[0], my - p[1])
 
     def curva(q):                                         # 0 en la punta del hundido, CURVA en la orilla de afuera
         f = ((q[0] - p[0]) * (mx - p[0]) + (q[1] - p[1]) * (my - p[1])) / (eje * eje)
         return CURVA * max(0.0, min(1.0, f)) ** 2
 
-    # (poligono, que tan atras, sesgo, si se curva): arriba del corte (de la punta al medio del lado de afuera) y
-    # abajo, hundida
-    piezas = [([t0, mitad, punta, q1, p], z0, s0, False), ([t0, p, q2, b2], z0 + HUNDE_MITAD, s0 - 0.06, False),
-              ([q1, p, r, w1], z1, s1, True), ([p, q2, w2, r], z1 + HUNDE_MITAD, s1 - 0.06, True),
-              ([r, w1, m], z2, s2, True), ([r, m, w2], z2 + HUNDE_MITAD, s2 - 0.06, True)]
+    # arriba del corte (de la punta al medio del lado de afuera) y abajo, hundida; el hueco del hundido queda abierto
     out = []
-    for pts, z, sesgo, curvo in piezas:
-        en_3d = [tuple(a[i] + x * u[i] + y * v[i] + (z + (curva((x, y)) if curvo else 0.0)) * n[i] for i in range(3))
-                 for x, y in pts]
-        if curvo:                                         # en triangulos, asi cada cara queda plana aunque se curve
-            for i in range(1, len(en_3d) - 1):
-                out.append((_panel([en_3d[0], en_3d[i], en_3d[i + 1]]), sesgo))
-        else:
-            out.append((_panel(en_3d), sesgo))
+    for pts, z, sesgo in (([t0, mitad, punta, q1, p], z0, s0), ([t0, p, q2, b2], z0 + HUNDE_MITAD, s0 - 0.06)):
+        out.append((_panel([tuple(a[i] + x * u[i] + y * v[i] + z * n[i] for i in range(3)) for x, y in pts]), sesgo))
+    # el hundido: cuadritos 2D sueltos en reticula (a lo largo del eje y del lado de afuera), cada uno a la hondura de
+    # la curva en su centro e inclinado como ella; los de abajo del corte, ademas hundidos con su mitad
+    ax, ay = (mx - p[0]) / eje, (my - p[1]) / eje
+    sx, sy = lx / largo, ly / largo
+    paso, lado = CUADRITO
+    orillas = ((p, q1), (p, q2))
+
+    def lejos(x, y):                                      # distancia a las dos orillas inclinadas del hundido
+        res = 1e9
+        for (x0, y0), (x1, y1) in orillas:
+            ex, ey = x1 - x0, y1 - y0
+            f = max(0.0, min(1.0, ((x - x0) * ex + (y - y0) * ey) / (ex * ex + ey * ey)))
+            res = min(res, math.hypot(x - x0 - ex * f, y - y0 - ey * f))
+        return res
+
+    k = 0
+    i = 0
+    while (i + 0.5) * paso < eje:
+        for j in range(-8, 9):
+            cx, cy = p[0] + ax * (i + 0.5) * paso + sx * j * paso, p[1] + ay * (i + 0.5) * paso + sy * j * paso
+            if not _dentro([p, q1, q2], cx, cy, 0.0) or lejos(cx, cy) < lado * 0.45:
+                continue
+            f = (i + 0.5) * paso / eje
+            pendiente = 2 * CURVA * f / eje                 # lo que baja la curva por unidad a lo largo del eje
+            z = z1 + curva((cx, cy)) + (HUNDE_MITAD if j < 0 else 0.0)
+            esquinas = []
+            for da, ds in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                x, y = cx + (ax * da + sx * ds) * lado / 2, cy + (ay * da + sy * ds) * lado / 2
+                zz = z + pendiente * da * lado / 2
+                esquinas.append(tuple(a[c] + x * u[c] + y * v[c] + zz * n[c] for c in range(3)))
+            out.append((_panel(esquinas), s1 - 0.12 * _azar_p(k)))
+            k += 1
+        i += 1
     return out, a
+
+
+def _azar_p(k):
+    return (math.sin(k * 12.9898 + 4.1414) * 43758.5453) % 1.0
 
 
 def _panel(vs):
