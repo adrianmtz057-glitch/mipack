@@ -380,11 +380,11 @@ def pestanas(p, C):
 
 
 # ---------------------------------------------------------------- la sudadera
-# sudadera de cierre (como las de referencia): azul marino, holgada y cuadrada, con resorte abajo, hombros caidos,
+# sudadera de cierre (como las de referencia): negra, holgada y cuadrada, con resorte abajo, hombros caidos,
 # mangas abombadas que se juntan en un puno de resorte, el cierre al frente, la bolsa canguro partida por el cierre y
 # la capucha caida en la espalda; la orilla de la capucha baja por el pecho en V hasta el cierre, bordada en zigzag
-# cafe. Todo low-poly como el pelo: caras planas con su tono segun hacia donde miran.
-MARINO = ((0.34, "#151A2C"), (0.5, "#1D2540"), (0.66, "#273151"), (9.0, "#333E64"))
+# cafe, y adentro de la V se ve la piel. Todo low-poly como el pelo: caras planas con su tono segun hacia donde miran.
+NEGRO = ((0.34, "#141317"), (0.5, "#1D1C21"), (0.66, "#28272D"), (9.0, "#35343B"))
 BORDADO, CIERRE, CIERRE_CLARO = "#C29A62", "#6B707C", "#A3A8B3"
 ROJO, CREMA_DIJE = "#C8343A", "#FBF1DE"
 # el cuerpo de la sudadera, de abajo hacia arriba: (y, medio ancho, medio hondo, esquina)
@@ -437,6 +437,18 @@ def frente_z(y):
     return -pts[-1][1]
 
 
+def tela_v(pintor):
+    """La tela del cuerpo con la V del cuello abierta: arriba de la orilla de la capucha (de enfrente) se ve la piel."""
+    (ax, ay), (bx, by), _ = ORILLA
+    pendiente = (by - ay) / (bx - ax)
+
+    def pintar(t):
+        if t.n[2] < -0.3 and t.y > ay + (abs(t.x) - ax) * pendiente:
+            return hex_(PIEL)
+        return pintor(t)
+    return pintar
+
+
 def cierre(t):
     """Los dientes del cierre: rayitas alternadas."""
     return hex_(CIERRE_CLARO if (t.y * 6) % 1.0 < 0.45 else CIERRE)
@@ -447,7 +459,7 @@ def orilla(t):
     import math
     (ax, ay), (bx, by), w = ORILLA
     if t.n[2] > -0.5:
-        return hex_(MARINO[0][1])
+        return hex_(NEGRO[0][1])
     lx, ly = bx - ax, by - ay
     largo = math.hypot(lx, ly)
     dx, dy = lx / largo, ly / largo
@@ -456,7 +468,7 @@ def orilla(t):
     zig = abs(((s / 0.38) % 1.0) - 0.5) * 2                           # 0..1..0
     if abs(c - (-0.15 + 0.3 * zig)) < 0.07:
         return hex_(BORDADO)
-    return hex_(MARINO[1][1])
+    return hex_(NEGRO[1][1])
 
 
 def calaverita(t):
@@ -471,10 +483,10 @@ def ropa(p, C, L):
     """La sudadera de cierre, en sus propios grupos (aparte del cuerpo, para prenderla y apagarla en Figura)."""
     from .. import malla as geo
     g = "Body/ropa"
-    tela = faceta(paleta=MARINO)
+    tela = faceta(paleta=NEGRO)
     y0, y1, mx, mz, r = RESORTE
-    p.malla(g, "resorte", geo.loft_puntos([_rect(y, mx, mz, r) for y in (y0, y1)]), resorte(MARINO), dens=D)
-    p.malla(g, "cuerpo", geo.loft_puntos([_rect(y, mx, mz, r) for y, mx, mz, r in SUDADERA]), tela, dens=D)
+    p.malla(g, "resorte", geo.loft_puntos([_rect(y, mx, mz, r) for y in (y0, y1)]), resorte(NEGRO), dens=D)
+    p.malla(g, "cuerpo", geo.loft_puntos([_rect(y, mx, mz, r) for y, mx, mz, r in SUDADERA]), tela_v(tela), dens=D)
     # el cierre: una tira que sigue el frente, del resorte hasta donde se juntan las orillas de la capucha
     ys = (RESORTE[0], RESORTE[1] - 0.05, 5.6, 7.2, 9.2, ORILLA[0][1])
     perfil = [(frente_z(y) - 0.08, y) for y in ys] + [(frente_z(y) + 0.12, y) for y in ys[::-1]]
@@ -484,7 +496,7 @@ def ropa(p, C, L):
     for s in (1, -1):
         perfil = [(0.22, 5.55), (2.55, 5.55), (2.55, 6.1), (1.55, 7.55), (0.22, 7.55)]
         m = geo.extruir(perfil, -2.3, -2.05)
-        p.malla(g, f"bolsa{s}", m if s > 0 else geo.espejo_x(m), faceta(-0.1, MARINO), dens=D)
+        p.malla(g, f"bolsa{s}", m if s > 0 else geo.espejo_x(m), faceta(-0.1, NEGRO), dens=D)
     # la orilla de la capucha: baja por el pecho en V hasta el cierre, con el bordado
     (ax, ay), (bx, by), w = ORILLA
     import math
@@ -506,7 +518,7 @@ def ropa(p, C, L):
         p.malla(f"{hueso}/ropa", "manga", manga, tela, dens=D)
         ya, yb, r = PUNO
         puno = geo.loft_puntos([geo.anillo(s * MANGA_X, y, 0.0, r, r, 16) for y in (ya, yb)])
-        p.malla(f"{hueso}/ropa", "puno", puno, resorte(MARINO), dens=D)
+        p.malla(f"{hueso}/ropa", "puno", puno, resorte(NEGRO), dens=D)
 
 
 # ---------------------------------------------------------------- la cola
