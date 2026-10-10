@@ -156,12 +156,7 @@ def _suave(niveles, pasos=3):
     return out
 
 
-def _rampa_pelo(b):
-    """El rubio en cuatro tonos planos (como textura de Minecraft): de oscuro (b chico) a claro."""
-    return next(hex_(c) for hasta, c in TONOS_PELO if b <= hasta)
-
-
-def faceta(sesgo=0.0):
+def faceta(sesgo=0.0, paleta=None):
     """Pintor del pelo low-poly: cada cara de un tono PLANO segun hacia donde mira (arriba claro, hacia abajo oscuro,
     y en cada pliegue una cara clara y la otra oscura) y un poquito distinta de la de junto, para que las caras se lean
     como poligonos. Todas las piezas del pelo usan el mismo, asi se ven como una sola cabellera (nada pegado aparte)."""
@@ -174,7 +169,7 @@ def faceta(sesgo=0.0):
         h = math.hypot(nx, nz)
         b = 0.5 + 0.32 * ny - 0.12 * nz + 0.17 * h * math.sin(4 * math.atan2(nz, nx))
         b += sesgo + 0.06 * (_azar(round(nx, 2) * 37.1 + round(ny, 2) * 11.7 + round(nz, 2) * 5.3) - 0.5)
-        return _rampa_pelo(b)
+        return next(hex_(c) for hasta, c in (paleta or TONOS_PELO) if b <= hasta)
     return pintor
 
 
@@ -384,57 +379,134 @@ def pestanas(p, C):
                    dens=D_CARA, luz=False)
 
 
-NEGRO = {"s": "#2C232B", "b": "#3D3340", "l": "#524555"}
+# ---------------------------------------------------------------- la sudadera
+# sudadera de cierre (como las de referencia): azul marino, holgada y cuadrada, con resorte abajo, hombros caidos,
+# mangas abombadas que se juntan en un puno de resorte, el cierre al frente, la bolsa canguro partida por el cierre y
+# la capucha caida en la espalda; la orilla de la capucha baja por el pecho en V hasta el cierre, bordada en zigzag
+# cafe. Todo low-poly como el pelo: caras planas con su tono segun hacia donde miran.
+MARINO = ((0.34, "#151A2C"), (0.5, "#1D2540"), (0.66, "#273151"), (9.0, "#333E64"))
+BORDADO, CIERRE, CIERRE_CLARO = "#C29A62", "#6B707C", "#A3A8B3"
 ROJO, CREMA_DIJE = "#C8343A", "#FBF1DE"
+# el cuerpo de la sudadera, de abajo hacia arriba: (y, medio ancho, medio hondo, esquina)
+SUDADERA = ((5.05, 3.0, 1.85, 0.7), (5.6, 3.35, 2.1, 0.9), (7.2, 3.4, 2.15, 0.9), (9.2, 3.3, 2.05, 0.9),
+            (10.4, 3.15, 1.95, 0.9), (11.05, 3.0, 1.8, 0.45))
+RESORTE = (4.3, 5.2, 2.95, 1.8, 0.7)                     # el resorte de abajo: de y a y, medio ancho, medio hondo
+MANGA_X = 3.8                                            # el centro del brazo
+MANGA = ((4.95, 1.5), (5.7, 1.72), (6.8, 1.8), (8.2, 1.75), (9.5, 1.65), (10.5, 1.55), (11.1, 1.48))  # (y, radio)
+PUNO = (4.1, 5.1, 1.47)
+CAPUCHA = ((7.2, 0.9, 0.3, 2.2), (7.9, 2.0, 0.55, 2.4), (9.0, 2.6, 0.72, 2.55), (10.2, 2.8, 0.75, 2.5),
+           (11.0, 2.6, 0.6, 2.3))                        # caida en la espalda: (y, medio ancho, medio hondo, z)
+ORILLA = ((0.1, 9.55), (2.15, 10.85), 0.28)              # la orilla de la capucha en el pecho: de, a, medio ancho
 
 
-def sudadera(t):
-    """Negra de bloques; adelante, la etiqueta roja con su cuadrito blanco."""
-    if t.cara == "north" and _en(t.x, t.y, -0.75, 0.75, 7.6, 9.6):
-        return hex_("#F4EEE8" if _en(t.x, t.y, -0.3, 0.3, 7.9, 8.8) else ROJO)
-    return voxel(NEGRO, claro=0.05)(t)
+def _rect(y, mx, mz, r, n=2, cz=0.0):
+    """Rectangulo de esquinas redondas en pocos tramos (low-poly), antihorario visto desde arriba (de +X hacia -Z)."""
+    import math
+    r = min(r, mx - 0.05, mz - 0.05)
+    pts = []
+    for sx, sz, a0 in ((1, -1, 0), (-1, -1, 90), (-1, 1, 180), (1, 1, 270)):
+        for k in range(n + 1):
+            a = math.radians(a0 + 90 * k / n)
+            pts.append((sx * (mx - r) + r * math.cos(a), y, cz + sz * (mz - r) - r * math.sin(a)))
+    return pts
+
+
+def resorte(paleta):
+    """Resorte: costillas verticales (de lado a lado sigue la orilla de cada cara)."""
+    import math
+    claro, oscuro = hex_(paleta[1][1]), hex_(paleta[0][1])
+
+    def pintor(t):
+        nx, ny, nz = t.n
+        if abs(ny) > 0.7:
+            return oscuro
+        if abs(nz) > 0.7 or abs(nx) > 0.7:
+            u = t.x if abs(nz) > 0.7 else t.z
+        else:                                   # las caras de la orilla redonda: una costilla por cara
+            return claro if round(math.degrees(math.atan2(nz, nx)) / 22.5) % 2 else oscuro
+        return claro if (u * 3.5) % 1.0 < 0.5 else oscuro
+    return pintor
+
+
+def frente_z(y):
+    """Que tan adelante va el frente de la sudadera a esa altura (para pegarle el cierre)."""
+    pts = [(RESORTE[0], RESORTE[3]), (RESORTE[1] - 0.05, RESORTE[3])] + [(yy, mz) for yy, _, mz, _ in SUDADERA[1:]]
+    for (y0, m0), (y1, m1) in zip(pts, pts[1:]):
+        if y <= y1:
+            return -(m0 + (m1 - m0) * max(0.0, (y - y0)) / (y1 - y0))
+    return -pts[-1][1]
+
+
+def cierre(t):
+    """Los dientes del cierre: rayitas alternadas."""
+    return hex_(CIERRE_CLARO if (t.y * 6) % 1.0 < 0.45 else CIERRE)
+
+
+def orilla(t):
+    """La orilla de la capucha: azul con el bordado en zigzag cafe a lo largo (en las caras de enfrente)."""
+    import math
+    (ax, ay), (bx, by), w = ORILLA
+    if t.n[2] > -0.5:
+        return hex_(MARINO[0][1])
+    lx, ly = bx - ax, by - ay
+    largo = math.hypot(lx, ly)
+    dx, dy = lx / largo, ly / largo
+    px, py = abs(t.x) - ax, t.y - ay
+    s, c = px * dx + py * dy, -px * dy + py * dx                     # a lo largo y de lado a lado de la orilla
+    zig = abs(((s / 0.38) % 1.0) - 0.5) * 2                           # 0..1..0
+    if abs(c - (-0.15 + 0.3 * zig)) < 0.07:
+        return hex_(BORDADO)
+    return hex_(MARINO[1][1])
 
 
 def calaverita(t):
-    if t.cara == "north" and 4.15 < t.y < 4.5 and any(abs(t.x - c) < 0.17 for c in (-3.95, -3.35)):
+    u = (t.x - t.f[0]) / max(1e-6, t.t[0] - t.f[0])
+    v = (t.y - t.f[1]) / max(1e-6, t.t[1] - t.f[1])
+    if t.cara == "north" and 0.6 < v < 0.83 and any(abs(u - c) < 0.13 for c in (0.27, 0.73)):
         return hex_(PESTANA)
     return hex_(CREMA_DIJE)
 
 
 def ropa(p, C, L):
-    """La ropa, en sus propios grupos (aparte del pelo, para prenderla y apagarla en Figura): sudadera negra enorme
-    con capucha atras, cordones rojos de punta blanca, etiqueta, dije de calaverita y mangas anchas."""
+    """La sudadera de cierre, en sus propios grupos (aparte del cuerpo, para prenderla y apagarla en Figura)."""
+    from .. import malla as geo
     g = "Body/ropa"
-    p.caja(g, "sudadera", (-3.4, L - 1.6, -2.1), (3.4, C + 0.1, 2.1), sudadera, dens=D)
-    p.caja(g, "capucha", (-2.9, C - 2.0, 2.1), (2.9, C + 0.4, 3.2), voxel(NEGRO, claro=0.1), dens=D)   # bajo la melena
-    # cuello envolvente chiquito (como el de la foto): un rollo de tela alrededor y la solapa cruzada adelante
-    p.caja(g, "cuello", (-3.0, C - 1.3, -2.75), (3.0, C, 2.6), voxel(NEGRO, claro=0.2), dens=D)
-    p.caja(g, "solapa", (-2.6, C - 1.9, -3.0), (1.2, C - 0.4, -2.7), voxel(NEGRO, claro=0.25), rot=(0, 0, -22),
-           piv=(-0.7, C - 1.1, -2.85), dens=D)
-    for s, largo in ((1, 3.4), (-1, 2.8)):
-        x1, x2 = sorted((s * 1.0, s * 1.3))
-        p.caja(g, f"cordon{s}", (x1, C - largo, -2.3), (x2, C - 0.1, -2.1), color(ROJO), dens=D)
-        p.caja(g, f"punta_cordon{s}", (x1 - 0.05, C - largo - 0.5, -2.35), (x2 + 0.05, C - largo, -2.1),
-               color("#F4EEE8"), dens=D)
-    # dije de calaverita colgado de una tira roja, a su derecha de la cadera
-    p.caja(g, "tira", (-3.75, 4.6, -2.25), (-3.5, L + 0.6, -2.1), color(ROJO), dens=D)
-    p.caja(g, "calaverita", (-4.3, 3.2, -2.6), (-3.0, 4.7, -2.2), calaverita, dens=D)
-    # mangas con caida: hombro caido y angosto, el globo de tela que se junta abajo y se ensancha, y el puno de
-    # elastico apretado contra la mano
+    tela = faceta(paleta=MARINO)
+    y0, y1, mx, mz, r = RESORTE
+    p.malla(g, "resorte", geo.loft_puntos([_rect(y, mx, mz, r) for y in (y0, y1)]), resorte(MARINO), dens=D)
+    p.malla(g, "cuerpo", geo.loft_puntos([_rect(y, mx, mz, r) for y, mx, mz, r in SUDADERA]), tela, dens=D)
+    # el cierre: una tira que sigue el frente, del resorte hasta donde se juntan las orillas de la capucha
+    ys = (RESORTE[0], RESORTE[1] - 0.05, 5.6, 7.2, 9.2, ORILLA[0][1])
+    perfil = [(frente_z(y) - 0.08, y) for y in ys] + [(frente_z(y) + 0.12, y) for y in ys[::-1]]
+    p.malla(g, "cierre", geo.extruir_x(perfil, -0.13, 0.13), cierre, dens=8)
+    p.caja(g, "jalador", (-0.16, 8.7, -2.22), (0.16, 9.45, -2.12), color(CIERRE_CLARO), dens=8)
+    # la bolsa canguro, partida por el cierre: cada mitad con su abertura en diagonal
+    for s in (1, -1):
+        perfil = [(0.22, 5.55), (2.55, 5.55), (2.55, 6.1), (1.55, 7.55), (0.22, 7.55)]
+        m = geo.extruir(perfil, -2.3, -2.05)
+        p.malla(g, f"bolsa{s}", m if s > 0 else geo.espejo_x(m), faceta(-0.1, MARINO), dens=D)
+    # la orilla de la capucha: baja por el pecho en V hasta el cierre, con el bordado
+    (ax, ay), (bx, by), w = ORILLA
+    import math
+    largo = math.hypot(bx - ax, by - ay)
+    nx, ny = -(by - ay) / largo * w, (bx - ax) / largo * w
+    perfil = [(ax - nx, ay - ny), (bx - nx, by - ny), (bx + nx, by + ny), (ax + nx, ay + ny)]
+    for s in (1, -1):
+        m = geo.extruir(perfil, -2.3, -1.7)
+        p.malla(g, f"orilla{s}", m if s > 0 else geo.espejo_x(m), orilla, dens=8)
+    # la capucha caida en la espalda (arriba queda debajo del pelo)
+    p.malla(g, "capucha", geo.loft_puntos([_rect(y, mx, mz, 0.7, n=3, cz=cz) for y, mx, mz, cz in CAPUCHA]), tela, dens=D)
+    # dije de calaverita colgado de una tira roja, a su izquierda, del resorte
+    p.caja(g, "tira", (-2.15, 3.6, -1.97), (-1.9, 4.9, -1.82), color(ROJO), dens=D)
+    p.caja(g, "calaverita", (-2.65, 2.3, -2.2), (-1.4, 3.75, -1.8), calaverita, dens=D)
+    # las mangas: hombro caido, abombadas, y el puno de resorte apretado contra la mano
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
-        partes = (("hombro", 2.8, 5.0, C - 2.2, C + 0.1, 1.25, voxel(NEGRO, claro=0.1)),
-                  ("globo", 2.65, 5.55, L + 0.45, C - 1.9, 1.6, voxel(NEGRO, claro=0.02)),
-                  ("puno", 3.0, 4.95, L - 0.5, L + 0.5, 1.1, puno))
-        for nombre, x0, x1, y0, y1, z, pint in partes:
-            a, b = sorted((s * x0, s * x1))
-            p.caja(f"{hueso}/ropa", nombre, (a, y0, -z), (b, y1, z), pint, dens=D)
-
-
-def puno(t):
-    """Puno de elastico: rayitas verticales."""
-    u = t.x if t.cara in ("north", "south") else t.z
-    return hex_(NEGRO["s"] if (u * 4) % 1.0 < 0.3 else NEGRO["b"])
+        manga = geo.loft_puntos([geo.anillo(s * MANGA_X, y, 0.0, r, r, 16) for y, r in MANGA])
+        p.malla(f"{hueso}/ropa", "manga", manga, tela, dens=D)
+        ya, yb, r = PUNO
+        puno = geo.loft_puntos([geo.anillo(s * MANGA_X, y, 0.0, r, r, 16) for y in (ya, yb)])
+        p.malla(f"{hueso}/ropa", "puno", puno, resorte(MARINO), dens=D)
 
 
 # ---------------------------------------------------------------- la cola
