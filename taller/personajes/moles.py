@@ -132,30 +132,103 @@ GROSOR_PELO = 0.7
 ESQUINA_PELO = 1.5
 
 
+def _azar(k):
+    import math
+    return (math.sin(k * 12.9898 + 4.1414) * 43758.5453) % 1.0
+
+
+def _suave(niveles, pasos=3):
+    """Mas niveles entre los niveles dados (curva suave que pasa por ellos): mas poligonos, la forma redonda."""
+    out = []
+    n = len(niveles)
+    for i in range(n - 1):
+        p0, p1, p2, p3 = niveles[max(0, i - 1)], niveles[i], niveles[i + 1], niveles[min(n - 1, i + 2)]
+        for k in range(pasos):
+            t = k / pasos
+            out.append(tuple(0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t
+                                    + (-a + 3 * b - 3 * c + d) * t ** 3) for a, b, c, d in zip(p0, p1, p2, p3)))
+    out.append(niveles[-1])
+    return out
+
+
 def _u(y, w, zb, zf, g=0.0):
-    """Una U de esquinas redondas atras: de la punta izquierda, por atras, a la punta derecha (adentro si g > 0)."""
+    """Una U de esquinas redondas atras: de la punta izquierda, por atras, a la punta derecha (adentro si g > 0), con
+    los lados y la espalda partidos en tramos (mas poligonos)."""
     import math
     w, zb, r = w - g, zb - g, max(0.2, ESQUINA_PELO - g)
-    pts = [(-w, y, zf), (-w, y, zb - r)]
-    for k in range(1, 4):                                        # la esquina de atras a su izquierda
-        a = math.radians(90 * k / 4)
-        pts.append((-w + r - r * math.cos(a), y, zb - r + r * math.sin(a)))
-    pts += [(-w + r, y, zb), (w - r, y, zb)]
-    for k in range(1, 4):
-        a = math.radians(90 * k / 4)
-        pts.append((w - r + r * math.sin(a), y, zb - r + r * math.cos(a)))
-    pts += [(w, y, zb - r), (w, y, zf)]
+    pts = [(-w, y, zf + (zb - r - zf) * i / 4) for i in range(4)]
+    pts += [(-w + r - r * math.cos(math.radians(90 * k / 6)), y, zb - r + r * math.sin(math.radians(90 * k / 6)))
+            for k in range(6)]
+    pts += [(-w + r + (2 * w - 2 * r) * i / 4, y, zb) for i in range(4)]
+    pts += [(w - r + r * math.sin(math.radians(90 * k / 6)), y, zb - r + r * math.cos(math.radians(90 * k / 6)))
+            for k in range(6)]
+    pts += [(w, y, zb - r - (zb - r - zf) * i / 4) for i in range(5)]
     return pts
 
 
+def _anillo_redondo(y, m, r=1.5, n=6):
+    """Rectangulo de esquinas redondas cerrado (para la tapa de arriba), antihorario visto desde arriba: de +X hacia
+    -Z (adelante), como geo.anillo."""
+    import math
+    pts = []
+    c = m - r
+    for cx, cz, a0 in ((c, -c, 0), (-c, -c, 90), (-c, c, 180), (c, c, 270)):
+        for k in range(n + 1):
+            a = math.radians(a0 + 90 * k / n)
+            pts.append((cx + r * math.cos(a), y, cz - r * math.sin(a)))
+    return pts
+
+
+def mechon_malla(ancho, largo, grueso, k):
+    """Un mechon con volumen: ancho arriba, se angosta y termina en una punta corrida a un lado (fija por k)."""
+    from .. import malla as geo
+    w = ancho / 2
+    corre = (_azar(k + 7) - 0.5) * 0.5 * ancho
+    perfil = [(-w, 0.0), (w, 0.0), (w * 0.92, -0.55 * largo), (corre + 0.12 * ancho, -largo),
+              (corre - 0.12 * ancho, -largo + 0.15), (-w * 0.9, -0.6 * largo)]
+    return geo.extruir(perfil, -grueso / 2, grueso / 2)
+
+
+# el frente: el fleco y los mechones que enmarcan la cara, en tres capas que se distinguen (de atras hacia adelante,
+# cada una mas corta, mas adelante y mas clara). (z, tono, cuanto mas corta, grueso)
+CAPAS_FRENTE = ((-5.15, "s", 0.0, 0.55), (-5.55, "b", 0.8, 0.6), (-5.95, "l", 1.6, 0.55))
+
+
+def frente(p, C, T):
+    """El fleco y los mechones de la cara en tres capas; cada mechon de su ancho, largo y giro (al azar, fijo)."""
+    from .. import malla as geo
+    k = 0
+    for capa, (z, tono, corto, grueso) in enumerate(CAPAS_FRENTE):
+        x = -5.4 + 0.4 * capa
+        while x < 5.4:
+            ancho = 1.1 + 0.9 * _azar(k)
+            cx = min(x + ancho / 2, 5.4 - ancho / 2)
+            borde = abs(cx) > 3.3                              # a los lados de la cara: mechones largos
+            if borde:
+                largo = 7.5 + 2.5 * _azar(k + 40) - corto * 1.6
+            else:
+                largo = 3.2 + 1.3 * _azar(k + 40) - corto      # el fleco: llega arriba de las cejas
+            m = mechon_malla(ancho, max(1.2, largo), grueso, k)
+            giro = (6 * (_azar(k + 80) - 0.5) + (4 if borde else 0) * (1 if cx > 0 else -1))
+            m = geo.girar(m, (-4 - 3 * capa, 0, giro))
+            m = geo.mover(m, (cx, T + 0.3, z))
+            p.malla("Head/pelo", f"frente{capa}_{k}", m, liso(PELO[tono]), dens=D)
+            x += ancho * (0.8 + 0.25 * _azar(k + 120))
+            k += 1
+
+
 def pelo(p, C, T):
-    """El pelo: la pieza de atras, una sola forma (ver NIVELES_PELO)."""
+    """El pelo: la campana (bob con las puntas hacia adentro, ver NIVELES_PELO) con mas poligonos, la tapa de arriba
+    redonda y el frente en capas."""
     from .. import malla as geo
     anillos = []
-    for y, w, zb, zf in NIVELES_PELO:
-        afuera = _u(y, w, zb, zf)
-        anillos.append(afuera + _u(y, w, zb, zf, GROSOR_PELO)[::-1])
-    p.malla("Head/pelo", "atras", geo.loft_puntos(anillos[::-1]), liso(PELO["b"]), dens=D)
+    for y, w, zb, zf in _suave(NIVELES_PELO):
+        anillos.append(_u(y, w, zb, zf) + _u(y, w, zb, zf, GROSOR_PELO)[::-1])
+    p.malla("Head/pelo", "campana", geo.loft_puntos(anillos[::-1]), liso(PELO["b"]), dens=D)
+    tapa = [_anillo_redondo(y, m, r) for y, m, r in ((T - 0.4, 5.55, 0.9), (T + 0.5, 5.45, 1.0), (T + 1.0, 4.8, 1.6),
+                                                     (T + 1.3, 3.6, 1.6))]
+    p.malla("Head/pelo", "tapa", geo.loft_puntos(tapa), liso(PELO["l"]), dens=D)
+    frente(p, C, T)
 
 
 PELUSA = {"s": "#F6DFA8", "b": "#FBEEC8", "l": "#FFF7E2"}
