@@ -122,12 +122,12 @@ def liso(col):
     return lambda t: c
 
 
-# el pelo: por ahora UNA sola pieza atras, como un bob con las puntas hacia adentro: cuelga de la parte de atras de
-# la cabeza, se abre hacia atras y hacia los costados conforme baja, hace punta y abajo el borde se mete por debajo
-# de la nuca. De lado se ve como un "<" detras de la cabeza; de atras, una campana con las esquinas en punta.
+# el pelo: por ahora UNA sola pieza, como un bob con las puntas hacia adentro: cubre la nuca y los costados de la
+# cabeza (la cara queda libre), se abre hacia afuera conforme baja, hace punta y abajo el borde se mete por debajo
+# de la cabeza. De lado se ve el "<" atras; de atras y de frente, una campana con las esquinas en punta.
 # Cada nivel es una U (abierta hacia la cabeza): (y, medio ancho, z de atras, z de las puntas de la U)
-NIVELES_PELO = ((22.2, 6.0, 5.9, 4.6), (19.5, 7.0, 7.3, 4.8), (16.0, 8.3, 9.0, 5.0), (12.8, 9.4, 10.0, 5.0),
-                (11.3, 8.2, 7.8, 4.6), (10.0, 6.8, 5.6, 3.6))
+NIVELES_PELO = ((21.4, 5.3, 5.5, -4.5), (19.5, 5.8, 6.1, -4.5), (16.0, 6.6, 6.9, -4.5), (12.8, 7.6, 7.8, -4.5),
+                (11.5, 6.6, 6.4, -4.4), (10.5, 5.4, 5.0, -4.0))
 GROSOR_PELO = 0.7
 ESQUINA_PELO = 1.5
 
