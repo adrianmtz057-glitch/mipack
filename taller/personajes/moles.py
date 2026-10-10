@@ -14,14 +14,14 @@ chiquito y piernas cortas con patas.
 
 from ..kit import Personaje, tonos
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
-from .revolthir import color, voxel
+from .revolthir import BAYER, color, voxel
 
 D = 4                                   # texeles por px
 D_CARA = 8                              # la cabeza, con mas detalle para la cara
 
 PELO = {"s": "#EBC567", "b": "#F7D77C", "l": "#FCE8A8"}              # rubio claro, con poca sombra
 OREJA = {"s": "#EFE2D2", "b": "#FAF1E6", "l": "#FFFAF2"}
-PIEL, PIEL_BAJO = "#FCF1D4", "#F8E6C0"                            # crema, como el pelaje de sus patas
+PIEL, PIEL_BAJO = "#FFEAE4", "#FCDDD6"                            # blanco rosita
 RUBOR, RUBOR_FUERTE = "#F7B1A8", "#F29A93"
 ROSA_OREJA = "#F4A9A6"
 AMBAR, AMBAR_CLARO, PUPILA, PESTANA = "#EE8E2A", "#F9C54E", "#3A1A12", "#1C1418"
@@ -147,10 +147,12 @@ def _suave(niveles, pasos=3):
     return out
 
 
-def faceta(sesgo=0.0, paleta=None):
-    """Pintor del pelo low-poly: cada cara de un tono PLANO segun hacia donde mira (arriba claro, hacia abajo oscuro,
-    y en cada pliegue una cara clara y la otra oscura) y un poquito distinta de la de junto, para que las caras se lean
-    como poligonos. Todas las piezas del pelo usan el mismo, asi se ven como una sola cabellera (nada pegado aparte)."""
+def faceta(sesgo=0.0, paleta=None, grano=0.12, lavado=0.0):
+    """Pintor low-poly (pelo, ropa, orejas): cada cara de un tono segun hacia donde mira (arriba claro, hacia abajo
+    oscuro, y en cada pliegue una cara clara y la otra oscura) y un poquito distinta de la de junto, para que las caras
+    se lean como poligonos. Todas las piezas del pelo usan el mismo, asi se ven como una sola cabellera.
+    grano: la textura de pixeles (ondas suaves y una matriz de Bayer, en bloques de un texel, como voxel): mezcla
+    cada tono con el de junto. lavado: manchas grandes mas claras y mas oscuras (tela deslavada)."""
     import math
 
     def pintor(t):
@@ -160,6 +162,14 @@ def faceta(sesgo=0.0, paleta=None):
         h = math.hypot(nx, nz)
         b = 0.5 + 0.32 * ny - 0.12 * nz + 0.17 * h * math.sin(4 * math.atan2(nz, nx))
         b += sesgo + 0.06 * (_azar(round(nx, 2) * 37.1 + round(ny, 2) * 11.7 + round(nz, 2) * 5.3) - 0.5)
+        if grano:
+            ax = max(range(3), key=lambda i: abs(t.n[i]))              # la textura va en el plano de la cara
+            u, v = [(t.x, t.y, t.z)[i] for i in range(3) if i != ax]
+            cu, cv = math.floor(u * D + 400), math.floor(v * D + 400)
+            ola = math.sin(cu * 0.9 + cv * 0.5) * math.cos(cv * 0.8 - cu * 0.35)
+            b += grano * (0.5 * ola + ((BAYER[cv % 4][cu % 4] + 0.5) / 16 - 0.5))
+        if lavado:
+            b += lavado * math.sin(t.x * 0.9 + t.y * 0.6 + 1.3) * math.cos(t.z * 0.7 - t.y * 0.45)
         return next(hex_(c) for hasta, c in (paleta or TONOS_PELO) if b <= hasta)
     return pintor
 
@@ -424,7 +434,7 @@ def orejas(p, T):
         giro = (40 * (_azar(k + 510) - 0.5), 40 * (_azar(k + 520) - 0.5), 60 * (_azar(k + 530) - 0.5))
         for s in (1, -1):
             p.caja(g, f"copo{s}_{k}", (s * x - l / 2, y + dy - l / 2, z - l / 2),
-                   (s * x + l / 2, y + dy + l / 2, z + l / 2), COLA_RUBIA, rot=giro, dens=D)
+                   (s * x + l / 2, y + dy + l / 2, z + l / 2), COLA_RUBIA, rot=giro, dens=D, luz=False)
 
 
 def pestanas(p, C):
@@ -552,7 +562,7 @@ def ropa(p, C, L):
     """La sudadera de cierre, en sus propios grupos (aparte del cuerpo, para prenderla y apagarla en Figura)."""
     from .. import malla as geo
     g = "Body/ropa"
-    tela = faceta(paleta=NEGRO)
+    tela = faceta(paleta=NEGRO, lavado=0.1)
     y0, y1, mx, mz, r = RESORTE
     p.malla(g, "resorte", geo.loft_puntos([_rect(y, mx, mz, r) for y in (y0, y1)]), resorte(NEGRO), dens=D)
     p.malla(g, "cuerpo", geo.loft_puntos([_rect(y, mx, mz, r) for y, mx, mz, r in SUDADERA]), tela_v(tela), dens=D)
@@ -611,7 +621,8 @@ def _cola_puntos(pasos=4):
 
 def cola(p):
     """Cola esponjosa de muchos cubos: en cada punto de la curva, un cubo grande del medio y seis copos alrededor, cada
-    uno con su tamano y su giro (un patron fijo que va rotando). Rubia en la base y crema en la punta."""
+    uno con su tamano y su giro (un patron fijo que va rotando). Rubia en la base y crema en la punta. Sin luz
+    horneada: entre tantos cubos encimados la oclusion la ensucia."""
     import math
     pts = _cola_puntos()
     total = len(CAMINO_COLA) - 1
@@ -620,7 +631,7 @@ def cola(p):
         lado = r * 1.25
         p.caja("Body/cola", f"cola{k}", (x - lado / 2, y - lado / 2, z - lado / 2),
                (x + lado / 2, y + lado / 2, z + lado / 2), pint,
-               rot=((k * 23) % 45 - 22, (k * 31) % 45 - 22, (k * 17) % 45 - 22), dens=D)
+               rot=((k * 23) % 45 - 22, (k * 31) % 45 - 22, (k * 17) % 45 - 22), dens=D, luz=False)
         for i in range(6):
             a = math.radians(i * 60 + k * 27)
             d = r * 0.78
@@ -628,7 +639,8 @@ def cola(p):
             l2 = r * (0.62 + 0.18 * ((i + k) % 3) / 2)
             p.caja("Body/cola", f"copo{k}_{i}", (cx - l2 / 2, cy - l2 / 2, cz - l2 / 2),
                    (cx + l2 / 2, cy + l2 / 2, cz + l2 / 2), pint,
-                   rot=((i * 37 + k * 11) % 60 - 30, (i * 53 + k * 7) % 60 - 30, (i * 29 + k * 13) % 60 - 30), dens=D)
+                   rot=((i * 37 + k * 11) % 60 - 30, (i * 53 + k * 7) % 60 - 30, (i * 29 + k * 13) % 60 - 30), dens=D,
+                   luz=False)
 
 
 # las piernas, un poquito mas largas: todo lo de arriba sube esto (ver subir)
@@ -673,7 +685,7 @@ def patas(p):
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         (xa, xb), (ya, yb), (za, zb) = PATA
         a, b = sorted((s * xa, s * xb))
-        p.caja(f"{hueso}/pata", "pata", (a, ya, za), (b, yb, zb), pata, dens=D, luz=False)
+        p.caja(f"{hueso}/pata", "pata", (a, ya, za), (b, yb, zb), pata, dens=D)
         cx = s * 1.3
         p.malla(f"{hueso}/pata", "cana", geo.loft_puntos([_rect(y, m, m, r, cx=cx) for y, m, r in CANA]),
                 faceta(paleta=PELAJE_TONOS), dens=D)
@@ -685,7 +697,7 @@ def patas(p):
                 l = lado * (0.75 + 0.35 * _azar(k + 300))
                 p.caja(f"{hueso}/pata", f"copo{k}", (x - l / 2, y - l / 2, z - l / 2), (x + l / 2, y + l / 2, z + l / 2),
                        pelusa, rot=(30 * (_azar(k + 310) - 0.5), 40 * (_azar(k + 320) - 0.5),
-                                    30 * (_azar(k + 330) - 0.5)), dens=D)
+                                    30 * (_azar(k + 330) - 0.5)), dens=D, luz=False)
                 k += 1
 
 
@@ -715,19 +727,19 @@ def construir():
     C, T, L = p.cuello, p.tope, p.lh                           # 11, 21, 5
     assert C == CUELLO
 
-    p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA, luz=False)   # sin sombra en la cara
+    p.caja("Head/cabeza", "cabeza", (-5, C, -5), (5, T, 5), cabeza, dens=D_CARA)
     pestanas(p, C)
     pelo(p, C, T)
     orejas(p, T)
 
-    p.caja("Body/cuerpo", "torso", (-2.8, L, -1.6), (2.8, C, 1.6), piel, dens=D, luz=False)
+    p.caja("Body/cuerpo", "torso", (-2.8, L, -1.6), (2.8, C, 1.6), piel, dens=D)
     for s in (1, -1):
         hueso = "RightArm" if s > 0 else "LeftArm"
         x1, x2 = sorted((s * 2.8, s * 4.8))
-        p.caja(f"{hueso}/brazo", "brazo", (x1, L - 1.9, -1.0), (x2, C, 1.0), piel, dens=D, luz=False)
+        p.caja(f"{hueso}/brazo", "brazo", (x1, L - 1.9, -1.0), (x2, C, 1.0), piel, dens=D)
         hueso = "RightLeg" if s > 0 else "LeftLeg"
         x1, x2 = sorted((s * 0.1, s * 2.5))
-        p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L + PIERNA_EXTRA, 1.2), piel, dens=D, luz=False)
+        p.caja(f"{hueso}/pierna", "pierna", (x1, 1.2, -1.2), (x2, L + PIERNA_EXTRA, 1.2), piel, dens=D)
     ropa(p, C, L)
     short(p)
     patas(p)
