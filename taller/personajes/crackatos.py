@@ -255,6 +255,9 @@ def pata(p, base, plantilla, s, radios, pie, garras):
     rutas = [_ruta_pata(base, plantilla, s, i) for i in range(3)]
     for i, (a, b) in enumerate(zip(puntos, puntos[1:])):
         ra, rb = radios[i], radios[i + 1]
+        if i == 1:                                # el ultimo tramo acaba un poco arriba del pie (al doblar no roza)
+            b = (b[0], b[1] + 1.6, b[2])
+            rb *= 0.88
         tramo_de_piedra(p, rutas[i], "tramo", a, b, (ra, ra * 0.9, ra), (rb, rb * 0.9, rb), (afuera, "north", "south"),
                         [piedra_o, clara] if i % 2 == 0 else [clara, piedra_o], 200 + 13 * i + s)
     for i, c in enumerate(puntos[:-1]):

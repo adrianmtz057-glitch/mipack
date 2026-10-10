@@ -155,7 +155,7 @@ def _giro_en(pivote, rot_rad, traslado=(0.0, 0.0, 0.0)):
 
 def reconstruir(geo, pose=None):
     """Los quads del modelo como los arma y dibuja GeckoLib: [(4 posiciones en px del kit, 4 UV en px, cara,
-    normal hacia afuera)].
+    normal hacia afuera, hueso)].
     pose: {nombre de hueso: ((rx, ry, rz) grados como en el ARCHIVO de animacion, (px, py, pz) como en el archivo)}."""
     g = geo["minecraft:geometry"][0]
     huesos = {b["name"]: b for b in g["bones"]}
@@ -204,7 +204,7 @@ def reconstruir(geo, pose=None):
                 (u, v), (su, sv) = f["uv"], f["uv_size"]
                 uvq = [(u + su, v), (u, v), (u, v + sv), (u + su, v + sv)]   # GeoQuad.build sin espejo
                 P = [M(vs[n]) for n in QUADS[cara]]
-                out.append((P, uvq, cara, _aplicar(M.R, NORMAL[cara])))
+                out.append((P, uvq, cara, _aplicar(M.R, NORMAL[cara]), b["name"]))
     return out
 
 
@@ -212,7 +212,7 @@ def caras_para_vista(quads):
     """Los quads en el formato de vista._caras_mundo (horario visto desde afuera)."""
     import numpy as np
     out = []
-    for P, UV, cara, normal in quads:
+    for P, UV, cara, normal, _ in quads:
         P = np.array(P, dtype=float)
         UV = np.array(UV, dtype=float)
         if np.dot(np.cross(P[3] - P[0], P[1] - P[0]), normal) < 0:      # el render: horario desde afuera
@@ -239,7 +239,7 @@ def comprobar(modelo, uvs, geo, tolerancia=1e-3):
                 kit.setdefault((round(uv[0], 3), round(uv[1], 3)), []).append(p)
     peor_pos = 0.0
     sin_pareja = 0
-    for P, UV, cara, _ in reconstruir(geo):
+    for P, UV, cara, *_ in reconstruir(geo):
         for p, uv in zip(P, UV):
             cand = kit.get((round(uv[0], 3), round(uv[1], 3)))
             if not cand:
