@@ -101,11 +101,16 @@ HUNDIDO = ((0.5, 0.44, 0.35, 0.29), (0.25, 0.5))
 CREMA = ((0.34, "#B8AD9A"), (0.5, "#CBC1AE"), (0.66, "#DCD3C3"), (9.0, "#E9E2D5"))
 
 
+GIRO_TRIANGULO = 20.0                                    # grados que se gira sobre su punta: lo de afuera baja
+
+
 def _triangulo():
     x0, y0, z0 = PUNTA_FRENTE
     l = LADO_TRIANGULO
     x = math.sqrt(l * l - (l / 2) ** 2 - (Z_AFUERA - z0) ** 2)
-    return (PUNTA_FRENTE, (x0 + x, y0 + l / 2, Z_AFUERA), (x0 + x, y0 - l / 2, Z_AFUERA))
+    g = math.radians(-GIRO_TRIANGULO)
+    gira = lambda dx, dy: (x0 + dx * math.cos(g) - dy * math.sin(g), y0 + dx * math.sin(g) + dy * math.cos(g), Z_AFUERA)
+    return (PUNTA_FRENTE, gira(x, l / 2), gira(x, -l / 2))
 
 
 def _resta(p, q):
