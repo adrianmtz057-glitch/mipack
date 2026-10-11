@@ -92,10 +92,13 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     st = LEMState(h0, h0, dx)
     # el río Velkia se alimenta del deshielo de la cordillera y de los lagos de los Jardines
     # (cuenca glaciar mayor que la resuelta aquí): ~1,5 m3/s de caudal de base
-    bflow = (int(chain[0]), 4.5e7)
+    # se inyecta a la salida de los Jardines (confluencia de la cuenca glaciar), no en la fuente
+    cxy = np.c_[chain % n, chain // n] * dx
+    k_out = int(np.argmin(np.hypot(cxy[:, 0] - 3040, cxy[:, 1] - 2900)))
+    bflow = (int(chain[k_out]), 4.5e7)
     # el cauce principal es un río aluvial eficiente: transporta casi todo lo que recibe
     rio_cells = np.zeros(n * n, bool)
-    rio_cells[chain] = True
+    rio_cells[chain[k_out:]] = True      # tramo aluvial: desde la salida de los Jardines al mar
     Garr = np.where(rio_cells, 0.08, 0.6)
     Kmul = np.where(rio_cells, 4.0, 1.0)
     D = make_D_func(lay)
