@@ -16,7 +16,9 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -66,6 +68,7 @@ public class Mipack {
         OBJETOS.register(bus);
         PESTANAS.register(bus);
         bus.addListener(this::atributos);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, MipackConfig.CLIENTE);
         MinecraftForge.EVENT_BUS.addListener(this::alEntrar);
         if (PRUEBA)
             LOGGER.info("[Mipack] modo de prueba: los jefes atacan tambien a otros mobs");
