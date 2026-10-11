@@ -1,0 +1,20 @@
+{
+ "sitio": "torre_llama_eterna",
+ "notas": "Torre de la llama eterna en la cima de la montaña del este. Pegar con //paste -o (sin -a).",
+ "archivos": [
+  {
+   "archivo": "torre_llama_eterna_00",
+   "min": [
+    7122,
+    187,
+    3714
+   ],
+   "max": [
+    7377,
+    305,
+    3969
+   ],
+   "cofres_con_botin": 1
+  }
+ ]
+}

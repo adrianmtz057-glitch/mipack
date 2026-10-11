@@ -1,0 +1,20 @@
+{
+ "sitio": "aldea_fantasma_norte",
+ "notas": "Aldea fantasma del norte (casas colmena). Pegar con //paste -o -m !structure_void (sin -a).",
+ "archivos": [
+  {
+   "archivo": "aldea_fantasma_norte",
+   "min": [
+    4270,
+    93,
+    2430
+   ],
+   "max": [
+    4519,
+    118,
+    2679
+   ],
+   "cofres_con_botin": 14
+  }
+ ]
+}

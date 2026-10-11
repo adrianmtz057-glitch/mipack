@@ -1,0 +1,62 @@
+{
+ "sitio": "piramide",
+ "notas": "Gran Pirámide. Pegar tal cual (la caja empieza en Y=81, sobre el suelo de la explanada a Y=80).",
+ "archivos": [
+  {
+   "archivo": "piramide_00",
+   "min": [
+    3755,
+    81,
+    3655
+   ],
+   "max": [
+    4010,
+    314,
+    3910
+   ],
+   "bloques_no_aire": 4871309
+  },
+  {
+   "archivo": "piramide_01",
+   "min": [
+    4011,
+    81,
+    3655
+   ],
+   "max": [
+    4245,
+    303,
+    3910
+   ],
+   "bloques_no_aire": 4263587
+  },
+  {
+   "archivo": "piramide_10",
+   "min": [
+    3755,
+    81,
+    3911
+   ],
+   "max": [
+    4010,
+    303,
+    4145
+   ],
+   "bloques_no_aire": 4281843
+  },
+  {
+   "archivo": "piramide_11",
+   "min": [
+    4011,
+    81,
+    3911
+   ],
+   "max": [
+    4245,
+    303,
+    4145
+   ],
+   "bloques_no_aire": 3781029
+  }
+ ]
+}

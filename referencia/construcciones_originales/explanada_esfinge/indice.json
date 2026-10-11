@@ -1,0 +1,62 @@
+{
+ "sitio": "explanada_esfinge",
+ "notas": "Explanada, Gran Esfinge en su foso, avenida de semis y faroles. Incluye el suelo desde Y=62.",
+ "archivos": [
+  {
+   "archivo": "explanada_esfinge_00",
+   "min": [
+    3380,
+    62,
+    3610
+   ],
+   "max": [
+    3635,
+    123,
+    3865
+   ],
+   "bloques_no_aire": 1303537
+  },
+  {
+   "archivo": "explanada_esfinge_01",
+   "min": [
+    3636,
+    62,
+    3610
+   ],
+   "max": [
+    3754,
+    88,
+    3865
+   ],
+   "bloques_no_aire": 628322
+  },
+  {
+   "archivo": "explanada_esfinge_10",
+   "min": [
+    3380,
+    62,
+    3866
+   ],
+   "max": [
+    3635,
+    99,
+    4054
+   ],
+   "bloques_no_aire": 962751
+  },
+  {
+   "archivo": "explanada_esfinge_11",
+   "min": [
+    3636,
+    62,
+    3866
+   ],
+   "max": [
+    3754,
+    128,
+    4054
+   ],
+   "bloques_no_aire": 444210
+  }
+ ]
+}

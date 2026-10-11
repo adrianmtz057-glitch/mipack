@@ -1,0 +1,48 @@
+{
+ "sitio": "jardines_colgantes",
+ "notas": "Jardines colgantes de Velkia con el árbol de las nueces. Pegar con //paste -o (sin -a).",
+ "archivos": [
+  {
+   "archivo": "jardines_colgantes_00",
+   "min": [
+    2500,
+    80,
+    3520
+   ],
+   "max": [
+    2755,
+    195,
+    3775
+   ],
+   "cofres_con_botin": 0
+  },
+  {
+   "archivo": "jardines_colgantes_01",
+   "min": [
+    2756,
+    80,
+    3520
+   ],
+   "max": [
+    2779,
+    84,
+    3775
+   ],
+   "cofres_con_botin": 0
+  },
+  {
+   "archivo": "jardines_colgantes_10",
+   "min": [
+    2500,
+    80,
+    3776
+   ],
+   "max": [
+    2755,
+    95,
+    3854
+   ],
+   "cofres_con_botin": 0
+  }
+ ]
+}

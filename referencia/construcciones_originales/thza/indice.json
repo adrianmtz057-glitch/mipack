@@ -1,0 +1,62 @@
+{
+ "sitio": "thza",
+ "notas": "Thza al pie de la Gran Pirámide. Pegar con //paste -o -m !structure_void (sin -a).",
+ "archivos": [
+  {
+   "archivo": "thza_00",
+   "min": [
+    3255,
+    74,
+    4058
+   ],
+   "max": [
+    3510,
+    99,
+    4313
+   ],
+   "cofres_con_botin": 244
+  },
+  {
+   "archivo": "thza_01",
+   "min": [
+    3511,
+    74,
+    4058
+   ],
+   "max": [
+    3754,
+    120,
+    4313
+   ],
+   "cofres_con_botin": 197
+  },
+  {
+   "archivo": "thza_10",
+   "min": [
+    3255,
+    74,
+    4314
+   ],
+   "max": [
+    3510,
+    99,
+    4445
+   ],
+   "cofres_con_botin": 87
+  },
+  {
+   "archivo": "thza_11",
+   "min": [
+    3511,
+    74,
+    4314
+   ],
+   "max": [
+    3754,
+    99,
+    4445
+   ],
+   "cofres_con_botin": 127
+  }
+ ]
+}

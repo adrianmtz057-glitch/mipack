@@ -1,0 +1,4 @@
+# salidas pesadas de la simulación (se regeneran con los scripts)
+salida/
+__pycache__/
+*.pyc
