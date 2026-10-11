@@ -78,10 +78,9 @@ def build_volcano(h, dx, center, height=250.0, radius=1100.0, n_flows=2600, seed
     cy, cx = center[1] / dx, center[0] / dx
     zz, xx = np.meshgrid(np.arange(ny), np.arange(nx), indexing='ij')
     r = np.hypot((zz - cy) * dx, (xx - cx) * dx)
-    dep = np.zeros_like(h)
+    dep = np.zeros_like(h)      # espesor acumulado de coladas
     # piroclastos: perfil cóncavo típico de estratovolcán (h ~ exp)
-    tephra = height * 0.55 * np.exp(-r / (radius * 0.28))
-    dep += tephra
+    tephra = height * 0.5 * np.exp(-r / (radius * 0.28))
     lat = [(cy + rng.uniform(-1, 1) * radius * 0.35 / dx, cx + rng.uniform(-1, 1) * radius * 0.35 / dx)
            for _ in range(vents_lat)]
     for k in range(n_flows):
@@ -95,9 +94,13 @@ def build_volcano(h, dx, center, height=250.0, radius=1100.0, n_flows=2600, seed
         L = int(rng.uniform(0.3, 1.25) * radius / dx)
         W = rng.uniform(25, 70) / dx
         T = rng.uniform(0.8, 2.2) * (height / 250.0) * 0.35
-        _flow(h, dep, i0, j0, L, W, T, int(seed * 100000 + k), True)
+        _flow(h + tephra, dep, i0, j0, L, W, T, int(seed * 100000 + k), True)
         if log and k % 500 == 0:
             print(f'  [volcán] colada {k}/{n_flows}  cumbre={float((h + dep).max()):.0f} m', flush=True)
+    # escalar las coladas para que el edificio total tenga la altura pedida en la cumbre
+    cumbre = r < 2.5 * crater_r
+    dep *= (height * 0.5) / max(float(np.median(dep[cumbre])), 1e-6)
+    dep += tephra
     # cráter: depresión de paredes empinadas en la cima
     crater = np.clip(1.0 - (r / crater_r) ** 2, 0, None)
     dep -= crater * height * 0.22

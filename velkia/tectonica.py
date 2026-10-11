@@ -1,7 +1,7 @@
 """Campos de forzamiento: levantamiento por zona y fase, precipitación, topografía inicial."""
 import numpy as np
 
-from .layout import poi_blocks
+from .layout import poi_blocks, RESERVADOS, px2b, jardines_r
 from .noise import spectral_noise, blur
 
 
@@ -24,27 +24,43 @@ class Forcing:
         crest = hcres * np.exp(-(dcres / 1500.0) ** 2)
         U1 += z['cordillera'] * (0.20e-3 + 1.25e-3 * crest)
         U1 += z['corrompidas'] * (1.30e-3 * np.exp(0.25 * nz))
-        U1 += z['jardines'] * 0.08e-3
-        U1 += z['oeste'] * 0.50e-3 * np.exp(0.3 * nz)
-        U1 += z['este'] * 0.35e-3
-        U1 += z['volcanica'] * 0.22e-3
+        U1 += z['jardines'] * 0.06e-3
+        U1 += z['oeste'] * 0.16e-3 * np.exp(0.35 * nz)      # colinas de desierto rocoso
+        U1 += z['este'] * 0.07e-3                           # costa rocosa baja
+        U1 += z['volcanica'] * 0.05e-3                      # el volcán se construye aparte
         U1 += z['canones'] * 0.10e-3
-        U1 += z['desierto'] * 0.01e-3
+        U1 += z['desierto'] * 0.04e-3                       # deja en pie peñones de roca dura
         U1 += z['dunas'] * 0.0
-        U1 += z['salar'] * -0.05e-3
+        U1 += z['salar'] * 0.0
+        # anillo de roca alrededor de los Jardines (las paredes del valle glaciar)
+        rj = jardines_r(xx, zz)
+        U1 += 0.32e-3 * np.exp(-((rj - 1.18) / 0.22) ** 2)
+        # promontorio de la Torre cerca de la costa este
         tx, tz = poi_blocks('torre_llama_eterna')
-        U1 += 0.15e-3 * np.exp(-(((xx - tx) ** 2 + (zz - tz) ** 2) / 550.0 ** 2) ** 1.5)
+        U1 += 0.22e-3 * np.exp(-(((xx - tx) ** 2 + (zz - tz) ** 2) / 330.0 ** 2) ** 1.5)
+        # sitios reservados con relieve propio
+        for nombre, (pxy, rad, tipo) in RESERVADOS.items():
+            bx, bz = px2b(*pxy)
+            g = np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / rad ** 2) ** 1.5)
+            if tipo == 'promontorio':
+                U1 += 0.12e-3 * g
+            elif tipo == 'colina':
+                U1 += 0.06e-3 * g
+            elif tipo == 'meseta':
+                U1 += 0.05e-3 * g
         U1 *= smoothstep(lay.dist_coast, -100, 500)
         self.U_orogeny = U1.astype(np.float64)
         # fase de levantamiento de la meseta (cañones) y abombamiento del este
         U2 = np.zeros((n, n), np.float32)
         U2 += z['canones'] * 0.20e-3
-        U2 += z['este'] * 0.06e-3
         U2 += z['oeste'] * 0.02e-3
         U2 *= smoothstep(lay.dist_coast, -100, 700)
         # cuenca cerrada del salar (hundimiento tectónico, tipo pull-apart)
         sx, sz = poi_blocks('bioma_de_sales')
-        U2 += -0.07e-3 * np.exp(-((xx - sx) ** 2 + (zz - sz) ** 2) / 750.0 ** 2)
+        U2 += -0.06e-3 * np.exp(-((xx - sx) ** 2 + (zz - sz) ** 2) / 430.0 ** 2)
+        # Cuarto de Bashi: depresión redondeada (hundimiento por disolución de evaporitas)
+        bx, bz = px2b(*RESERVADOS['cuarto_de_bashi'][0])
+        U2 += -0.035e-3 * np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / 170.0 ** 2) ** 1.5)
         self.U_plateau = U2.astype(np.float64)
         # ---------------------------------------------------------- precipitación (m/a)
         P = (z['cordillera'] * 1.2 + z['corrompidas'] * 0.7 + z['jardines'] * 1.0 +

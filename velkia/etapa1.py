@@ -19,7 +19,10 @@ from .geology import Geology
 from .glacier import glaciate
 from .layout import Layout, poi_blocks, SEA
 from .noise import blur
+from . import jardines
+from . import rios
 from .rios import disenar_rio, rasterize_chain
+from .volcan import build_volcano
 from .sim import LEMState, run
 from .tectonica import Forcing, smoothstep
 
@@ -69,17 +72,41 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     dx = lay.dx
     zz, xx = lay.coords()
 
-    # ------------------------------------------------ río antecedente
+    # ------------------------------------------------ río antecedente y afluentes
     sitios = cargar_sitios(['vieja_velkia'])
     canal, canal_y = canal_vieja_velkia(sitios['vieja_velkia'])
-    rio_xy, rio_fijo, oxbows = disenar_rio(canal)
+    try:
+        res = disenar_rio(canal, land=lay.land, dx=dx)
+    except TypeError:
+        res = disenar_rio(canal)
+    rio_xy, rio_fijo, oxbows = res[0], res[1], res[2]
+    boca = res[3] if len(res) > 3 else None
     chain = rasterize_chain(rio_xy, n, dx)
     fixed_rec = np.full(n * n, -1, np.int64)
     fixed_rec[chain[:-1]] = chain[1:]
+    cadenas = [chain]
+    afl_xy = {}
+    for nombre, pts in getattr(rios, 'AFLUENTES', {}).items():
+        xy = rios.disenar_afluente(pts) if hasattr(rios, 'disenar_afluente') else np.asarray(pts, float)
+        c = rasterize_chain(np.asarray(xy, float), n, dx)
+        # unir al río principal en la celda más cercana (o terminar en el salar: sumidero)
+        if nombre != 'rio_salado':
+            cxy = np.c_[chain % n, chain // n]
+            last = np.array([c[-1] % n, c[-1] // n])
+            k = int(np.argmin(np.hypot(*(cxy - last).T)))
+            c = c[~np.isin(c, chain)]
+            if c.size == 0:
+                continue
+            fixed_rec[c[:-1]] = c[1:]
+            fixed_rec[c[-1]] = chain[k]
+        else:
+            fixed_rec[c[:-1]] = c[1:]
+        cadenas.append(c)
+        afl_xy[nombre] = np.asarray(xy, float)
     fixed_rec = fixed_rec.reshape(n, n)
-    # el último tramo termina en el mar
     rio_mask = np.zeros(n * n, bool)
-    rio_mask[chain] = True
+    for c in cadenas:
+        rio_mask[c] = True
     rio_mask = rio_mask.reshape(n, n)
     h0 = fo.h0.copy()
     trough = blur(rio_mask.astype(np.float64), 1.0)
@@ -103,15 +130,23 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     Kmul = np.where(rio_cells, 4.0, 1.0)
     D = make_D_func(lay)
 
+    # fin del Río Salado = sumidero del salar (cuenca cerrada); su fondo no baja de Y≈70
+    sal = [c for nm, c in zip(['principal'] + list(afl_xy.keys()), cadenas) if nm == 'rio_salado']
+    salar_cell = int(sal[0][-1]) if sal else None
+
     def sink_cb(step, s):
-        pass
+        if salar_cell is not None:
+            hf = s.h.ravel()
+            if hf[salar_cell] < 8.0:
+                hf[salar_cell] = 8.0
+                s.b.ravel()[salar_cell] = min(s.b.ravel()[salar_cell], 8.0)
 
     # ------------------------------------------------ P1
     fo.P_base = fo.P_pluvial
     st._dt = 1e4
     print('== P1 orogenia', flush=True)
     run(st, geo, fo, 2.0e6, 1e4, lambda t: fo.U_orogeny, D_func=D, sinks=sink,
-        fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=chain, log_every=log_every, label='P1', callback=sink_cb)
+        fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=log_every, label='P1', callback=sink_cb)
     np.savez_compressed(os.path.join(out_dir, 'etapa1_p1.npz'), h=st.h, b=st.b)
 
     # ------------------------------------------------ P2
@@ -124,10 +159,19 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
         sink_cb(step, s)
 
     run(st, geo, fo, T2, 1e4, lambda t: 0.85 * fo.U_orogeny + fo.U_plateau, D_func=D,
-        sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=chain, log_every=log_every, label='P2', callback=cb2)
+        sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=log_every, label='P2', callback=cb2)
     np.savez_compressed(os.path.join(out_dir, 'etapa1_p2.npz'), h=st.h, b=st.b, chain=chain)
     if solo_tectonica:
         return st, lay, geo, fo
+
+    # ------------------------------------------------ volcán (coladas + piroclastos)
+    print('== Volcán', flush=True)
+    vx, vz = poi_blocks('region_volcanica')
+    hv, lava = build_volcano(st.h.copy(), dx, (vx - 70, vz - 20), height=230.0, radius=1100.0,
+                             n_flows=2600, log=False)
+    st.h = hv
+    st.b = np.maximum(st.b, hv - 0.5)      # roca volcánica nueva
+    print(f'  cumbre del volcán: Y={hv.max() + SEA:.0f}', flush=True)
 
     # ------------------------------------------------ P3 glaciaciones
     print('== P3 glaciaciones (mar a -40 m)', flush=True)
@@ -143,10 +187,14 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
         st.b = np.minimum(st.b, st.h)
         gl_ero += ero
         run(st, geo, fo, 5000.0, 1000.0, lambda t: 0.85 * fo.U_orogeny + fo.U_plateau,
-            sea_level=-40.0, D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=chain, log_every=0,
+            sea_level=-40.0, D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=0,
             label='P3', callback=sink_cb)
         print(f'  ciclo glaciar {k + 1}/6 listo, erosión glaciar máx {gl_ero.max():.0f} m', flush=True)
     H_lgm = H.copy()
+
+    # ------------------------------------------------ Jardines: excavación glaciar del valle
+    print('== Jardines (valle glaciar en U)', flush=True)
+    st.h, st.b, lagos_jardines = jardines.excavar(st.h, st.b, lay, chain)
 
     # ------------------------------------------------ P4 Holoceno
     print('== P4 Holoceno (mar a 0)', flush=True)
@@ -157,7 +205,7 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     st.b = np.minimum(st.b, st.h)
     gl_ero += ero
     run(st, geo, fo, 10000.0, 500.0, lambda t: 0.85 * fo.U_orogeny + fo.U_plateau, sea_level=0.0,
-        D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=chain, log_every=log_every, label='P4',
+        D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=log_every, label='P4',
         callback=sink_cb)
 
     # ------------------------------------------------ guardar
@@ -168,6 +216,10 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     np.savez_compressed(os.path.join(out_dir, 'etapa1.npz'), h=st.h, b=st.b, Q=Q, filled=filled,
                         gl_ero=gl_ero, H_ice=H, H_lgm=H_lgm, rio_xy=rio_xy, rio_fijo=rio_fijo,
                         chain=chain, zone_id=lay.zone_id, prov=geo.prov,
-                        oxbows=np.array(len(oxbows)))
+                        oxbows=np.array(len(oxbows)), lava=lava, lagos_jardines=lagos_jardines,
+                        afluentes=np.array(list(afl_xy.keys())),
+                        **{'afl_' + k: v for k, v in afl_xy.items()},
+                        **{'cad_' + str(i): c for i, c in enumerate(cadenas)},
+                        boca=np.array([boca['x'], boca['z']]) if isinstance(boca, dict) and 'x' in boca else np.zeros(2))
     print(f'Etapa 1 lista en {time.time() - t0:.0f} s', flush=True)
     return st, lay, geo, fo

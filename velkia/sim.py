@@ -97,7 +97,8 @@ def run(state, geo, forcing, t_years, dt, U_func, sea_level=0.0, K0=8e-5, Ks_mul
         if breach is not None:
             h = np.ascontiguousarray(h)
             b = np.ascontiguousarray(b)
-            lem.breach_chain(h, b, breach, 2e-4, dx)
+            for ch in (breach if isinstance(breach, (list, tuple)) else [breach]):
+                lem.breach_chain(h, b, ch, 2e-4, dx)
         if fixed_h is not None:
             h = np.where(fixed_h, state.h, h)
             b = np.where(fixed_h, state.b, b)

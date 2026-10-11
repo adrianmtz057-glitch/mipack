@@ -177,7 +177,7 @@ class Geology:
         kz *= np.exp(np.log(0.30) * z['cordillera'] + np.log(0.60) * z['jardines'] +
                      np.log(0.70) * z['corrompidas'] + np.log(0.8) * z['oeste'] +
                      np.log(0.7) * z['volcanica'] + np.log(0.40) * z['canones'] +
-                     np.log(0.6) * z['este'] + np.log(1.6) * z['desierto'] +
+                     np.log(0.9) * z['este'] + np.log(1.6) * z['desierto'] +
                      np.log(1.6) * z['dunas'] + np.log(2.0) * z['salar'])
         # variabilidad lateral de dureza (fracturación)
         kz *= np.exp(0.25 * spectral_noise((n, n), 2.0, seed + 30))
@@ -198,10 +198,50 @@ class Geology:
             if placed >= nk:
                 break
         kz *= np.exp(np.log(0.08) * self.knobs)
+        # buttes: restos de capas horizontales con cornisa dura dispersos en el desierto
+        from .layout import RESERVADOS, px2b, jardines_r, poi_blocks
+        self.buttes = np.zeros((n, n), np.float32)
+        cand = rng.uniform(0, n, (400, 2))
+        placed = 0
+        for cy, cx in cand:
+            iy, ix = int(cy), int(cx)
+            if (z['desierto'][iy, ix] < 0.7 or not lay.land[iy, ix] or lay.dist_coast[iy, ix] < 400):
+                continue
+            r = rng.uniform(50, 140) / dx
+            d2 = ((zz / dx - cy) ** 2 + (xx / dx - cx) ** 2) / (r * r)
+            self.buttes = np.maximum(self.buttes, np.exp(-d2 ** 3))
+            placed += 1
+            if placed >= 28:
+                break
+        # no poner peñones ni buttes encima de construcciones ni de sitios reservados
+        libre = np.ones((n, n), np.float32)
+        evitar = [(poi_blocks(k), 650.0) for k in ('gran_piramide', 'thza', 'esfinge')]
+        evitar += [(poi_blocks(k), 350.0) for k in ('aldea_fantasma_sur', 'aldea_fantasma_oeste', 'jardines_de_velkia')]
+        evitar += [(px2b(*v[0]), v[1] + 150.0) for v in RESERVADOS.values()]
+        for (bx, bz), rad in evitar:
+            libre *= 1.0 - np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / rad ** 2) ** 2)
+        self.knobs *= libre
+        self.buttes *= libre
+        kz *= np.exp(np.log(0.30) * self.buttes)
+        self.prov[self.buttes > 0.5] = ESTRATOS
+        # paredes de granito duro de los Jardines y domo central (roche moutonnée)
+        rj = jardines_r(xx, zz)
+        pared = np.exp(-((rj - 1.0) / 0.16) ** 2)
+        kz *= np.exp(np.log(0.25) * pared)
+        self.prov[pared > 0.4] = GRANITO
+        # sitios reservados
+        for nombre, (pxy, rad, tipo) in RESERVADOS.items():
+            bx, bz = px2b(*pxy)
+            g = np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / rad ** 2) ** 2)
+            if tipo == 'meseta':           # cornisa dura -> repisa plana
+                kz *= np.exp(np.log(0.3) * g)
+                self.prov[g > 0.5] = ESTRATOS
+            elif tipo == 'promontorio':
+                kz *= np.exp(np.log(0.4) * g)
+                self.prov[g > 0.5] = GRANITO
         # núcleo duro en el centro de los Jardines (domo granítico alrededor del cual se
         # dividió el glaciar) y macizo granítico de la Torre
-        from .layout import poi_blocks
-        for name, rad, f in (('jardines_de_velkia', 230.0, 0.30), ('torre_llama_eterna', 520.0, 0.6)):
+        for name, rad, f in (('jardines_de_velkia', 230.0, 0.30), ('torre_llama_eterna', 330.0, 0.4)):
             bx, bz = poi_blocks(name)
             d2 = ((xx - bx) ** 2 + (zz - bz) ** 2) / rad ** 2
             w = np.exp(-d2 ** 2)

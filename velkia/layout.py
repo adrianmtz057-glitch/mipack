@@ -72,6 +72,27 @@ def poi_blocks(name):
     return px2b(*POIS[name])
 
 
+# Viento dominante del desierto (hacia donde sopla, grados desde el este hacia el sur).
+# Coherente con la arena de sotavento que trae la Gran Pirámide en sus caras este y norte
+# (tras la rotación del complejo): sopla desde el OSO hacia el ENE.
+VIENTO_DUNAS_DEG = -35.0
+
+# Sitios reservados para construcciones pendientes: (punto px, radio en bloques, tipo de relieve)
+RESERVADOS = {
+    'crakatos': ((897, 325), 220.0, 'meseta'),            # repisa/meseta en las Tierras Corrompidas
+    'cuarto_de_bashi': ((632, 720), 190.0, 'depresion'),  # depresión redondeada al sur de Thza
+    'fuertes_en_ruinas': ((785, 1045), 260.0, 'promontorio'),  # promontorio cerca de la costa sur
+    'arbol_especial': ((360, 640), 120.0, 'colina'),      # loma al suroeste del centro
+}
+
+
+def jardines_r(xx, zz):
+    """Radio normalizado dentro de la elipse de los Jardines (0 centro, 1 borde)."""
+    cx, cy, rx, ry = JARDINES_ELIPSE
+    bx, bz = px2b(cx, cy)
+    return np.sqrt(((xx - bx) / (rx * SX)) ** 2 + ((zz - bz) / (ry * SZ)) ** 2)
+
+
 # --------------------------------------------------------------------- rasterización
 def _poly_mask(points, n):
     s = n / N
@@ -120,13 +141,26 @@ class Layout:
         self.seed = seed
         cells_per_px = SX / self.dx
         land = island_mask(n)
-        # generalizar la costa (~45 bloques) y deformar con ruido para romper la forma del dibujo
-        land = blur(land, 45.0 / self.dx)
-        wu = spectral_noise((n, n), 3.0, seed + 1) * (60.0 / self.dx)
-        wv = spectral_noise((n, n), 3.0, seed + 2) * (60.0 / self.dx)
+        # costa: forma general del dibujo (generalizada ~20 bloques) + recorte fractal cerca de la
+        # costa (entrantes, penínsulas e islotes de 50 a 800 bloques, como en la referencia)
         from .noise import warp
+        land = blur(land, 20.0 / self.dx)
+        wu = spectral_noise((n, n), 3.0, seed + 1) * (70.0 / self.dx)
+        wv = spectral_noise((n, n), 3.0, seed + 2) * (70.0 / self.dx)
         land = warp(land, wu, wv)
-        self.land_soft = np.clip(land, 0, 1)
+        # distancia con signo a la costa generalizada (bloques) + perturbación fractal que decae
+        # lejos de la costa: entrantes y penínsulas de hasta ~600 bloques e islotes
+        base = land > 0.5
+        dsig = np.where(base, ndi.distance_transform_edt(base), -ndi.distance_transform_edt(~base)) * self.dx
+        frac = spectral_noise((n, n), 2.45, seed + 5, kmin=3.0, kmax=90.0)
+        campo = dsig + 230.0 * frac * np.exp(-(dsig / 520.0) ** 2)
+        tierra = campo > 0
+        # quitar islotes diminutos (< ~2500 m2) y rellenar huecos interiores
+        lab, nl = ndi.label(tierra)
+        tam = ndi.sum(tierra, lab, range(1, nl + 1))
+        tierra = np.isin(lab, 1 + np.nonzero(tam * self.dx ** 2 >= 2500.0)[0])
+        tierra = ndi.binary_fill_holes(tierra)
+        self.land_soft = np.clip(0.5 + campo / 60.0, 0, 1) * tierra + (~tierra) * np.clip(0.5 + campo / 60.0, 0, 0.49)
         self.land = self.land_soft > 0.5
         # distancia a la costa (bloques), positiva en tierra, negativa en mar
         din = ndi.distance_transform_edt(self.land) * self.dx
