@@ -82,6 +82,10 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     rio_xy, rio_fijo, oxbows = res[0], res[1], res[2]
     boca = res[3] if len(res) > 3 else None
     chain = rasterize_chain(rio_xy, n, dx)
+    # la fuente debe estar en tierra firme y alta: descartar celdas iniciales cerca del mar
+    ini = np.nonzero(fo.h0.ravel()[chain] > 15.0)[0]
+    if ini.size:
+        chain = chain[ini[0]:]
     fixed_rec = np.full(n * n, -1, np.int64)
     fixed_rec[chain[:-1]] = chain[1:]
     cadenas = [chain]
@@ -126,6 +130,17 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     # el cauce principal es un río aluvial eficiente: transporta casi todo lo que recibe
     rio_cells = np.zeros(n * n, bool)
     rio_cells[chain[k_out:]] = True      # tramo aluvial: desde la salida de los Jardines al mar
+    # forzado "siempre cuesta abajo" (antecedencia) solo en el tramo aluvial y en los afluentes;
+    # en la montaña la pendiente natural ya baja y no debe arrastrar la fuente al nivel del mar
+    cadenas[0] = chain[k_out:]
+    # piso del lecho: 0,5 m sobre el mar en la boca + 0,07 % hacia aguas arriba (solo en tierra)
+    alu = chain[k_out:]
+    en_mar = fo.h0.ravel()[alu] < 0
+    k_boca = int(np.argmax(en_mar)) if en_mar.any() else alu.size
+    seg = np.r_[0, np.hypot(np.diff(alu % n), np.diff(alu // n))] * dx
+    dist_boca = np.cumsum(seg[::-1])[::-1] - np.cumsum(seg[::-1])[::-1][min(k_boca, alu.size - 1)]
+    piso = 0.5 + 7e-4 * np.maximum(dist_boca, 0)
+    rfloor = (alu[:k_boca], piso[:k_boca])
     Garr = np.where(rio_cells, 0.08, 0.6)
     Kmul = np.where(rio_cells, 4.0, 1.0)
     D = make_D_func(lay)
@@ -146,7 +161,7 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     st._dt = 1e4
     print('== P1 orogenia', flush=True)
     run(st, geo, fo, 2.0e6, 1e4, lambda t: fo.U_orogeny, D_func=D, sinks=sink,
-        fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=log_every, label='P1', callback=sink_cb)
+        fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, river_floor=rfloor, log_every=log_every, label='P1', callback=sink_cb)
     np.savez_compressed(os.path.join(out_dir, 'etapa1_p1.npz'), h=st.h, b=st.b)
 
     # ------------------------------------------------ P2
@@ -159,7 +174,7 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
         sink_cb(step, s)
 
     run(st, geo, fo, T2, 1e4, lambda t: 0.85 * fo.U_orogeny + fo.U_plateau, D_func=D,
-        sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=log_every, label='P2', callback=cb2)
+        sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, river_floor=rfloor, log_every=log_every, label='P2', callback=cb2)
     np.savez_compressed(os.path.join(out_dir, 'etapa1_p2.npz'), h=st.h, b=st.b, chain=chain)
     if solo_tectonica:
         return st, lay, geo, fo
@@ -187,7 +202,7 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
         st.b = np.minimum(st.b, st.h)
         gl_ero += ero
         run(st, geo, fo, 5000.0, 1000.0, lambda t: 0.85 * fo.U_orogeny + fo.U_plateau,
-            sea_level=-40.0, D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=0,
+            sea_level=-40.0, D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, river_floor=rfloor, log_every=0,
             label='P3', callback=sink_cb)
         print(f'  ciclo glaciar {k + 1}/6 listo, erosión glaciar máx {gl_ero.max():.0f} m', flush=True)
     H_lgm = H.copy()
@@ -205,7 +220,7 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     st.b = np.minimum(st.b, st.h)
     gl_ero += ero
     run(st, geo, fo, 10000.0, 500.0, lambda t: 0.85 * fo.U_orogeny + fo.U_plateau, sea_level=0.0,
-        D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, log_every=log_every, label='P4',
+        D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, river_floor=rfloor, log_every=log_every, label='P4',
         callback=sink_cb)
 
     # ------------------------------------------------ guardar

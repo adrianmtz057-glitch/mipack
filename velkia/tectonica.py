@@ -58,9 +58,12 @@ class Forcing:
         # cuenca cerrada del salar (hundimiento tectónico, tipo pull-apart)
         sx, sz = poi_blocks('bioma_de_sales')
         U2 += -0.06e-3 * np.exp(-((xx - sx) ** 2 + (zz - sz) ** 2) / 430.0 ** 2)
-        # Cuarto de Bashi: depresión redondeada (hundimiento por disolución de evaporitas)
-        bx, bz = px2b(*RESERVADOS['cuarto_de_bashi'][0])
-        U2 += -0.035e-3 * np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / 170.0 ** 2) ** 1.5)
+        # Cuarto de Bashi: depresión romboidal de bordes suaves (hundimiento por disolución de
+        # evaporitas a lo largo de dos familias de fracturas a 45°)
+        (bpx, rad, _) = RESERVADOS['cuarto_de_bashi']
+        bx, bz = px2b(*bpx)
+        rombo = (np.abs(xx - bx) ** 1.3 + np.abs(zz - bz) ** 1.3) ** (1 / 1.3) / rad
+        U2 += -0.035e-3 * np.exp(-rombo ** 3)
         self.U_plateau = U2.astype(np.float64)
         # ---------------------------------------------------------- precipitación (m/a)
         P = (z['cordillera'] * 1.2 + z['corrompidas'] * 0.7 + z['jardines'] * 1.0 +

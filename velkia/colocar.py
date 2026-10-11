@@ -13,7 +13,7 @@ mapa 2 y el terreno modificado.  Reglas:
 import numpy as np
 from scipy import ndimage as ndi
 
-from .estructuras import SITIOS, Sitio
+from .estructuras import SITIOS, Sitio, recortar
 from .layout import N, SEA, poi_blocks
 from .ubicacion import buscar_cima, buscar_ladera
 
@@ -34,6 +34,8 @@ def _sitio(sitio, carpetas, shift=(0, 0)):
     cfg = dict(SITIOS[sitio])
     cfg['carpetas'] = carpetas
     s = Sitio(sitio, cfg)
+    for modo in cfg.get('recortar', []):
+        recortar(s, modo)
     if shift != (0, 0):
         for p in s.parts:
             p.offset = p.offset + np.array([shift[0], 0, shift[1]])

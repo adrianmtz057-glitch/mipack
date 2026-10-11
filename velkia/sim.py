@@ -34,7 +34,7 @@ class LEMState:
 def run(state, geo, forcing, t_years, dt, U_func, sea_level=0.0, K0=8e-5, Ks_mult=2.0,
         m=0.45, Gv=0.6, D_func=None, sinks=None, fixed_rec=None, fixed_h=None,
         log_every=10, label='', callback=None, P_floor_transport=0.3, baseflow=None,
-        G_arr=None, Kmult_arr=None, breach=None):
+        G_arr=None, Kmult_arr=None, breach=None, river_floor=None):
     """Integra el LEM durante t_years con paso dt.
 
     U_func(t) -> array de levantamiento (m/a)
@@ -90,10 +90,20 @@ def run(state, geo, forcing, t_years, dt, U_func, sea_level=0.0, K0=8e-5, Ks_mul
             fixed = outlet.copy()
             if fixed_h is not None:
                 fixed |= fixed_h
+            if breach is not None:
+                # el cauce es nivel de base local: lo que llega por las laderas se lo lleva el río
+                fc = fixed.ravel()
+                for ch in (breach if isinstance(breach, (list, tuple)) else [breach]):
+                    fc[ch] = True
             h2 = lem.diffuse(h, D, dt, dx, fixed)
             # la difusión mueve regolito: lo que baja de la roca se vuelve sedimento
             b = np.minimum(b, h2)
             h = h2
+        if river_floor is not None:
+            # perfil graduado: el lecho no baja del nivel del mar + pendiente mínima hacia la boca
+            cells, piso = river_floor
+            hf = h.ravel()
+            hf[cells] = np.maximum(hf[cells], piso + sl)
         if breach is not None:
             h = np.ascontiguousarray(h)
             b = np.ascontiguousarray(b)

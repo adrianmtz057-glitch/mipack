@@ -183,3 +183,46 @@ def canal_vieja_velkia(sitio):
         if sel.any():
             pts.append((m['x0'] + x + 4, m['z0'] + zz[sel].mean()))
     return np.array(pts), int(m['water_y'][main].max())
+
+
+# --------------------------------------------------------------------- recorte
+def recortar(sitio, modo, margen=4):
+    """Convierte en structure_void el terreno viejo que trae el schematic, para que el relieve
+    nuevo rodee la construcción (no una losa plana ni el terreno del mapa anterior).
+
+    modo 'losa'    : columnas solo con bloques naturales fuera del casco de lo construido.
+    modo 'entorno' : igual (anillo de terreno natural alrededor de ciudades y aldeas).
+    modo 'sendero' : la torre: se conserva solo el núcleo (radio 22) y el sendero viejo se quita.
+    Devuelve el número de columnas recortadas.
+    """
+    if modo not in ('losa', 'entorno', 'sendero'):
+        return 0
+    m = sitio.maps()
+    foot, built = m['foot'], m['built']
+    if modo == 'sendero':
+        top = m['top']
+        ci = np.unravel_index(np.argmax(np.where(foot, top, -999)), top.shape)
+        zz, xx = np.meshgrid(np.arange(foot.shape[0]), np.arange(foot.shape[1]), indexing='ij')
+        conservar = np.hypot(zz - ci[0], xx - ci[1]) <= 22
+    else:
+        # casco de lo construido: cierre morfológico + relleno de huecos (calles incluidas)
+        casco = ndi.binary_closing(built, structure=np.ones((3, 3)), iterations=12)
+        casco = ndi.binary_fill_holes(casco)
+        conservar = ndi.binary_dilation(casco, iterations=margen)
+    quitar = foot & ~conservar
+    total = 0
+    for p in sitio.parts:
+        x0, z0 = m['x0'], m['z0']
+        ox, oz = p.offset[0] - x0, p.offset[2] - z0
+        w, h, l = p.size
+        q = quitar[oz:oz + l, ox:ox + w]
+        if not q.any():
+            continue
+        vi = p.index_of('minecraft:structure_void')
+        if vi < 0:
+            p.palette.append('minecraft:structure_void')
+            vi = len(p.palette) - 1
+        p.blocks[:, q] = vi
+        p.block_entities = [be for be in p.block_entities if not q[be['Pos'][2], be['Pos'][0]]]
+        total += int(q.sum())
+    return total

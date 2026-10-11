@@ -80,10 +80,11 @@ VIENTO_DUNAS_DEG = -35.0
 # Sitios reservados para construcciones pendientes: (punto px, radio en bloques, tipo de relieve)
 RESERVADOS = {
     'crakatos': ((897, 325), 220.0, 'meseta'),            # repisa/meseta en las Tierras Corrompidas
-    'cuarto_de_bashi': ((632, 720), 190.0, 'depresion'),  # depresión redondeada al sur de Thza
-    'fuertes_en_ruinas': ((785, 1045), 260.0, 'promontorio'),  # promontorio cerca de la costa sur
-    'arbol_especial': ((360, 640), 120.0, 'colina'),      # loma al suroeste del centro
+    'cuarto_de_bashi': ((633, 735), 185.0, 'depresion'),  # depresión romboidal (~340x360) al sur de Thza
+    'fuertes_en_ruinas': ((784, 1041), 260.0, 'promontorio'),  # promontorio cerca de la costa sur
 }
+# El único ícono de 'árbol especial' del mapa 2 está en los Jardines de Velkia: es el árbol de
+# las nueces de los Jardines colgantes (no hay otro al suroeste).
 
 
 def jardines_r(xx, zz):
