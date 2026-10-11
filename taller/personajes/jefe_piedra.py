@@ -263,11 +263,12 @@ def rocas_caja(p, grupo, nombre, desde, hasta, cara, n, tam, pintores, semilla, 
             k += 1
 
 
-def tramo_de_piedra(p, grupo, nombre, a, b, medio_a, medio_b, caras, pintores, semilla):
+def tramo_de_piedra(p, grupo, nombre, a, b, medio_a, medio_b, caras, pintores, semilla, n=None):
     """Un tramo de pata o de cuello hecho de bloques de piedra derechos encimados que van de a a b (cada uno un poco
-    distinto, cada vez del medio tamano que toca), con rocas salidas en las caras dadas. medio = (x, y, z)."""
+    distinto, cada vez del medio tamano que toca), con rocas salidas en las caras dadas. medio = (x, y, z).
+    n: cuantos bloques (si no se da, uno por cada vez su ancho)."""
     largo = math.dist(a, b)
-    n = max(2, math.ceil(largo / (min(medio_a) * 1.1)))
+    n = n or max(2, math.ceil(largo / (min(medio_a) * 1.1)))
     for i in range(n):
         f = i / (n - 1)
         sem = semilla + i * 4.1

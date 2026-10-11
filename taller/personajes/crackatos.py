@@ -111,6 +111,26 @@ def esquirla_cubos(p, grupo, nombre, base, ancho, alto, rot, forma, pintor, ramp
                pint, rot=rot, piv=base, dens=D)
 
 
+def bloques_encimados(a, b, medio_a, medio_b, solape=0.72):
+    """Cuantos bloques necesita un tramo de piedra (tramo_de_piedra: bloques derechos de a a b) para que cada bloque
+    se encime con el siguiente en los tres ejes, aun con el tamano mas chico que les toca al azar (0.88): asi entre
+    bloque y bloque no queda una rendija por donde se vea el fondo (en el juego se veia la pata partida)."""
+    n = 2
+    while n < 40:
+        bien = True
+        for i in range(n - 1):
+            f0, f1 = i / (n - 1), (i + 1) / (n - 1)
+            for e in range(3):
+                m0 = (medio_a[e] + (medio_b[e] - medio_a[e]) * f0) * 0.88
+                m1 = (medio_a[e] + (medio_b[e] - medio_a[e]) * f1) * 0.88
+                if abs(b[e] - a[e]) / (n - 1) > solape * (m0 + m1):
+                    bien = False
+        if bien:
+            return n
+        n += 1
+    return n
+
+
 def barra(p, grupo, nombre, a, b, r0, r1, pintor):
     """Un tramo de cuerno o de ceja: un cubo girado de a a b (un poco mas largo, para que se peguen los tramos)."""
     d = tuple(b[i] - a[i] for i in range(3))
@@ -220,8 +240,9 @@ def cuerpo(p):
 
 def cabeza(p):
     piedra_o, clara, hocico, amatista = piedra(PIEDRA), piedra(PIEDRA_C), voxel(HOCICO, 0.1), cristal_cubos()
-    tramo_de_piedra(p, CUELLO_B, "cuello", (0.0, 27.5, -20.0), (0.0, 21.5, -30.0), (11.0, 9.5, 3.4), (8.6, 7.4, 3.0),
-                    ("east", "west", "up"), [piedra_o, clara], 11)
+    a, b, ma, mb = (0.0, 27.5, -20.0), (0.0, 21.5, -30.0), (11.0, 9.5, 3.4), (8.6, 7.4, 3.0)
+    tramo_de_piedra(p, CUELLO_B, "cuello", a, b, ma, mb, ("east", "west", "up"), [piedra_o, clara], 11,
+                    n=bloques_encimados(a, b, ma, mb))
     g = CABEZA_B
     for j, (a, b) in enumerate(zip(CABEZA, CABEZA[1:])):
         tramo_octagonal(p, g, f"craneo{j}_", a, b, clara)
@@ -233,17 +254,66 @@ def cabeza(p):
     p.caja(g, "quilla", (-0.9, 13.6, -41.4), (0.9, 18.6, -39.8), hocico, dens=D)
     for s in (1, -1):                                         # las cejas salidas
         barra(p, g, f"ceja{s}", (s * 0.8, 21.6, -38.4), (s * 6.4, 22.8, -36.4), 1.1, 0.9, clara)
-    for s in (1, -1):                                         # los ojos que brillan
-        a, b = sorted((s * 1.8, s * 4.3))
-        p.caja(g, f"ojo{s}", (a, 19.5, -38.1), (b, 20.8, -37.95), lambda t: hex_(OJO), dens=4, luz=False)
-        a, b = sorted((s * 2.6, s * 3.4))
-        p.caja(g, f"brillo{s}", (a, 19.85, -38.2), (b, 20.45, -38.05), lambda t: hex_(OJO_CENTRO), dens=4, luz=False)
+    ojos(p, g, OJOS)
     camino = ((7.0, 23.5, -33.0, 3.1), (12.5, 26.3, -32.0, 2.6), (17.0, 29.0, -32.5, 1.9), (19.4, 31.2, -35.0, 1.3),
               (20.1, 32.4, -38.0, 0.6), (19.8, 33.0, -40.5, 0.1))
     for s, lado in ((1, "d"), (-1, "i")):
         for i, (a, b) in enumerate(zip(camino, camino[1:])):
             barra(p, f"{g}/cuerno_{lado}", f"cuerno{i}", (s * a[0], a[1], a[2]), (s * b[0], b[1], b[2]), a[3],
                   max(b[3], 0.35), amatista)
+
+
+# los ojos: "hundidos" (rendijas enojadas con pupila de reptil en una cuenca oscura bajo la ceja), "cristal" (una gema de
+# amatista metida en la cuenca), "brasas" (un punto que brilla al fondo de una cuenca grande) u "original" (los de antes)
+OJOS = "hundidos"
+CUENCA, PUPILA = "#140E1C", "#5A2391"
+
+
+def _degradado(centro, radio, claro, oscuro):
+    """Un pintor que va de 'claro' en el centro a 'oscuro' en la orilla (para que el ojo brille de adentro)."""
+    c1, c2 = hex_(claro), hex_(oscuro)
+
+    def pintor(t):
+        d = min(1.0, math.dist((t.x, t.y), centro) / radio)
+        return tuple(round(a + (b - a) * d ** 1.4) for a, b in zip(c1, c2))
+    return pintor
+
+
+def ojos(p, g, estilo):
+    """Los ojos (lo que brilla se llama ojo*: va en la mascara de brillo del juego)."""
+    for s in (1, -1):
+        if estilo == "original":
+            a, b = sorted((s * 1.8, s * 4.3))
+            p.caja(g, f"ojo{s}", (a, 19.5, -38.1), (b, 20.8, -37.95), lambda t: hex_(OJO), dens=4, luz=False)
+            a, b = sorted((s * 2.6, s * 3.4))
+            p.caja(g, f"brillo{s}", (a, 19.85, -38.2), (b, 20.45, -38.05), lambda t: hex_(OJO_CENTRO), dens=4, luz=False)
+            continue
+        cx, cy = s * 3.2, 20.0
+        giro = (0.0, 0.0, s * 13.0) if estilo == "hundidos" else None      # el lado de adentro mas abajo: enojado
+        if estilo == "hundidos":
+            a, b = sorted((s * 1.3, s * 5.1))
+            p.caja(g, f"cuenca{s}", (a, 18.8, -38.3), (b, 21.3, -37.6), lambda t: hex_(CUENCA), rot=giro, piv=(cx, cy, -38.0),
+                   dens=4, luz=False)
+            a, b = sorted((s * 1.8, s * 4.6))
+            p.caja(g, f"ojo{s}", (a, 19.5, -38.5), (b, 20.5, -38.3), _degradado((cx, cy), 1.5, "#F6D2FF", "#8E3FE6"),
+                   rot=giro, piv=(cx, cy, -38.0), dens=6, luz=False)
+            # la pupila de reptil: una raya mas oscura que tambien brilla (de noche se sigue viendo una sola rendija)
+            p.caja(g, f"ojo_pupila{s}", (cx - 0.18, 19.45, -38.56), (cx + 0.18, 20.55, -38.5), lambda t: hex_(PUPILA),
+                   rot=giro, piv=(cx, cy, -38.0), dens=6, luz=False)
+        elif estilo == "cristal":
+            a, b = sorted((s * 1.4, s * 5.0))
+            p.caja(g, f"cuenca{s}", (a, 18.7, -38.3), (b, 21.3, -37.6), lambda t: hex_(CUENCA), dens=4, luz=False)
+            p.caja(g, f"ojo{s}", (cx - 1.05, cy - 1.05, -38.9), (cx + 1.05, cy + 1.05, -38.2),
+                   _degradado((cx, cy), 1.4, "#E9C9FF", "#7B45C8"), rot=(0.0, 0.0, 45.0), piv=(cx, cy, -38.5), dens=6, luz=False)
+            p.caja(g, f"ojo_centro{s}", (cx - 0.45, cy - 0.45, -39.05), (cx + 0.45, cy + 0.45, -38.85),
+                   lambda t: hex_("#FBEAFF"), rot=(0.0, 0.0, 45.0), piv=(cx, cy, -38.5), dens=6, luz=False)
+        else:                                                               # brasas
+            a, b = sorted((s * 1.1, s * 5.3))
+            p.caja(g, f"cuenca{s}", (a, 18.4, -38.3), (b, 21.6, -37.6), lambda t: hex_(CUENCA), dens=4, luz=False)
+            p.caja(g, f"ojo_halo{s}", (cx - 0.95, cy - 0.8, -38.38), (cx + 0.95, cy + 0.8, -38.3),
+                   _degradado((cx, cy), 1.0, "#B66BFF", "#3A1A66"), dens=6, luz=False)
+            p.caja(g, f"ojo{s}", (cx - 0.45, cy - 0.45, -38.48), (cx + 0.45, cy + 0.45, -38.38),
+                   lambda t: hex_("#FFD8FF"), dens=6, luz=False)
 
 
 def pata(p, base, plantilla, s, radios, pie, garras):
@@ -258,8 +328,10 @@ def pata(p, base, plantilla, s, radios, pie, garras):
         if i == 1:                                # el ultimo tramo acaba un poco arriba del pie (al doblar no roza)
             b = (b[0], b[1] + 1.6, b[2])
             rb *= 0.88
-        tramo_de_piedra(p, rutas[i], "tramo", a, b, (ra, ra * 0.9, ra), (rb, rb * 0.9, rb), (afuera, "north", "south"),
-                        [piedra_o, clara] if i % 2 == 0 else [clara, piedra_o], 200 + 13 * i + s)
+        ma, mb = (ra, ra * 0.9, ra), (rb, rb * 0.9, rb)
+        tramo_de_piedra(p, rutas[i], "tramo", a, b, ma, mb, (afuera, "north", "south"),
+                        [piedra_o, clara] if i % 2 == 0 else [clara, piedra_o], 200 + 13 * i + s,
+                        n=bloques_encimados(a, b, ma, mb))
     for i, c in enumerate(puntos[:-1]):
         t = radios[i] * 1.3
         d, h = (c[0] - t, c[1] - t * 0.8, c[2] - t), (c[0] + t, c[1] + t * 0.8, c[2] + t)
