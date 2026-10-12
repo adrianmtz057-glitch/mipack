@@ -1,6 +1,7 @@
 package com.mipack;
 
 import com.mipack.entidad.CrackatosEntity;
+import com.mipack.geo.FabricaMallas;
 import com.mipack.entidad.Ola;
 import com.mipack.entidad.PuaCayendo;
 import com.mojang.logging.LogUtils;
@@ -24,6 +25,7 @@ import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
+import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
  * Mipack: los jefes y criaturas de Velkia. Por ahora Crackatos, la bestia de piedra amatista (modelo y animaciones
@@ -69,6 +71,8 @@ public class Mipack {
         PESTANAS.register(bus);
         bus.addListener(this::atributos);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, MipackConfig.CLIENTE);
+        // los modelos de mipack pueden traer mallas (GeckoLib solo dibuja cubos): ver geo/FabricaMallas
+        GeckoLibUtil.addCustomBakedModelFactory(MODID, new FabricaMallas());
         MinecraftForge.EVENT_BUS.addListener(this::alEntrar);
         if (PRUEBA)
             LOGGER.info("[Mipack] modo de prueba: los jefes atacan tambien a otros mobs");

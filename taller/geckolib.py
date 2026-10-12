@@ -64,26 +64,40 @@ def uv_cara(desde, hasta, cara, uv):
     return [_r(u), _r(v)], [_r(su), _r(sv)]
 
 
+def nombres_de_huesos(rutas):
+    """{ruta: nombre del hueso en GeckoLib}: el ultimo tramo de la ruta, salvo que se repita (como "antebrazo" en los
+    dos brazos): entonces el final mas corto de la ruta que no se repite, con guiones bajos ("RightArm_antebrazo")."""
+    rutas = list(rutas)
+    out = {}
+    for r in rutas:
+        partes = r.split("/")
+        for k in range(1, len(partes) + 1):               # el final mas corto que nadie mas comparte
+            nombre = "_".join(partes[-k:])
+            if sum(1 for q in rutas if "_".join(q.split("/")[-k:]) == nombre) == 1:
+                break
+        out[r] = nombre
+    return out
+
+
 def exportar_geo(modelo, uvs, lienzo, identificador):
-    """El dict del .geo.json (geometria Bedrock 1.12.0) de un modelo hecho solo de cubos."""
-    if modelo.mallas:
-        raise ValueError("GeckoLib no lee mallas: el modelo tiene que ser solo de cubos")
+    """El dict del .geo.json (geometria Bedrock 1.12.0). Las mallas van como poly_mesh en su hueso (GeckoLib las
+    lee pero no las dibuja: las arma cliente/FabricaMallas.java en el mod): posiciones con la x negada como los
+    cubos, cada poligono de 4 vertices (los triangulos repiten el ultimo) en orden contrario (la x negada voltea el
+    giro) y las UV en pixeles del atlas."""
     rutas = set(modelo.pivotes)
-    for c in modelo.cubos:
+    for c in list(modelo.cubos) + list(modelo.mallas):
         partes = c.hueso.split("/")
         rutas.update("/".join(partes[:i + 1]) for i in range(len(partes)))
     for r in list(rutas):
         partes = r.split("/")
         rutas.update("/".join(partes[:i + 1]) for i in range(len(partes)))
-    nombres = [r.split("/")[-1] for r in rutas]
-    if len(set(nombres)) != len(nombres):
-        raise ValueError("dos huesos con el mismo nombre (GeckoLib los identifica por nombre)")
+    nombre = nombres_de_huesos(rutas)
     huesos = {}
     for ruta in sorted(rutas, key=lambda r: (r.count("/"), r)):
         piv = modelo.pivotes.get(ruta, (0.0, 0.0, 0.0))
-        b = {"name": ruta.split("/")[-1], "pivot": [_r(-piv[0]), _r(piv[1]), _r(piv[2])], "cubes": []}
+        b = {"name": nombre[ruta], "pivot": [_r(-piv[0]), _r(piv[1]), _r(piv[2])], "cubes": []}
         if "/" in ruta:
-            b["parent"] = ruta.rsplit("/", 1)[0].split("/")[-1]
+            b["parent"] = nombre[ruta.rsplit("/", 1)[0]]
         huesos[ruta] = b
     for c in modelo.cubos:
         (x1, y1, z1), (x2, y2, z2) = c.desde, c.hasta
@@ -96,12 +110,30 @@ def exportar_geo(modelo, uvs, lienzo, identificador):
             uv, tam = uv_cara(c.desde, c.hasta, cara, uvs[id(c)][cara])
             cubo["uv"][cara] = {"uv": uv, "uv_size": tam}
         huesos[c.hueso]["cubes"].append(cubo)
+    for m in modelo.mallas:
+        pm = huesos[m.hueso].setdefault("poly_mesh", {"normalized_uvs": False, "positions": [], "normals": [],
+                                                      "uvs": [], "polys": []})
+        base = len(pm["positions"]) // 3
+        for x, y, z in m.vertices:
+            pm["positions"] += [_r(-x), _r(y), _r(z)]
+        for k, cara in enumerate(m.caras):
+            pts = [m.vertices[i] for i in cara]
+            n = _normal_poligono(pts)
+            ni = len(pm["normals"]) // 3
+            pm["normals"] += [_r(-n[0]), _r(n[1]), _r(n[2])]
+            ui = len(pm["uvs"]) // 2
+            for u, v in uvs[id(m)][k]:
+                pm["uvs"] += [_r(u), _r(v)]
+            poli = [[base + i, ni, ui + j] for j, i in enumerate(cara)]
+            if len(poli) == 3:
+                poli.append(list(poli[-1]))
+            pm["polys"].append(poli[::-1])
     for b in huesos.values():
         if not b["cubes"]:
             del b["cubes"]
-    xs = [v for c in modelo.cubos for v in (c.desde[0], c.hasta[0])]
-    ys = [v for c in modelo.cubos for v in (c.desde[1], c.hasta[1])]
-    zs = [v for c in modelo.cubos for v in (c.desde[2], c.hasta[2])]
+    xs = [v for c in modelo.cubos for v in (c.desde[0], c.hasta[0])] + [v[0] for m in modelo.mallas for v in m.vertices]
+    ys = [v for c in modelo.cubos for v in (c.desde[1], c.hasta[1])] + [v[1] for m in modelo.mallas for v in m.vertices]
+    zs = [v for c in modelo.cubos for v in (c.desde[2], c.hasta[2])] + [v[2] for m in modelo.mallas for v in m.vertices]
     ancho = max(max(map(abs, xs)), max(map(abs, zs))) * 2 / 16 + 2
     return {"format_version": "1.12.0", "minecraft:geometry": [{
         "description": {"identifier": f"geometry.{identificador}", "texture_width": lienzo.ancho,
@@ -109,6 +141,18 @@ def exportar_geo(modelo, uvs, lienzo, identificador):
                         "visible_bounds_height": _r((max(ys) - min(ys)) / 16 + 2, 1),
                         "visible_bounds_offset": [0, _r((max(ys) + min(ys)) / 32, 2), 0]},
         "bones": list(huesos.values())}]}
+
+
+def _normal_poligono(pts):
+    """Normal hacia afuera de un poligono antihorario visto desde afuera (Newell)."""
+    nx = ny = nz = 0.0
+    for i in range(len(pts)):
+        (x1, y1, z1), (x2, y2, z2) = pts[i], pts[(i + 1) % len(pts)]
+        nx += (y1 - y2) * (z1 + z2)
+        ny += (z1 - z2) * (x1 + x2)
+        nz += (x1 - x2) * (y1 + y2)
+    m = math.sqrt(nx * nx + ny * ny + nz * nz) or 1.0
+    return (nx / m, ny / m, nz / m)
 
 
 # ---------------------------------------------------------------- reconstruccion como GeckoLib
@@ -205,6 +249,15 @@ def reconstruir(geo, pose=None):
                 uvq = [(u + su, v), (u, v), (u, v + sv), (u + su, v + sv)]   # GeoQuad.build sin espejo
                 P = [M(vs[n]) for n in QUADS[cara]]
                 out.append((P, uvq, cara, _aplicar(M.R, NORMAL[cara]), b["name"]))
+        pm = b.get("poly_mesh")
+        if pm:                                            # como cliente/FabricaMallas.java: x de vuelta, orden de vuelta
+            pos, uv = pm["positions"], pm["uvs"]
+            for poli in pm["polys"]:
+                poli = poli[::-1]
+                pts = [(-pos[3 * p], pos[3 * p + 1], pos[3 * p + 2]) for p, _n, _u in poli]
+                uvq = [(uv[2 * u], uv[2 * u + 1]) for _p, _n, u in poli]
+                n = _normal_poligono(pts[:3] if pts[3] == pts[2] else pts)
+                out.append(([T(q) for q in pts], uvq, "malla", _aplicar(T.R, n), b["name"]))
     return out
 
 
@@ -215,6 +268,15 @@ def caras_para_vista(quads):
     for P, UV, cara, normal, _ in quads:
         P = np.array(P, dtype=float)
         UV = np.array(UV, dtype=float)
+        unicos = [i for i in range(4) if np.linalg.norm(P[i] - P[(i + 1) % 4]) > 1e-6]
+        if len(unicos) == 3:                          # un triangulo (de una malla): como los pone vista, el repetido al final
+            a, b, c = unicos
+            if np.dot(np.cross(P[b] - P[a], P[c] - P[a]), normal) > 0:
+                orden = [a, c, b, b]
+            else:
+                orden = [a, b, c, c]
+            out.append((P[orden].copy(), UV[orden].copy()))
+            continue
         if np.dot(np.cross(P[3] - P[0], P[1] - P[0]), normal) < 0:      # el render: horario desde afuera
             P, UV = P[::-1].copy(), UV[::-1].copy()
         out.append((P, UV))
