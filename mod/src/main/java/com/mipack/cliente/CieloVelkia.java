@@ -54,16 +54,16 @@ public class CieloVelkia extends DimensionSpecialEffects.OverworldEffects {
             {2, 1, -1, 0, 0, 0, 0, -1, 0, 1, 0}};
 
     // el color del cielo justo arriba del horizonte (para la niebla): de dia, de noche y del atardecer
-    private static final Vector3f HORIZONTE_DIA = new Vector3f(0.94f, 0.86f, 0.69f);
-    private static final Vector3f HORIZONTE_NOCHE = new Vector3f(0.078f, 0.072f, 0.155f);
-    private static final Vector3f ATARDECER = new Vector3f(1.0f, 0.52f, 0.24f), ATARDECER_LEJOS = new Vector3f(0.75f, 0.32f, 0.55f);
+    static final Vector3f HORIZONTE_DIA = new Vector3f(0.94f, 0.86f, 0.69f);
+    static final Vector3f HORIZONTE_NOCHE = new Vector3f(0.078f, 0.072f, 0.155f);
+    static final Vector3f ATARDECER = new Vector3f(1.0f, 0.52f, 0.24f), ATARDECER_LEJOS = new Vector3f(0.75f, 0.32f, 0.55f);
 
     private static ResourceLocation tex(String nombre) {
         return new ResourceLocation(Mipack.MODID, "textures/environment/" + nombre + ".png");
     }
 
     /** Lo que se necesita en cada cuadro: que tan de dia es, la lluvia, donde esta el sol. */
-    private record Momento(float tiempo, float alturaSol, float dia, float noche, float lluvia, float puesta, float solX) {
+    record Momento(float tiempo, float alturaSol, float dia, float noche, float lluvia, float puesta, float solX) {
         static Momento de(ClientLevel nivel, float parcial) {
             float t = nivel.getTimeOfDay(parcial);              // 0 mediodia, 0.25 atardecer, 0.5 medianoche
             float alto = Mth.cos(t * Mth.TWO_PI);
@@ -74,7 +74,7 @@ public class CieloVelkia extends DimensionSpecialEffects.OverworldEffects {
         }
     }
 
-    private static boolean usar(Camera camara, boolean niebla) {
+    static boolean usar(Camera camara, boolean niebla) {
         if (!MipackConfig.CIELO.get() || niebla || camara.getFluidInCamera() != FogType.NONE)
             return false;
         return !(camara.getEntity() instanceof LivingEntity e && (e.hasEffect(MobEffects.BLINDNESS) || e.hasEffect(MobEffects.DARKNESS)));

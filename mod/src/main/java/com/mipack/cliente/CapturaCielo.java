@@ -37,13 +37,12 @@ public final class CapturaCielo {
     private static final boolean ACTIVA = "cielo".equals(System.getProperty("mipack.captura"));
     private static final int INICIO = 80, FASE = 70;
     // hora, clima, y las vistas: {nombre, yaw (0 = norte, 90 = este), pitch hacia arriba}
+    // vistas: {nombre, yaw, pitch[, dx, dy, dz de la camara desde el centro]}; cada una sin y con efectos
     private static final Object[][] FASES = {
-            {1000, "clear", new Object[][]{{"manana_escena", 0f, 8f}, {"manana_este", 90f, 15f}}},
-            {6000, "clear", new Object[][]{{"mediodia_escena", 0f, 8f}, {"mediodia_cielo", 30f, 55f}}},
-            {12300, "clear", new Object[][]{{"atardecer_escena", -35f, 6f}, {"atardecer_oeste", -90f, 8f}}},
-            {13200, "clear", new Object[][]{{"anochecer_oeste", -90f, 10f}, {"anochecer_norte", 0f, 15f}}},
-            {18000, "clear", new Object[][]{{"noche_auroras", 0f, 22f}, {"noche_escena", 0f, 6f}, {"noche_cenit", 180f, 70f}}},
-            {23200, "clear", new Object[][]{{"amanecer_este", 90f, 8f}, {"amanecer_escena", 40f, 6f}}},
+            {1000, "clear", new Object[][]{{"manana_escena", 0f, 8f}, {"rayos_manana", 90f, 14f, -4f, 2.5f, -15f}}},
+            {6000, "clear", new Object[][]{{"mediodia_escena", 0f, 8f}, {"calor_desierto", 0f, 4f, 0f, 3.0f, -6f}}},
+            {11600, "clear", new Object[][]{{"rayos_atardecer", -90f, 7f, 5f, 2.5f, 1f}, {"atardecer_escena", -35f, 6f}}},
+            {18000, "clear", new Object[][]{{"noche_auroras", 0f, 22f}, {"noche_escena", 0f, 6f}}},
             {6000, "rain", new Object[][]{{"lluvia_escena", 0f, 8f}}},
     };
 
@@ -96,10 +95,21 @@ public final class CapturaCielo {
         }
         int cada = (FASE - 20) / vistas.length, k = Math.min(vistas.length - 1, Math.max(0, enFase - 20) / cada);
         Object[] v = vistas[k];
-        Vec3 cam = new Vec3(centro.getX() + 0.5, centro.getY() + 4.5, centro.getZ() + 12.5);
+        Vec3 cam = v.length > 3
+                ? new Vec3(centro.getX() + 0.5 + (Float) v[3], centro.getY() + (Float) v[4], centro.getZ() + 0.5 + (Float) v[5])
+                : new Vec3(centro.getX() + 0.5, centro.getY() + 4.5, centro.getZ() + 12.5);
         mirar(mc, cam, (Float) v[1], (Float) v[2]);
-        if (enFase >= 20 && (enFase - 20) % cada == cada - 1)
-            foto(mc, (String) v[0]);
+        int lt = (enFase - 20) % cada;
+        if (enFase >= 20) {
+            if (lt == cada - 9)
+                EfectosVelkia.activos = false;
+            if (lt == cada - 6) {
+                foto(mc, v[0] + "_sin");
+                EfectosVelkia.activos = true;
+            }
+            if (lt == cada - 1)
+                foto(mc, v[0] + "_con");
+        }
     }
 
     /** La escenita: el norte es desierto con dunas, arenisca y la pared del cañon; el sur es pasto con un roble. */
@@ -109,6 +119,7 @@ public final class CapturaCielo {
                 "weather clear", "gamerule doDaylightCycle false", "gamerule doWeatherCycle false",
                 "gamerule doMobSpawning false", "kill @e[type=!player]"));
         l.add(f("fill %d %d %d %d %d %d minecraft:sand", x - 40, y - 1, z - 45, x + 40, y - 1, z - 3));
+        l.add(f("fillbiome %d %d %d %d %d %d minecraft:desert", x - 48, y - 10, z - 48, x + 48, y + 30, z - 3));
         l.add(f("fill %d %d %d %d %d %d minecraft:red_sand", x + 12, y - 1, z - 24, x + 24, y - 1, z - 12));
         for (int[] d : new int[][]{{-14, -16, 3, 2}, {-6, -22, 4, 3}, {16, -8, 3, 1}, {22, -20, 2, 2}})
             l.add(f("fill %d %d %d %d %d %d minecraft:sand", x + d[0] - d[2], y, z + d[1] - d[2], x + d[0] + d[2], y + d[3] - 1, z + d[1] + d[2]));

@@ -1,0 +1,24 @@
+{
+  "vertex": "mipack:velkia_quad",
+  "fragment": "mipack:velkia_desenfoque",
+  "attributes": [
+    "Position",
+    "UV0"
+  ],
+  "samplers": [
+    {
+      "name": "Sampler0"
+    }
+  ],
+  "uniforms": [
+    {
+      "name": "Direccion",
+      "type": "float",
+      "count": 2,
+      "values": [
+        1.0,
+        1.0
+      ]
+    }
+  ]
+}
