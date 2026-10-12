@@ -374,6 +374,8 @@ def _clave(rig, t, llenar, objetivos=None, previa=None):
     p = Pose()
     llenar(p)
     for lado, obj in (objetivos or {}).items():
+        if callable(obj):                                     # un punto pegado a otro hueso (ver _en_hueso)
+            obj = obj(rig, p)
         cad = BRAZOS[lado]
         semilla = None
         if previa is not None and cad[0] in previa[1]:
@@ -383,6 +385,11 @@ def _clave(rig, t, llenar, objetivos=None, previa=None):
         if err > 1.5:
             AVISOS.append((t, lado, round(err, 1)))
     return (t, p)
+
+
+def _en_hueso(hueso, punto):
+    """Objetivo que sigue a un hueso: 'punto' (en reposo) llevado por la pose de 'hueso' en esa clave."""
+    return lambda rig, p: rig.transformaciones(p)[hueso](punto)
 
 
 def _claves(rig, lista):
@@ -757,7 +764,7 @@ def corona_rota(rig):
                 p.rot(DEDOS[k], rx=dedos)
             _plumas(p, plumas, 0.0)
         return llenar
-    yelmo = {"d": (1.0, 49.0, -19.0), "i": (-12.0, 48.0, -17.0)}
+    yelmo = {"d": _en_hueso("Head", (1.6, 45.5, -12.5)), "i": _en_hueso("Head", (-12.4, 45.0, -12.5))}
     lista = [(0.0, _nada, None),
              (0.25, c(-1.0, 5.0, 14.0, (20.0, 10.0), -12.0, -20.0, 0.3), {"d": (18.0, 34.0, 8.0), "i": (-18.0, 32.0, 8.0)}),
              (0.7, c(-4.0, 3.0, -16.0, (-14.0, -6.0), -8.0, 35.0, 0.0), yelmo),

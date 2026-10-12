@@ -4,6 +4,14 @@ import com.mipack.entidad.CrackatosEntity;
 import com.mipack.geo.FabricaMallas;
 import com.mipack.entidad.Ola;
 import com.mipack.entidad.PuaCayendo;
+import com.mipack.khaset.AvisoKhaset;
+import com.mipack.khaset.CristalSacrificio;
+import com.mipack.khaset.DardoAtlatl;
+import com.mipack.khaset.EfectosKhaset;
+import com.mipack.khaset.KhasetEntity;
+import com.mipack.khaset.ParticulasKhaset;
+import com.mipack.khaset.RedKhaset;
+import com.mipack.khaset.Xiuhcoatl;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -20,6 +28,7 @@ import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -28,15 +37,15 @@ import org.slf4j.Logger;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
- * Mipack: los jefes y criaturas de Velkia. Por ahora Crackatos, la bestia de piedra amatista (modelo y animaciones
- * de GeckoLib generados con taller/ en el repo).
+ * Mipack: los jefes y criaturas de Velkia: Crackatos, la bestia de piedra amatista, y Khaset, el dios del fuego
+ * corrompido (modelos y animaciones de GeckoLib generados con taller/ en el repo).
  */
 @Mod(Mipack.MODID)
 public class Mipack {
     public static final String MODID = "mipack";
     public static final Logger LOGGER = LogUtils.getLogger();
     /** Modo de prueba (-Dmipack.prueba=true): los jefes tambien atacan a otros mobs y cuentan en el log lo que hacen. */
-    public static final boolean PRUEBA = Boolean.getBoolean("mipack.prueba");
+    public static final boolean PRUEBA = Boolean.getBoolean("mipack.prueba") || "khaset".equals(System.getProperty("mipack.captura"));
 
     public static final DeferredRegister<EntityType<?>> ENTIDADES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     public static final DeferredRegister<Item> OBJETOS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
@@ -54,14 +63,49 @@ public class Mipack {
                     .sized(0.8f, 1.6f).fireImmune().clientTrackingRange(10).updateInterval(1)
                     .build(MODID + ":pua"));
 
+    /** Khaset: el modelo mide 3.7 bloques y se dibuja al triple (11 bloques); la caja de golpes es la del cuerpo flaco. */
+    public static final RegistryObject<EntityType<KhasetEntity>> KHASET = ENTIDADES.register("khaset",
+            () -> EntityType.Builder.of(KhasetEntity::new, MobCategory.MONSTER)
+                    .sized(3.0f, 10.5f).fireImmune().clientTrackingRange(16).updateInterval(1)
+                    .build(MODID + ":khaset"));
+
+    /** El cristal del sacrificio: la piedra (2.5 x 1.1 bloques) con el cristal flotando arriba. */
+    public static final RegistryObject<EntityType<CristalSacrificio>> CRISTAL = ENTIDADES.register("cristal_sacrificio",
+            () -> EntityType.Builder.<CristalSacrificio>of(CristalSacrificio::new, MobCategory.MISC)
+                    .sized(2.5f, 1.1f).fireImmune().clientTrackingRange(16).updateInterval(5)
+                    .build(MODID + ":cristal_sacrificio"));
+
+    public static final RegistryObject<EntityType<DardoAtlatl>> DARDO = ENTIDADES.register("dardo_atlatl",
+            () -> EntityType.Builder.<DardoAtlatl>of(DardoAtlatl::new, MobCategory.MISC)
+                    .sized(0.5f, 0.5f).clientTrackingRange(8).updateInterval(1)
+                    .build(MODID + ":dardo_atlatl"));
+
+    public static final RegistryObject<EntityType<Xiuhcoatl>> XIUHCOATL = ENTIDADES.register("xiuhcoatl",
+            () -> EntityType.Builder.of(Xiuhcoatl::new, MobCategory.MONSTER)
+                    .sized(2.2f, 1.6f).fireImmune().clientTrackingRange(10).updateInterval(1)
+                    .build(MODID + ":xiuhcoatl"));
+
+    public static final RegistryObject<EntityType<AvisoKhaset>> AVISO = ENTIDADES.register("aviso",
+            () -> EntityType.Builder.<AvisoKhaset>of(AvisoKhaset::new, MobCategory.MISC)
+                    .sized(0.5f, 0.1f).clientTrackingRange(10).updateInterval(20)
+                    .build(MODID + ":aviso"));
+
     public static final RegistryObject<Item> HUEVO_CRACKATOS = OBJETOS.register("crackatos_spawn_egg",
             () -> new ForgeSpawnEggItem(CRACKATOS, 0x231A31, 0x8A64CC, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_KHASET = OBJETOS.register("khaset_spawn_egg",
+            () -> new ForgeSpawnEggItem(KHASET, 0x981C36, 0x22AA9C, new Item.Properties()));
+    public static final RegistryObject<Item> CRISTAL_ITEM = OBJETOS.register("cristal_sacrificio",
+            () -> new CristalSacrificio.Objeto(new Item.Properties().stacksTo(1)));
 
     public static final RegistryObject<CreativeModeTab> PESTANA = PESTANAS.register("mipack",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.mipack"))
                     .icon(() -> new ItemStack(HUEVO_CRACKATOS.get()))
-                    .displayItems((params, out) -> out.accept(HUEVO_CRACKATOS.get()))
+                    .displayItems((params, out) -> {
+                        out.accept(HUEVO_CRACKATOS.get());
+                        out.accept(HUEVO_KHASET.get());
+                        out.accept(CRISTAL_ITEM.get());
+                    })
                     .build());
 
     public Mipack() {
@@ -69,6 +113,9 @@ public class Mipack {
         ENTIDADES.register(bus);
         OBJETOS.register(bus);
         PESTANAS.register(bus);
+        EfectosKhaset.EFECTOS.register(bus);
+        ParticulasKhaset.PARTICULAS.register(bus);
+        bus.addListener(this::preparar);
         bus.addListener(this::atributos);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, MipackConfig.CLIENTE);
         // los modelos de mipack pueden traer mallas (GeckoLib solo dibuja cubos): ver geo/FabricaMallas
@@ -80,6 +127,12 @@ public class Mipack {
 
     private void atributos(EntityAttributeCreationEvent event) {
         event.put(CRACKATOS.get(), CrackatosEntity.atributos().build());
+        event.put(KHASET.get(), KhasetEntity.atributos().build());
+        event.put(XIUHCOATL.get(), Xiuhcoatl.atributos().build());
+    }
+
+    private void preparar(FMLCommonSetupEvent event) {
+        event.enqueueWork(RedKhaset::registrar);
     }
 
     /** Los bloques de una ola que quedaron guardados (se cerro el mundo a media ola) no vuelven a aparecer. */

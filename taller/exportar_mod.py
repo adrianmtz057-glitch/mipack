@@ -24,7 +24,6 @@ from .luz import LUZ_SIMETRICA
 from .personajes import crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
-DATOS = os.path.join(RAIZ, "..", "..", "data", "mipack")
 ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
 
 
@@ -61,6 +60,7 @@ def crackatos_assets():
     img = _imagen(lienzo)
     _escribir_json(os.path.join(RAIZ, "geo", "entity", "crackatos.geo.json"), geo)
     os.makedirs(os.path.join(RAIZ, "textures", "entity"), exist_ok=True)
+    os.makedirs(os.path.join(RAIZ, "textures", "item"), exist_ok=True)
     img.save(os.path.join(RAIZ, "textures", "entity", "crackatos.png"))
     mascara_de_brillo(p.m, uvs, img).save(os.path.join(RAIZ, "textures", "entity", "crackatos_glowmask.png"))
 
@@ -179,6 +179,39 @@ def _puntos_de_mano(rig, pose, lado):
     return [round(v, 2) for v in palma], [round(v, 2) for v in punta]
 
 
+JAVA = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "java", "com", "mipack")
+
+
+def escribir_poses_java(valores, cuadros_por, largos, tiempos):
+    """PosesKhasetDatos.java: las manos (palma y punta, derecha e izquierda, x10 en enteros de 16 bits en base64),
+    los tiempos clave y lo que dura cada animacion."""
+    import base64
+    datos = base64.b64encode(struct.pack(f">{len(valores)}h", *[round(v * 10) for v in valores])).decode()
+
+    def flotantes(xs):
+        return "{" + ", ".join(f"{x}f" for x in xs) + "}"
+    lineas = ["// Generado por taller/exportar_mod.py (khaset_assets): no editar a mano.",
+              "package com.mipack.khaset;", "",
+              "/** Datos de las animaciones de Khaset para el servidor (ver PosesKhaset). */",
+              "final class PosesKhasetDatos {",
+              f"    static final float ESCALA = {khaset_mob.ESCALA}f;",
+              f"    static final float[] ALTAR = {flotantes(khaset_anim.ALTAR)};",
+              "    static final String[] ANIMS = {" + ", ".join(f'"{n}"' for n in POSES_KHASET) + "};",
+              "    static final int[] CUADROS = {" + ", ".join(str(n) for n in cuadros_por) + "};"]
+    for k, v in tiempos.items():
+        lineas.append(f"    static final float[] {k} = {flotantes(v)};" if isinstance(v, list)
+                      else f"    static final float {k} = {v}f;")
+    lineas.append("    static final String[] LARGOS_NOMBRES = {" + ", ".join(f'"{n}"' for n in largos) + "};")
+    lineas.append(f"    static final float[] LARGOS = {flotantes(largos.values())};")
+    trozos = [datos[i:i + 100] for i in range(0, len(datos), 100)]
+    lineas.append("    static final String DATOS = " + "\n            + ".join(f'"{t}"' for t in trozos) + ";")
+    lineas += ["", "    private PosesKhasetDatos() {", "    }", "}", ""]
+    ruta = os.path.join(JAVA, "khaset", "PosesKhasetDatos.java")
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    with open(ruta, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(lineas))
+
+
 POSES_KHASET = ("zarpazos", "barrido", "barrido_i", "contraataque", "lanzar_dardo", "agarrar", "agarrar_dos",
                 "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "abalanzarse")
 PASAN_EL_PISO = ("desvanecer", "aparecer")          # se hunden a proposito
@@ -212,27 +245,23 @@ def khaset_assets():
     anims = animar.exportar({n: d for n, (d, _c, _b) in horneadas.items()}, "khaset")
     _escribir_json(os.path.join(RAIZ, "animations", "entity", "khaset.animation.json"), anims)
 
-    # para el servidor: donde van las manos en cada tick de los ataques (el dano y la presa siguen a la animacion)
-    poses = {}
+    # para el servidor y el cliente: donde van las manos en cada tick de los ataques (el dano y la presa siguen a la
+    # animacion); va como una clase de Java generada (mod/.../khaset/PosesKhasetDatos.java)
+    valores = []
+    cuadros_por = []
     for nombre in POSES_KHASET:
         _d, cuadros, _b = horneadas[nombre]
-        poses[nombre] = {}
-        for lado in ("d", "i"):
-            palmas, puntas = [], []
-            for _t, pose in cuadros:
+        cuadros_por.append(len(cuadros))
+        for _t, pose in cuadros:
+            for lado in ("d", "i"):
                 pa, pu = _puntos_de_mano(rig, pose, lado)
-                palmas.append(pa)
-                puntas.append(pu)
-            poses[nombre][lado] = {"palma": palmas, "punta": puntas}
+                valores += pa + pu
     A = khaset_anim
-    tiempos = {"zarpazos": list(A.GOLPES_ZARPAZOS), "abalanzarse": [A.SALTO], "desvanecer": [A.HUNDIDO],
-               "barrido": list(A.BARRIDO), "lanzar_dardo": [A.DARDO], "contraataque": [A.CONTRA],
-               "agarrar": [A.AGARRA], "soltar": [A.SOLTAR], "sacrificio": list(A.SACRIFICIO),
-               "invocar": [A.INVOCA], "corona_rota": [A.CORONA]}
     largos = {n: round(d["animation_length"], 4) for n, (d, _c, _b) in horneadas.items()}
-    _escribir_json(os.path.join(DATOS, "poses", "khaset.json"),
-                   {"escala": khaset_mob.ESCALA, "altar": list(A.ALTAR), "tiempos": tiempos, "largos": largos,
-                    "manos": poses})
+    escribir_poses_java(valores, cuadros_por, largos, {
+        "GOLPES_ZARPAZOS": list(A.GOLPES_ZARPAZOS), "BARRIDO": list(A.BARRIDO), "SACRIFICIO": list(A.SACRIFICIO),
+        "SALTO": A.SALTO, "HUNDIDO": A.HUNDIDO, "DARDO": A.DARDO, "CONTRA": A.CONTRA, "AGARRA": A.AGARRA,
+        "SOLTAR": A.SOLTAR, "INVOCA": A.INVOCA, "CORONA": A.CORONA})
     alto = max(q[1] for P, *_ in rig.quads({}) for q in P)
     return {"cubos": len(p.m.cubos), "mallas": len(p.m.mallas), "textura": img.size, "animaciones": len(horneadas),
             "alto_en_bloques": round(alto * khaset_mob.ESCALA / 16, 2)}
@@ -307,13 +336,58 @@ def extras_assets():
 
 def textos():
     en = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Amethyst Spike",
-          "item.mipack.crackatos_spawn_egg": "Crackatos Spawn Egg", "itemGroup.mipack": "Mipack"}
+          "item.mipack.crackatos_spawn_egg": "Crackatos Spawn Egg", "itemGroup.mipack": "Mipack",
+          "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Sacrificial Crystal",
+          "entity.mipack.xiuhcoatl": "Xiuhcoatl", "entity.mipack.dardo_atlatl": "Atlatl Dart", "entity.mipack.aviso": "Warning",
+          "item.mipack.khaset_spawn_egg": "Khaset Spawn Egg", "item.mipack.cristal_sacrificio": "Sacrificial Crystal",
+          "effect.mipack.desangrado": "Bleeding", "effect.mipack.derribado": "Knocked Down",
+          "effect.mipack.aturdido": "Stunned", "effect.mipack.desorientado": "Disoriented", "boss.mipack.calor": "Heat",
+          "death.attack.mipack.calor": "%1$s burned in the heat of Khaset",
+          "death.attack.mipack.calor.player": "%1$s burned in the heat of %2$s",
+          "death.attack.mipack.desangrado": "%1$s bled out",
+          "death.attack.mipack.desangrado.player": "%1$s bled out fighting %2$s",
+          "death.attack.mipack.sacrificio": "%1$s was sacrificed",
+          "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s"}
     es = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Púa de amatista",
-          "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack"}
+          "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack",
+          "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Cristal del sacrificio",
+          "entity.mipack.xiuhcoatl": "Xiuhcóatl", "entity.mipack.dardo_atlatl": "Dardo de átlatl", "entity.mipack.aviso": "Aviso",
+          "item.mipack.khaset_spawn_egg": "Huevo de Khaset", "item.mipack.cristal_sacrificio": "Cristal del sacrificio",
+          "effect.mipack.desangrado": "Desangrado", "effect.mipack.derribado": "Derribado",
+          "effect.mipack.aturdido": "Aturdido", "effect.mipack.desorientado": "Desorientado", "boss.mipack.calor": "Calor",
+          "death.attack.mipack.calor": "%1$s se quemó en el calor de Khaset",
+          "death.attack.mipack.calor.player": "%1$s se quemó en el calor de %2$s",
+          "death.attack.mipack.desangrado": "%1$s se desangró",
+          "death.attack.mipack.desangrado.player": "%1$s se desangró peleando con %2$s",
+          "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
+          "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s"}
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
-    _escribir_json(os.path.join(RAIZ, "models", "item", "crackatos_spawn_egg.json"),
-                   {"parent": "minecraft:item/template_spawn_egg"}, compacto=False)
+    for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg"):
+        _escribir_json(os.path.join(RAIZ, "models", "item", f"{huevo}.json"),
+                       {"parent": "minecraft:item/template_spawn_egg"}, compacto=False)
+    _escribir_json(os.path.join(RAIZ, "models", "item", "cristal_sacrificio.json"),
+                   {"parent": "minecraft:item/generated", "textures": {"layer0": "mipack:item/cristal_sacrificio"}},
+                   compacto=False)
+    icono_cristal().save(os.path.join(RAIZ, "textures", "item", "cristal_sacrificio.png"))
+
+
+def icono_cristal():
+    """El icono del objeto (16x16): el cristal de obsidiana con brasa sobre la piedra roja."""
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    obs, obs_l, fuego, oro = (36, 20, 30, 255), (70, 44, 60, 255), (240, 106, 30, 255), (214, 161, 58, 255)
+    tez, tez_s = (126, 58, 44, 255), (84, 34, 28, 255)
+    for y in range(1, 10):
+        w = (y if y < 5 else 9 - y) * 0.75
+        for x in range(16):
+            if abs(x + 0.5 - 8) <= w:
+                img.putpixel((x, y), fuego if (x + y) % 4 == 0 else obs_l if x < 8 else obs)
+    for x in range(3, 13):
+        img.putpixel((x, 5), oro)
+    for y in range(11, 16):
+        for x in range(2, 14):
+            img.putpixel((x, y), tez_s if y == 15 or x in (2, 13) else tez)
+    return img
 
 
 # ---------------------------------------------------------------- la arena de la prueba automatica (GameTest)
