@@ -22,8 +22,8 @@ class Forcing:
         # ---------------------------------------------------------- levantamiento (m/a)
         U1 = np.zeros((n, n), np.float32)
         crest = hcres * np.exp(-(dcres / 1500.0) ** 2)
-        U1 += z['cordillera'] * (0.20e-3 + 1.25e-3 * crest)
-        U1 += z['corrompidas'] * (1.30e-3 * np.exp(0.25 * nz))
+        U1 += z['cordillera'] * (0.15e-3 + 0.80e-3 * crest)
+        U1 += z['corrompidas'] * (0.95e-3 * np.exp(0.25 * nz))
         U1 += z['jardines'] * 0.06e-3
         U1 += z['oeste'] * 0.30e-3 * np.exp(0.35 * nz)      # colinas de desierto rocoso
         U1 += z['este'] * 0.07e-3                           # costa rocosa baja

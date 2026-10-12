@@ -282,6 +282,9 @@ def spl_ed(h, b, stack, rec, L, Q, Kb, Ks, m, G, U, dt, lake, outlet, cell_area,
             qs_in[r] += qo
     for i in range(n):
         h[i] = hn[i]
+        # el levantamiento mueve la columna entera (roca y sedimento), no solo la superficie
+        if not outlet[i]:
+            b[i] += U[i] * dt
         if h[i] < b[i]:
             b[i] = h[i]
     return qs_in

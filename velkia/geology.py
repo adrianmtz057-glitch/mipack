@@ -197,7 +197,7 @@ class Geology:
             placed += 1
             if placed >= nk:
                 break
-        kz *= np.exp(np.log(0.08) * self.knobs)
+        kz *= np.exp(np.log(0.25) * self.knobs)
         # buttes: restos de capas horizontales con cornisa dura dispersos en el desierto
         from .layout import RESERVADOS, px2b, jardines_r, poi_blocks
         self.buttes = np.zeros((n, n), np.float32)
