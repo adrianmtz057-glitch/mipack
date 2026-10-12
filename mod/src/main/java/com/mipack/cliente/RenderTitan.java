@@ -18,7 +18,7 @@ public class RenderTitan extends GeoEntityRenderer<Titan> {
         this.shadowRadius = tipo.ancho() * 0.4f;
         ResourceLocation brillo = new ResourceLocation(Mipack.MODID, "textures/entity/" + tipo.id() + "_glowmask.png");
         if (Minecraft.getInstance().getResourceManager().getResource(brillo).isPresent())
-            this.addRenderLayer(new AutoGlowingGeoLayer<>(this));
+            this.addRenderLayer(new CapaBrillo<>(this));
     }
 
     @Override

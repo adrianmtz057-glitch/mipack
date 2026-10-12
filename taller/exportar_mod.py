@@ -21,7 +21,7 @@ from PIL import Image
 from . import animar, geckolib
 from .kit import Personaje
 from .luz import LUZ_SIMETRICA
-from .personajes import candil, sombra_alta, crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
+from .personajes import candil, escarcha, sombra_alta, crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
 ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
@@ -336,7 +336,7 @@ def extras_assets():
 
 # ---------------------------------------------------------------- titanes
 
-TITANES = (candil, sombra_alta)
+TITANES = (candil, sombra_alta, escarcha)
 
 
 def mascara_por_color(img, colores):
@@ -398,7 +398,8 @@ def textos():
           "death.attack.mipack.desangrado.player": "%1$s bled out fighting %2$s",
           "death.attack.mipack.sacrificio": "%1$s was sacrificed",
           "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s",
-          "entity.mipack.titan_candil": "Candil, the Mud Axolotl", "entity.mipack.titan_sombra_alta": "Sombra Alta, the Sky Manta"}
+          "entity.mipack.titan_candil": "Candil, the Mud Axolotl", "entity.mipack.titan_sombra_alta": "Sombra Alta, the Sky Manta",
+          "entity.mipack.titan_escarcha": "Escarcha, the Glacier Mammoth"}
     es = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Púa de amatista",
           "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack",
           "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Cristal del sacrificio",
@@ -412,7 +413,8 @@ def textos():
           "death.attack.mipack.desangrado.player": "%1$s se desangró peleando con %2$s",
           "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
           "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
-          "entity.mipack.titan_candil": "Candil, el ajolote del lodo", "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo"}
+          "entity.mipack.titan_candil": "Candil, el ajolote del lodo", "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo",
+          "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar"}
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
     for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg"):

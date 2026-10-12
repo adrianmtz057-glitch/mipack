@@ -22,5 +22,6 @@
   "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
   "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
   "entity.mipack.titan_candil": "Candil, el ajolote del lodo",
-  "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo"
+  "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo",
+  "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar"
 }

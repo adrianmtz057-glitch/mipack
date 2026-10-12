@@ -54,7 +54,7 @@ public final class RenderersKhaset {
                 }
             });
             this.withScale(KhasetEntity.ESCALA);
-            this.addRenderLayer(new AutoGlowingGeoLayer<>(this));
+            this.addRenderLayer(new CapaBrillo<>(this));
             this.shadowRadius = 2.0f;
         }
 
@@ -67,7 +67,7 @@ public final class RenderersKhaset {
     public static final class Cristal extends GeoEntityRenderer<CristalSacrificio> {
         public Cristal(EntityRendererProvider.Context c) {
             super(c, new DefaultedEntityGeoModel<>(rl("cristal_sacrificio")));
-            this.addRenderLayer(new AutoGlowingGeoLayer<>(this));
+            this.addRenderLayer(new CapaBrillo<>(this));
             this.shadowRadius = 1.2f;
         }
     }
@@ -76,7 +76,7 @@ public final class RenderersKhaset {
         public Serpiente(EntityRendererProvider.Context c) {
             super(c, new DefaultedEntityGeoModel<>(rl("xiuhcoatl")));
             this.withScale(Xiuhcoatl.ESCALA);
-            this.addRenderLayer(new AutoGlowingGeoLayer<>(this));
+            this.addRenderLayer(new CapaBrillo<>(this));
             this.shadowRadius = 1.0f;
         }
 

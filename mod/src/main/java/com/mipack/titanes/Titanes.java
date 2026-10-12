@@ -73,6 +73,40 @@ public final class Titanes {
         return new TipoTitan.Actividad(null, TipoTitan.Hacer.QUIETO, 600);
     }
 
+    /**
+     * Escarcha, el mamut del glaciar (nieve): camina por la orilla de los glaciares, escarba la nieve para comer, bebe
+     * en el agua helada, barrita de vez en cuando y de noche se echa a dormir.
+     */
+    public static final TipoTitan ESCARCHA = tipo(new TipoTitan("escarcha", 6.0f, 14.0f, 30.0f,
+            new Rutas.Perfil(Rutas.Modo.TIERRA, 2, 6, 8, 0, Map.of(Terreno.Bioma.NIEVE, 0.5, Terreno.Bioma.MONTANA, 0.8,
+                    Terreno.Bioma.OCEANO, 0.0, Terreno.Bioma.DESIERTO, 0.0, Terreno.Bioma.JUNGLA, 0.0, Terreno.Bioma.PANTANO, 0.0,
+                    Terreno.Bioma.CANON, 0.0)),
+            0.1, 1.5f, 0.0, 2.0, Titanes::agendaEscarcha));
+
+    private static TipoTitan.Actividad agendaEscarcha(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long hora, RandomSource azar) {
+        boolean noche = hora > 13000 && hora < 23000;
+        if (noche)
+            return new TipoTitan.Actividad(null, TipoTitan.Hacer.DESCANSAR, 2400 + azar.nextInt(2400));
+        int r = azar.nextInt(100);
+        if (r < 45) {
+            Vec3 orilla = lugarAlAzar(t, tipo, casa, 30, azar, l -> l.c().bioma() == Terreno.Bioma.NIEVE && l.juntoAlAgua());
+            if (orilla == null)
+                orilla = lugarAlAzar(t, tipo, casa, 30, azar, l -> l.c().bioma() == Terreno.Bioma.NIEVE);
+            if (orilla == null)
+                orilla = lugarAlAzar(t, tipo, casa, 20, azar, l -> !l.c().agua());
+            return new TipoTitan.Actividad(orilla, azar.nextBoolean() ? TipoTitan.Hacer.COMER : TipoTitan.Hacer.QUIETO, 400);
+        }
+        if (r < 65)
+            return new TipoTitan.Actividad(null, TipoTitan.Hacer.COMER, 300 + azar.nextInt(300));
+        if (r < 80) {
+            Vec3 agua = lugarAlAzar(t, tipo, donde, 16, azar, Rutas.Lugar::juntoAlAgua);
+            return new TipoTitan.Actividad(agua, TipoTitan.Hacer.BEBER, 240);
+        }
+        if (r < 88)
+            return new TipoTitan.Actividad(null, TipoTitan.Hacer.ESPECIAL, 60);
+        return new TipoTitan.Actividad(null, TipoTitan.Hacer.QUIETO, 400 + azar.nextInt(400));
+    }
+
     // ------------------------------------------------------------------ ayudas para las agendas
 
     /** Un lugar que cumpla 'que' cerca de un punto al azar alrededor de 'centro' (hasta 'radio' celdas). */
