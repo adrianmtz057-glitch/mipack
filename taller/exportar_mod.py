@@ -21,7 +21,7 @@ from PIL import Image
 from . import animar, geckolib
 from .kit import Personaje
 from .luz import LUZ_SIMETRICA
-from .personajes import candil, crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
+from .personajes import candil, sombra_alta, crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
 ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
@@ -336,7 +336,7 @@ def extras_assets():
 
 # ---------------------------------------------------------------- titanes
 
-TITANES = (candil,)
+TITANES = (candil, sombra_alta)
 
 
 def mascara_por_color(img, colores):
@@ -369,7 +369,11 @@ def titan_assets(modulo):
     _escribir_json(os.path.join(RAIZ, "geo", "entity", f"{ident}.geo.json"), geo)
     img.save(os.path.join(RAIZ, "textures", "entity", f"{ident}.png"))
     if getattr(modulo, "BRILLAN", None):
-        mascara_por_color(img, modulo.BRILLAN).save(os.path.join(RAIZ, "textures", "entity", f"{ident}_glowmask.png"))
+        # la mascara sale de la textura SIN luz horneada (los colores tal cual se pintaron) y brilla con esos colores
+        sin_luz = modulo.construir()
+        sin_luz.m.luz = False
+        lienzo2, _uvs2 = sin_luz.m.pintar()
+        mascara_por_color(_imagen(lienzo2), modulo.BRILLAN).save(os.path.join(RAIZ, "textures", "entity", f"{ident}_glowmask.png"))
     rig = animar.Rig(geo)
     horneadas = modulo.hornear_todas(rig)
     for nombre, (_d, cuadros, bucle) in horneadas.items():
@@ -394,7 +398,7 @@ def textos():
           "death.attack.mipack.desangrado.player": "%1$s bled out fighting %2$s",
           "death.attack.mipack.sacrificio": "%1$s was sacrificed",
           "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s",
-          "entity.mipack.titan_candil": "Candil, the Mud Axolotl"}
+          "entity.mipack.titan_candil": "Candil, the Mud Axolotl", "entity.mipack.titan_sombra_alta": "Sombra Alta, the Sky Manta"}
     es = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Púa de amatista",
           "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack",
           "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Cristal del sacrificio",
@@ -408,7 +412,7 @@ def textos():
           "death.attack.mipack.desangrado.player": "%1$s se desangró peleando con %2$s",
           "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
           "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
-          "entity.mipack.titan_candil": "Candil, el ajolote del lodo"}
+          "entity.mipack.titan_candil": "Candil, el ajolote del lodo", "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo"}
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
     for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg"):

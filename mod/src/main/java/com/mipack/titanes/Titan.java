@@ -191,7 +191,7 @@ public class Titan extends Mob implements GeoEntity {
         // sigue el piso aunque este quieto (por si el terreno cambia debajo)
         double y = alturaObjetivo(this.getX(), this.getZ());
         if (getEstado() != Estado.MOVER && Math.abs(y - this.getY()) > 0.05)
-            this.setPos(this.getX(), Mth.lerp(0.15, this.getY(), y), this.getZ());
+            this.setPos(this.getX(), Mth.lerp(Math.min(0.15, suavidadVertical()), this.getY(), y), this.getZ());
     }
 
     private int duracion() {
@@ -276,7 +276,7 @@ public class Titan extends Mob implements GeoEntity {
         Vec3 f = Vec3.directionFromRotation(0, this.getYRot());
         double nx = this.getX() + f.x * v, nz = this.getZ() + f.z * v;
         double y = alturaObjetivo(nx, nz);
-        this.setPos(nx, Mth.lerp(0.25, this.getY(), y), nz);
+        this.setPos(nx, Mth.lerp(suavidadVertical(), this.getY(), y), nz);
         // atorado: casi no avanza en 5 s
         if (++this.revisar >= 100) {
             this.revisar = 0;
@@ -346,7 +346,19 @@ public class Titan extends Mob implements GeoEntity {
             n++;
         }
         double base = modo == Rutas.Modo.AIRE ? alto : 0.6 * alto + 0.4 * (suma / n);
-        return base + this.tipo.altitud();
+        return base + (posandose() ? 0.5 : this.tipo.altitud());
+    }
+
+    /** Los que vuelan bajan a posarse para descansar (y vuelven a subir al despegar). */
+    private boolean posandose() {
+        Estado e = getEstado();
+        return this.tipo.perfil().modo() == Rutas.Modo.AIRE
+                && (e == Estado.ASENTARSE || e == Estado.DESCANSAR || (e == Estado.LEVANTARSE && this.ticksEnEstado < 25));
+    }
+
+    /** Que tan rapido sigue la altura: los que vuelan suben y bajan despacio. */
+    private double suavidadVertical() {
+        return this.tipo.perfil().modo() == Rutas.Modo.AIRE ? 0.03 : 0.25;
     }
 
     private double altura(Rutas.Modo modo, double x, double z) {

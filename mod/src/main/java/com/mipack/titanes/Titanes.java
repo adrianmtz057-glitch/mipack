@@ -49,6 +49,30 @@ public final class Titanes {
                 : new TipoTitan.Actividad(otro, azar.nextBoolean() ? TipoTitan.Hacer.COMER : TipoTitan.Hacer.QUIETO, 160);
     }
 
+    /**
+     * Sombra Alta, la manta del cielo (llanura y sabana): vuela alto en vueltas largas y lentas; a ratos planea o come en
+     * vuelo; de noche baja a posarse en un claro de la llanura.
+     */
+    public static final TipoTitan SOMBRA_ALTA = tipo(new TipoTitan("sombra_alta", 8.0f, 30.0f, 5.0f,
+            new Rutas.Perfil(Rutas.Modo.AIRE, 0, 999, 999, 0, Map.of(Terreno.Bioma.LLANURA, 0.7)),
+            0.32, 1.2f, 38.0, 0.0, Titanes::agendaSombra));
+
+    private static TipoTitan.Actividad agendaSombra(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long hora, RandomSource azar) {
+        boolean noche = hora > 13000 && hora < 23000;
+        if (noche) {
+            Vec3 claro = lugarAlAzar(t, tipo, donde, 30, azar, l -> l.claro(1));
+            return new TipoTitan.Actividad(claro, TipoTitan.Hacer.DESCANSAR, 3000 + azar.nextInt(3000));
+        }
+        int r = azar.nextInt(100);
+        if (r < 60) {
+            Vec3 lejos = lugarAlAzar(t, tipo, casa, 50, azar, l -> true);
+            return new TipoTitan.Actividad(lejos, TipoTitan.Hacer.QUIETO, 300 + azar.nextInt(500));
+        }
+        if (r < 85)
+            return new TipoTitan.Actividad(null, TipoTitan.Hacer.COMER, 600);
+        return new TipoTitan.Actividad(null, TipoTitan.Hacer.QUIETO, 600);
+    }
+
     // ------------------------------------------------------------------ ayudas para las agendas
 
     /** Un lugar que cumpla 'que' cerca de un punto al azar alrededor de 'centro' (hasta 'radio' celdas). */

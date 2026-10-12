@@ -21,5 +21,6 @@
   "death.attack.mipack.desangrado.player": "%1$s bled out fighting %2$s",
   "death.attack.mipack.sacrificio": "%1$s was sacrificed",
   "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s",
-  "entity.mipack.titan_candil": "Candil, the Mud Axolotl"
+  "entity.mipack.titan_candil": "Candil, the Mud Axolotl",
+  "entity.mipack.titan_sombra_alta": "Sombra Alta, the Sky Manta"
 }
