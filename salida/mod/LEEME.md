@@ -18,7 +18,9 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 - Si quieres verlo atacar a otros mobs, pon `-Dmipack.prueba=true` en los argumentos de Java.
 
 ## Cómo pelea
-**Arena:** una arena cerrada de unos 30×30 o más, con paredes de 4 bloques o más.
+**Tamaño:** unos 10 bloques de alto y 21 de largo (con la cola).
+
+**Arena:** una arena cerrada de unos 50×50 o más, con paredes de 6 bloques o más.
 
 **Al verte:** ruge y luego te acecha caminando hacia ti.
 
@@ -42,6 +44,9 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 **Segunda fase (menos de la mitad de vida):** corre más rápido, caen más púas y después de cada sacudida se alza y azota.
 
 **Datos:** 600 de vida (300 corazones) y armadura 10. Al morir hace su animación y suelta mucha experiencia.
+
+## El cielo y los efectos
+El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).
 
 ## Fotos
 En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante una pelea de prueba contra un husk.

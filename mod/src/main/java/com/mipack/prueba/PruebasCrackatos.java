@@ -22,7 +22,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * La pelea de prueba (se corre sola con ./gradlew runGameTestServer): Crackatos en una arena de 33x33 con paredes
+ * La pelea de prueba (se corre sola con ./gradlew runGameTestServer): Crackatos en una arena de 49x49 con paredes
  * contra un husk aguantador (en modo de prueba tambien ataca mobs). Una embestida si y una no, el husk "esquiva"
  * (se hace a un lado al arrancar la embestida) para que se estrelle con la pared. Pasa cuando Crackatos hizo todo:
  * rugir, acechar, rascar, embestir, chocar, quedarse atorado, zafarse, el cabezazo, la sacudida con sus puas y el
@@ -47,14 +47,14 @@ public class PruebasCrackatos {
 
     @GameTest(template = "arena", timeoutTicks = 6000)
     public static void pelea(GameTestHelper h) {
-        CrackatosEntity jefe = h.spawn(Mipack.CRACKATOS.get(), new BlockPos(16, PISO, 16));
+        CrackatosEntity jefe = h.spawn(Mipack.CRACKATOS.get(), new BlockPos(24, PISO, 24));
         Pelea p = new Pelea();
-        AABB arena = new AABB(h.absolutePos(new BlockPos(1, PISO, 1)), h.absolutePos(new BlockPos(32, PISO + 7, 32)));
+        AABB arena = new AABB(h.absolutePos(new BlockPos(1, PISO, 1)), h.absolutePos(new BlockPos(48, PISO + 9, 48)));
         h.onEachTick(() -> {
             if (jefe.isRemoved() || jefe.isDeadOrDying())
                 return;
             if (p.blanco == null || !p.blanco.isAlive()) {
-                p.blanco = h.spawn(EntityType.HUSK, new BlockPos(4 + h.getLevel().random.nextInt(25), PISO, 4));
+                p.blanco = h.spawn(EntityType.HUSK, new BlockPos(4 + h.getLevel().random.nextInt(41), PISO, 4));
                 p.blanco.getAttribute(Attributes.MAX_HEALTH).setBaseValue(400.0);
                 p.blanco.setHealth(400f);
                 p.blanco.setPersistenceRequired();
@@ -104,9 +104,9 @@ public class PruebasCrackatos {
     /** El husk se hace a un lado (perpendicular a la embestida), como un jugador que la esquiva. */
     private static void esquivar(GameTestHelper h, CrackatosEntity jefe, Husk blanco) {
         Vec3 d = blanco.position().subtract(jefe.position());
-        Vec3 lado = new Vec3(-d.z, 0, d.x).normalize().scale(8);
+        Vec3 lado = new Vec3(-d.z, 0, d.x).normalize().scale(12);
         // (relativePos de GameTest en 1.20.1 voltea x y z: se acota en coordenadas absolutas)
-        BlockPos min = h.absolutePos(new BlockPos(2, PISO, 2)), max = h.absolutePos(new BlockPos(30, PISO, 30));
+        BlockPos min = h.absolutePos(new BlockPos(2, PISO, 2)), max = h.absolutePos(new BlockPos(46, PISO, 46));
         Vec3 q = blanco.position().add(lado);
         Vec3 a = new Vec3(Math.max(Math.min(min.getX(), max.getX()) + 0.5, Math.min(Math.max(min.getX(), max.getX()) + 0.5, q.x)),
                 min.getY(), Math.max(Math.min(min.getZ(), max.getZ()) + 0.5, Math.min(Math.max(min.getZ(), max.getZ()) + 0.5, q.z)));

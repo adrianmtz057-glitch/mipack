@@ -17,7 +17,7 @@ public class CrackatosRenderer extends GeoEntityRenderer<CrackatosEntity> {
         super(contexto, new DefaultedEntityGeoModel<>(new ResourceLocation(Mipack.MODID, "crackatos")));
         this.withScale(CrackatosEntity.ESCALA);
         this.addRenderLayer(new AutoGlowingGeoLayer<>(this));
-        this.shadowRadius = 3.2f;
+        this.shadowRadius = 1.6f * CrackatosEntity.ESCALA;
     }
 
     @Override

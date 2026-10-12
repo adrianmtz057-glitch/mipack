@@ -43,7 +43,7 @@ public class Mipack {
     /** Crackatos: en el juego mide como el Ender Dragon (el render lo crece 2 veces); la caja de golpes es la del cuerpo. */
     public static final RegistryObject<EntityType<CrackatosEntity>> CRACKATOS = ENTIDADES.register("crackatos",
             () -> EntityType.Builder.of(CrackatosEntity::new, MobCategory.MONSTER)
-                    .sized(6.0f, 5.5f).fireImmune().clientTrackingRange(16).updateInterval(1)
+                    .sized(3.0f * CrackatosEntity.ESCALA, 2.75f * CrackatosEntity.ESCALA).fireImmune().clientTrackingRange(16).updateInterval(1)
                     .build(MODID + ":crackatos"));
 
     /** Las puas de amatista que salen volando de su lomo y las que caen del cielo. */

@@ -24,7 +24,7 @@ from .luz import LUZ_SIMETRICA
 from .personajes import crackatos, crackatos_anim
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
-ESCALA = 2.0                                  # la de CrackatosEntity.ESCALA
+ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
 
 
 def _escribir_json(ruta, datos, compacto=True):
@@ -156,8 +156,8 @@ def _nbt(nombre, valor, tipo=None):
     return struct.pack(">b", t) + nom(nombre) + carga(valor, t)
 
 
-def arena(lado=33, alto=8):
-    """data/mipack/structures/arena.nbt: piso de piedra, paredes de ladrillo de pizarra de 5 de alto y aire adentro
+def arena(lado=49, alto=10):
+    """data/mipack/structures/arena.nbt: piso de piedra, paredes de ladrillo de pizarra de 7 de alto y aire adentro
     (la pelea de prueba: Crackatos tiene que poder embestir y chocar con las paredes)."""
     paleta = [{"Name": "minecraft:stone"}, {"Name": "minecraft:deepslate_bricks"}, {"Name": "minecraft:air"}]
     bloques = []
@@ -167,7 +167,7 @@ def arena(lado=33, alto=8):
             for y in range(alto):
                 if y == 0:
                     estado = 0
-                elif borde and y <= 5:
+                elif borde and y <= 7:
                     estado = 1
                 else:
                     estado = 2

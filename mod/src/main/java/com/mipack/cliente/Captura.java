@@ -37,9 +37,9 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = Mipack.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class Captura {
     private static final boolean ACTIVA = Boolean.getBoolean("mipack.captura");
-    private static final int INICIO = 60, VISTAS_CADA = 25, PELEA_CADA = 10, FOTOS_PELEA = 90;
+    private static final int INICIO = 60, VISTAS_CADA = 25, PELEA_CADA = 10, FOTOS_PELEA = 12;
     // las vistas del jefe quieto: angulo alrededor (0 = de frente), distancia y altura de la camara
-    private static final float[][] VISTAS = {{35, 17, 4}, {90, 17, 3}, {0, 15, 3}, {150, 18, 5}, {-60, 12, 1.5f}};
+    private static final float[][] VISTAS = {{35, 25, 6}, {90, 25, 4.5f}, {0, 22, 4.5f}, {150, 27, 7.5f}, {-60, 18, 2.2f}, {-25, 11, 1.6f}, {20, 9, 1.6f}};
 
     private static boolean creando;
     private static int ticks;
@@ -76,11 +76,11 @@ public final class Captura {
             int x = centro.getX(), y = centro.getY(), z = centro.getZ();
             for (String c : new String[]{"time set 6000", "weather clear", "gamerule doDaylightCycle false",
                     "gamerule doWeatherCycle false", "gamerule doMobSpawning false", "kill @e[type=!player]",
-                    String.format("fill %d %d %d %d %d %d minecraft:polished_deepslate", x - 20, y - 1, z - 20, x + 20, y - 1, z + 20),
-                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x - 21, y - 1, z - 21, x + 21, y + 4, z - 21),
-                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x - 21, y - 1, z + 21, x + 21, y + 4, z + 21),
-                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x - 21, y - 1, z - 21, x - 21, y + 4, z + 21),
-                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x + 21, y - 1, z - 21, x + 21, y + 4, z + 21),
+                    String.format("fill %d %d %d %d %d %d minecraft:polished_deepslate", x - 30, y - 1, z - 30, x + 30, y - 1, z + 30),
+                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x - 31, y - 1, z - 31, x + 31, y + 6, z - 31),
+                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x - 31, y - 1, z + 31, x + 31, y + 6, z + 31),
+                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x - 31, y - 1, z - 31, x - 31, y + 6, z + 31),
+                    String.format("fill %d %d %d %d %d %d minecraft:deepslate_bricks", x + 31, y - 1, z - 31, x + 31, y + 6, z + 31),
                     String.format("summon mipack:crackatos %d %d %d {Rotation:[0f,0f]}", x, y, z)})
                 comando(server, c);
         }
@@ -96,7 +96,7 @@ public final class Captura {
                 return;
             float[] v = VISTAS[vista];
             double a = Math.toRadians(v[0] + jefe.getYRot());
-            Vec3 objetivo = jefe.position().add(0, 2.6, 0);
+            Vec3 objetivo = jefe.position().add(0, 3.9, 0);
             Vec3 cam = jefe.position().add(-Math.sin(a) * v[1], v[2], Math.cos(a) * v[1]);
             mirar(mc, cam, objetivo);
             if (t % VISTAS_CADA == VISTAS_CADA - 1)
@@ -107,12 +107,12 @@ public final class Captura {
         if (p == 0) {
             int x = centro.getX(), y = centro.getY(), z = centro.getZ();
             comando(server, String.format("summon minecraft:husk %d %d %d {PersistenceRequired:1b,Health:400f,"
-                    + "Attributes:[{Name:\"generic.max_health\",Base:400d}]}", x + 12, y, z - 12));
+                    + "Attributes:[{Name:\"generic.max_health\",Base:400d}]}", x + 18, y, z - 18));
         }
         if (jefe != null) {                       // la camara le da vueltas despacio, cerca
             double a = Math.toRadians(40 + p * 0.5);
-            Vec3 objetivo = jefe.position().add(0, 2.0, 0);
-            Vec3 cam = jefe.position().add(-Math.sin(a) * 15, 7.5, Math.cos(a) * 15);
+            Vec3 objetivo = jefe.position().add(0, 3.0, 0);
+            Vec3 cam = jefe.position().add(-Math.sin(a) * 22, 11, Math.cos(a) * 22);
             mirar(mc, cam, objetivo);
         }
         if (p > 0 && p % PELEA_CADA == 0) {
