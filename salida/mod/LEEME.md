@@ -1,4 +1,4 @@
-# Mipack: Crackatos y Khaset (Forge 1.20.1)
+# Mipack: Crackatos, Khaset y los titanes (Forge 1.20.1)
 
 ## Qué necesitas
 1. **Minecraft 1.20.1 con Forge 47.4.10**, la versión que ya tienes.
@@ -90,6 +90,34 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 **Arena recomendada:** una plaza de unos 60×60 con columnas (para el silbato) y el cristal del sacrificio de un lado o arriba de una pirámide.
 
 **Sonidos:** por ahora usa sonidos de Minecraft; los suyos van después.
+
+## Los titanes (en construcción)
+Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, comen, descansan y se quedan mirando a quien se acerca) y se mueven solos por el mapa con el **motor de rutas**. Por ahora está **Candil, el ajolote del lodo** (pantano, unos 27 bloques de largo). Los demás van saliendo de más fácil a más difícil.
+
+**Cómo funcionan:**
+- **Siempre existen.** Cuando hay un jugador a menos de unos 160 bloques, el titán aparece donde va. Si todos se alejan, se quita y sigue su camino sin que nadie lo vea. Así, cuando vuelves, lo encuentras en otro lado.
+- **Leen el terreno.** El mod guarda un mapa por celdas de 8×8 bloques: la altura del suelo, la de las copas de los árboles, el agua y su hondura, qué hay arriba (arena, nieve, hielo, piedra) y el bioma. Con eso cada titán busca por dónde caber:
+  - cuánto puede subir de una celda a otra;
+  - qué tan hondo puede vadear;
+  - cuánto mide de ancho;
+  - qué biomas le gustan y en cuáles no entra.
+- **No se atoran.** Si dejan de avanzar o el terreno cambió, vuelven a buscar camino. Pasan entre los árboles como si nada, pero siguen el piso, el agua o las copas.
+- El mapa del terreno se llena solo con lo que se va cargando. **En un mapa ya hecho, conviene leerlo una vez** con `/titanes escanear <radio>`: va cargando chunks de a poco y avisa cuando acaba.
+
+**Comandos (operador):**
+- `/titanes crear candil`: crea a Candil donde estás.
+- `/titanes lista`: dónde está cada uno, si está aquí o virtual, y qué hace.
+- `/titanes ir <número>`: te lleva a verlo.
+- `/titanes mandar <número> <x> <z>`: que vaya a un punto.
+- `/titanes ruta <número>`: muestra con partículas el camino que va a seguir.
+- `/titanes escanear <radio>`: lee el terreno alrededor tuyo.
+- `/titanes terreno`: cuánto del mapa ya conoce.
+- `/titanes quitar <número>`: lo borra.
+
+**Candil:**
+- Casi siempre está quieto en el agua, hundido en el lodo con la cabeza al ras. Los nenúfares y los hongos de su espalda y las puntas de sus branquias brillan de noche.
+- A ratos se hunde a dormir, atrapa algo o se mueve a otro charco del pantano.
+- Solo entra a pantanos, ríos y tierra común (no al mar, al desierto, a la nieve ni a las montañas).
 
 ## El cielo y los efectos
 El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).

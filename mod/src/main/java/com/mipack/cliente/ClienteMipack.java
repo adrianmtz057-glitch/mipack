@@ -29,6 +29,10 @@ public final class ClienteMipack {
         evento.registerEntityRenderer(Mipack.XIUHCOATL.get(), RenderersKhaset.Serpiente::new);
         evento.registerEntityRenderer(Mipack.DARDO.get(), RenderersKhaset.Dardo::new);
         evento.registerEntityRenderer(Mipack.AVISO.get(), RenderersKhaset.Aviso::new);
+        for (var e : com.mipack.titanes.Titanes.entidades().entrySet()) {
+            var tipo = com.mipack.titanes.Titanes.tipo(e.getKey());
+            evento.registerEntityRenderer(e.getValue().get(), c -> new RenderTitan(c, tipo));
+        }
     }
 
     /** El jugador con las poses de la pelea con Khaset (agarrado, en el altar, de rodillas, tapandose los oidos). */

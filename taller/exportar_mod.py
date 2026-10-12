@@ -21,7 +21,7 @@ from PIL import Image
 from . import animar, geckolib
 from .kit import Personaje
 from .luz import LUZ_SIMETRICA
-from .personajes import crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
+from .personajes import candil, crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
 ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
@@ -334,6 +334,52 @@ def extras_assets():
     return info
 
 
+# ---------------------------------------------------------------- titanes
+
+TITANES = (candil,)
+
+
+def mascara_por_color(img, colores):
+    """Glowmask con los pixeles de la textura que son de alguno de esos colores (lo que brilla: puntos, puntas, hongos)."""
+    quiero = {tuple(hex_a(c)[:3]) for c in colores}
+    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    px = img.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b, a = px[x, y]
+            if a > 0 and (r, g, b) in quiero:
+                out.putpixel((x, y), (r, g, b, a))
+    return out
+
+
+def hex_a(c):
+    c = c.lstrip("#")
+    return (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16), 255)
+
+
+def titan_assets(modulo):
+    """Un titan (personajes/<id>.py con construir(), ANIMACIONES, hornear_todas() y BRILLAN, los colores que brillan)."""
+    p = modulo.construir()
+    p.m.luz_desde = LUZ_SIMETRICA
+    p.m.luz_por = "grupo"
+    ident = p.nombre
+    lienzo, uvs = p.m.pintar()
+    geo = geckolib.exportar_geo(p.m, uvs, lienzo, ident)
+    img = _imagen(lienzo)
+    _escribir_json(os.path.join(RAIZ, "geo", "entity", f"{ident}.geo.json"), geo)
+    img.save(os.path.join(RAIZ, "textures", "entity", f"{ident}.png"))
+    if getattr(modulo, "BRILLAN", None):
+        mascara_por_color(img, modulo.BRILLAN).save(os.path.join(RAIZ, "textures", "entity", f"{ident}_glowmask.png"))
+    rig = animar.Rig(geo)
+    horneadas = modulo.hornear_todas(rig)
+    for nombre, (_d, cuadros, bucle) in horneadas.items():
+        if bucle is True and not _bucle_cierra(cuadros, {}):
+            raise RuntimeError(f"{ident}.{nombre} no cierra el bucle")
+    _escribir_json(os.path.join(RAIZ, "animations", "entity", f"{ident}.animation.json"),
+                   animar.exportar({n: d for n, (d, _c, _b) in horneadas.items()}, ident))
+    return {"cubos": len(p.m.cubos), "mallas": len(p.m.mallas), "textura": img.size, "animaciones": list(horneadas)}
+
+
 def textos():
     en = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Amethyst Spike",
           "item.mipack.crackatos_spawn_egg": "Crackatos Spawn Egg", "itemGroup.mipack": "Mipack",
@@ -347,7 +393,8 @@ def textos():
           "death.attack.mipack.desangrado": "%1$s bled out",
           "death.attack.mipack.desangrado.player": "%1$s bled out fighting %2$s",
           "death.attack.mipack.sacrificio": "%1$s was sacrificed",
-          "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s"}
+          "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s",
+          "entity.mipack.titan_candil": "Candil, the Mud Axolotl"}
     es = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Púa de amatista",
           "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack",
           "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Cristal del sacrificio",
@@ -360,7 +407,8 @@ def textos():
           "death.attack.mipack.desangrado": "%1$s se desangró",
           "death.attack.mipack.desangrado.player": "%1$s se desangró peleando con %2$s",
           "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
-          "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s"}
+          "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
+          "entity.mipack.titan_candil": "Candil, el ajolote del lodo"}
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
     for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg"):
@@ -441,6 +489,8 @@ def main():
     print("crackatos:", crackatos_assets())
     print("khaset:", khaset_assets())
     print("extras:", extras_assets())
+    for t in TITANES:
+        print(t.__name__.split(".")[-1] + ":", titan_assets(t))
     print("pua:", pua_assets())
     circulos()
     textos()

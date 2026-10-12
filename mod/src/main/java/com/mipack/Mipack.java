@@ -12,6 +12,7 @@ import com.mipack.khaset.KhasetEntity;
 import com.mipack.khaset.ParticulasKhaset;
 import com.mipack.khaset.RedKhaset;
 import com.mipack.khaset.Xiuhcoatl;
+import com.mipack.titanes.Titanes;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -45,7 +46,8 @@ public class Mipack {
     public static final String MODID = "mipack";
     public static final Logger LOGGER = LogUtils.getLogger();
     /** Modo de prueba (-Dmipack.prueba=true): los jefes tambien atacan a otros mobs y cuentan en el log lo que hacen. */
-    public static final boolean PRUEBA = Boolean.getBoolean("mipack.prueba") || "khaset".equals(System.getProperty("mipack.captura"));
+    public static final boolean PRUEBA = Boolean.getBoolean("mipack.prueba") || "khaset".equals(System.getProperty("mipack.captura"))
+            || System.getProperty("mipack.captura", "").startsWith("titanes");
 
     public static final DeferredRegister<EntityType<?>> ENTIDADES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
     public static final DeferredRegister<Item> OBJETOS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
@@ -110,6 +112,7 @@ public class Mipack {
 
     public Mipack() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
+        Titanes.registrar(ENTIDADES);
         ENTIDADES.register(bus);
         OBJETOS.register(bus);
         PESTANAS.register(bus);
@@ -129,6 +132,7 @@ public class Mipack {
         event.put(CRACKATOS.get(), CrackatosEntity.atributos().build());
         event.put(KHASET.get(), KhasetEntity.atributos().build());
         event.put(XIUHCOATL.get(), Xiuhcoatl.atributos().build());
+        Titanes.atributos(event);
     }
 
     private void preparar(FMLCommonSetupEvent event) {

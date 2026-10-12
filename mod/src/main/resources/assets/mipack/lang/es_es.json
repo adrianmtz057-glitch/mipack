@@ -20,5 +20,6 @@
   "death.attack.mipack.desangrado": "%1$s se desangró",
   "death.attack.mipack.desangrado.player": "%1$s se desangró peleando con %2$s",
   "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
-  "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s"
+  "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
+  "entity.mipack.titan_candil": "Candil, el ajolote del lodo"
 }
