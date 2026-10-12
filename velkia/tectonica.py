@@ -25,7 +25,7 @@ class Forcing:
         U1 += z['cordillera'] * (0.20e-3 + 1.25e-3 * crest)
         U1 += z['corrompidas'] * (1.30e-3 * np.exp(0.25 * nz))
         U1 += z['jardines'] * 0.06e-3
-        U1 += z['oeste'] * 0.16e-3 * np.exp(0.35 * nz)      # colinas de desierto rocoso
+        U1 += z['oeste'] * 0.30e-3 * np.exp(0.35 * nz)      # colinas de desierto rocoso
         U1 += z['este'] * 0.07e-3                           # costa rocosa baja
         U1 += z['volcanica'] * 0.05e-3                      # el volcán se construye aparte
         U1 += z['canones'] * 0.10e-3
@@ -35,20 +35,20 @@ class Forcing:
         # anillo de roca alrededor de los Jardines (las paredes del valle glaciar)
         rj = jardines_r(xx, zz)
         U1 += 0.32e-3 * np.exp(-((rj - 1.18) / 0.22) ** 2)
-        # promontorio de la Torre cerca de la costa este
+        U1 *= smoothstep(lay.dist_coast, -100, 500)
+        # promontorios costeros (no se atenúan cerca de la costa: son cerros junto al mar)
         tx, tz = poi_blocks('torre_llama_eterna')
-        U1 += 0.22e-3 * np.exp(-(((xx - tx) ** 2 + (zz - tz) ** 2) / 330.0 ** 2) ** 1.5)
+        U1 += 0.26e-3 * np.exp(-(((xx - tx) ** 2 + (zz - tz) ** 2) / 300.0 ** 2) ** 1.5) * (lay.dist_coast > -60)
         # sitios reservados con relieve propio
         for nombre, (pxy, rad, tipo) in RESERVADOS.items():
             bx, bz = px2b(*pxy)
             g = np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / rad ** 2) ** 1.5)
             if tipo == 'promontorio':
-                U1 += 0.12e-3 * g
+                U1 += 0.16e-3 * g * (lay.dist_coast > -60)
             elif tipo == 'colina':
                 U1 += 0.06e-3 * g
             elif tipo == 'meseta':
                 U1 += 0.05e-3 * g
-        U1 *= smoothstep(lay.dist_coast, -100, 500)
         self.U_orogeny = U1.astype(np.float64)
         # fase de levantamiento de la meseta (cañones) y abombamiento del este
         U2 = np.zeros((n, n), np.float32)
@@ -63,7 +63,7 @@ class Forcing:
         (bpx, rad, _) = RESERVADOS['cuarto_de_bashi']
         bx, bz = px2b(*bpx)
         rombo = (np.abs(xx - bx) ** 1.3 + np.abs(zz - bz) ** 1.3) ** (1 / 1.3) / rad
-        U2 += -0.035e-3 * np.exp(-rombo ** 3)
+        U2 += -0.05e-3 * np.exp(-rombo ** 3)
         self.U_plateau = U2.astype(np.float64)
         # ---------------------------------------------------------- precipitación (m/a)
         P = (z['cordillera'] * 1.2 + z['corrompidas'] * 0.7 + z['jardines'] * 1.0 +

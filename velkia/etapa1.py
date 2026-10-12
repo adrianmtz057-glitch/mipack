@@ -82,8 +82,8 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     rio_xy, rio_fijo, oxbows = res[0], res[1], res[2]
     boca = res[3] if len(res) > 3 else None
     chain = rasterize_chain(rio_xy, n, dx)
-    # la fuente debe estar en tierra firme y alta: descartar celdas iniciales cerca del mar
-    ini = np.nonzero(fo.h0.ravel()[chain] > 15.0)[0]
+    # la fuente debe estar en tierra firme: descartar celdas iniciales en el mar
+    ini = np.nonzero(lay.land.ravel()[chain])[0]
     if ini.size:
         chain = chain[ini[0]:]
     fixed_rec = np.full(n * n, -1, np.int64)
@@ -132,7 +132,11 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
     rio_cells[chain[k_out:]] = True      # tramo aluvial: desde la salida de los Jardines al mar
     # forzado "siempre cuesta abajo" (antecedencia) solo en el tramo aluvial y en los afluentes;
     # en la montaña la pendiente natural ya baja y no debe arrastrar la fuente al nivel del mar
+    # tramo de montaña (fuente -> entrada a los Jardines) y tramo aluvial (salida -> mar); dentro
+    # de los Jardines el fondo y los lagos los fija la excavación glaciar (no se fuerza)
+    k_in = int(np.argmin(np.hypot(cxy[:, 0] - 2260, cxy[:, 1] - 1950)))
     cadenas[0] = chain[k_out:]
+    cadenas.insert(1, chain[:k_in + 1])
     # piso del lecho: 0,5 m sobre el mar en la boca + 0,07 % hacia aguas arriba (solo en tierra)
     alu = chain[k_out:]
     en_mar = fo.h0.ravel()[alu] < 0
@@ -186,7 +190,8 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
                              n_flows=2600, log=False)
     st.h = hv
     st.b = np.maximum(st.b, hv - 0.5)      # roca volcánica nueva
-    print(f'  cumbre del volcán: Y={hv.max() + SEA:.0f}', flush=True)
+    rv = np.hypot(xx - (vx - 70), zz - (vz - 20)) < 1500
+    print(f'  cumbre del volcán: Y={hv[rv].max() + SEA:.0f}', flush=True)
 
     # ------------------------------------------------ P3 glaciaciones
     print('== P3 glaciaciones (mar a -40 m)', flush=True)
