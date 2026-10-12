@@ -5,13 +5,14 @@ geo/FabricaMallas.java en el mod), sin remodelar. Solo cambia:
   - el esqueleto: en Figura cabeza, cuerpo, brazos y piernas van sueltos; aqui hay una raiz (en el piso, para
     moverlo entero) y la cintura (en la cadera) que carga el cuerpo, la cabeza y los brazos, asi al encorvarse o
     ponerse en cuatro patas todo lo de arriba va junto.
-En el juego se dibuja al doble (ESCALA): mide unos 3.7 bloques, parejo de alto y de ancho.
+En el juego se dibuja al triple (ESCALA), parejo de alto y de ancho: el modelo mide 59.6 px (3.7 bloques) y en el
+juego unos 11 bloques, como Crackatos; con el brazo estirado barre unos 7 bloques alrededor.
 """
 
 from ..luz import LUZ_SIMETRICA
 from . import khaset
 
-ESCALA = 2.0
+ESCALA = 3.0
 CADERA = (0.0, 31.5, 3.2)
 ARRIBA = ("Body", "Head", "RightArm", "LeftArm")       # lo que carga la cintura
 ABAJO = ("RightLeg", "LeftLeg")

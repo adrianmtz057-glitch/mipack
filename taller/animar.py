@@ -2,6 +2,7 @@
 Animaciones para GeckoLib hechas desde Python, sin hacerlas a ciegas:
   - Rig: el esqueleto del .geo.json (padres y pivotes) y su cinematica directa (la misma de GeckoLib: cada hueso
     gira Z * Y * X alrededor de su pivote y hereda lo del padre).
+  - ik_libre: IK de un brazo en 3D (hombro con sus tres giros y codo) para llevar la mano a cualquier punto.
   - ik_pata: IK de dos huesos (hombro y codo, o muslo y rodilla) en el plano del giro de la bisagra (eje X del
     padre) para poner el pie justo donde va (en el piso al apoyar), y la muneca o el tobillo que dejan el pie plano.
   - hornear: cada animacion se define como una funcion pose(t) y se hornea a 20 cuadros por segundo (un cuadro por
@@ -126,6 +127,59 @@ def ik_pata(rig, pose, cadena, objetivo, extra=0.0):
         rot, tras = pose.get(n, ((0, 0, 0), (0, 0, 0)))
         pose[n] = ((x, rot[1], rot[2]), tras)
     return alcanza
+
+
+def ik_libre(rig, pose, cadena, objetivo, semilla=None, peso=0.001, codo=(-60.0, 150.0)):
+    """IK de un brazo en 3D: busca los giros del hombro (X, Y, Z) y el del codo (X) que ponen el pivote de la mano
+    (cadena: hombro, codo, mano) en 'objetivo' (mundo), lo mas cerca posible de 'semilla' (los cuatro angulos de la
+    pose anterior: asi el brazo no da vueltas raras). Descenso por coordenadas con paso que se achica; el codo solo
+    dobla dentro de 'codo' (grados). Devuelve la distancia que quedo (px)."""
+    a, b, c = cadena[:3]
+    T = rig.transformaciones(pose)
+    padre = rig.padre[a]
+    Tp = T[padre] if padre else geckolib.Transformacion()
+    ra, ta = pose.get(a, ((0, 0, 0), (0, 0, 0)))
+    rb, tb = pose.get(b, ((0, 0, 0), (0, 0, 0)))
+    x0 = list(semilla) if semilla is not None else [ra[0], ra[1], ra[2], rb[0]]
+    pa, pb, pc = rig.pivote[a], rig.pivote[b], rig.pivote[c]
+
+    def muneca(x):
+        Ta = Tp.despues(geckolib._giro_en(pa, tuple(math.radians(v) for v in x[:3]), ta))
+        Tb = Ta.despues(geckolib._giro_en(pb, (math.radians(x[3]), math.radians(rb[1]), math.radians(rb[2])), tb))
+        return Tb(pc)
+
+    def costo(x):
+        w = muneca(x)
+        return sum((w[i] - objetivo[i]) ** 2 for i in range(3)) + peso * sum((x[i] - x0[i]) ** 2 for i in range(4))
+
+    def bajar(x):
+        x = list(x)
+        x[3] = max(codo[0], min(codo[1], x[3]))
+        f = costo(x)
+        for paso in (32.0, 16.0, 8.0, 4.0, 2.0, 1.0, 0.5, 0.25):
+            mejoro = True
+            while mejoro:
+                mejoro = False
+                for i in range(4):
+                    for d in (paso, -paso):
+                        y = list(x)
+                        y[i] += d
+                        if i == 3 and not codo[0] <= y[3] <= codo[1]:
+                            continue
+                        fy = costo(y)
+                        if fy < f:
+                            x, f, mejoro = y, fy, True
+        return x
+    x = bajar(x0)
+    if math.dist(muneca(x), objetivo) > 1.0:          # se atoro: probar desde otras posturas y quedarse con la mejor
+        for otra in ([0, 0, 0, 0], [60, 0, 0, 60], [100, 0, 0, 40], [140, 0, 0, 90], [40, 30, 0, 80], [40, -30, 0, 80],
+                     [90, 0, 40, 30], [90, 0, -40, 30]):
+            y = bajar(otra)
+            if math.dist(muneca(y), objetivo) + 1e-6 < math.dist(muneca(x), objetivo) - 0.3:
+                x = y
+    pose[a] = ((x[0], x[1], x[2]), ta)
+    pose[b] = ((x[3], rb[1], rb[2]), tb)
+    return math.dist(muneca(x), objetivo)
 
 
 def hornear(rig, nombre, largo, pose_en, bucle=True):

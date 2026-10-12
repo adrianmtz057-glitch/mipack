@@ -21,9 +21,10 @@ from PIL import Image
 from . import animar, geckolib
 from .kit import Personaje
 from .luz import LUZ_SIMETRICA
-from .personajes import crackatos, crackatos_anim
+from .personajes import crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
+DATOS = os.path.join(RAIZ, "..", "..", "data", "mipack")
 ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
 
 
@@ -122,6 +123,188 @@ def circulos(lado=128):
     lleno.save(os.path.join(RAIZ, "textures", "entity", "circulo_lleno.png"))
 
 
+# ---------------------------------------------------------------- Khaset
+
+def _rects_de(elemento, uvs):
+    """Los rectangulos de textura (u1, v1, u2, v2) de un cubo o de cada cara de una malla."""
+    datos = uvs[id(elemento)]
+    if isinstance(datos, dict):                                   # cubo: {cara: (u1, v1, u2, v2)}
+        return [tuple(r) for r in datos.values()]
+    out = []
+    for cara in datos:                                            # malla: por cara, la UV de cada vertice
+        us, vs = [q[0] for q in cara], [q[1] for q in cara]
+        out.append((min(us), min(vs), max(us), max(vs)))
+    return out
+
+
+def _brasas(img, rect, fuerza=1.0):
+    """Los pixeles color brasa (naranja o amarillo encendido) del rectangulo: lo que brilla en lo oscuro."""
+    u1, v1, u2, v2 = (int(min(rect[0], rect[2])), int(min(rect[1], rect[3])), int(max(rect[0], rect[2])) + 1,
+                      int(max(rect[1], rect[3])) + 1)
+    for y in range(max(0, v1), min(img.height, v2)):
+        for x in range(max(0, u1), min(img.width, u2)):
+            r, g, b, a = img.getpixel((x, y))
+            if a > 0 and r > 190 and 70 < g < 215 and b < 90 and r - b > 140:
+                yield x, y, (r, g, b, a)
+
+
+def khaset_mascaras(modelo, uvs, img):
+    """La glowmask de Khaset (los ojos completos y las brasas de las grietas de manos, pies y costillas) y la textura
+    de la fase 2 (khaset_furia: las brasas mas encendidas)."""
+    brillo = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    furia = img.copy()
+    quema = ("antebrazo", "mano", "dedos", "canilla", "pie", "torso", "huesos")
+    for e in list(modelo.cubos) + list(modelo.mallas):
+        hueso = e.hueso.split("/")[-1]
+        for rect in _rects_de(e, uvs):
+            if hueso == "ojos":
+                caja = (int(min(rect[0], rect[2])), int(min(rect[1], rect[3])), int(max(rect[0], rect[2])) + 1,
+                        int(max(rect[1], rect[3])) + 1)
+                brillo.paste(img.crop(caja), caja[:2])
+            elif hueso in quema:
+                for x, y, (r, g, b, a) in _brasas(img, rect):
+                    brillo.putpixel((x, y), (r, g, b, a))
+                    furia.putpixel((x, y), (255, min(255, g + 45), min(255, b + 40), a))
+    return brillo, furia
+
+
+def _puntos_de_mano(rig, pose, lado):
+    """La palma (el centro de la mano con los dedos) y la punta de la garra (lo mas lejos de la muneca)."""
+    pref = khaset_anim.MANOS[lado]
+    pts = [q for P, _u, _c, _n, h in rig.quads(pose) if h.startswith(pref) for q in P]
+    palma = tuple(sum(p[i] for p in pts) / len(pts) for i in range(3))
+    T = rig.transformaciones(pose)
+    muneca = T[pref](rig.pivote[pref])
+    punta = max(pts, key=lambda p: math.dist(p, muneca))
+    return [round(v, 2) for v in palma], [round(v, 2) for v in punta]
+
+
+POSES_KHASET = ("zarpazos", "barrido", "barrido_i", "contraataque", "lanzar_dardo", "agarrar", "agarrar_dos",
+                "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "abalanzarse")
+PASAN_EL_PISO = ("desvanecer", "aparecer")          # se hunden a proposito
+
+
+def khaset_assets():
+    p = khaset_mob.construir()
+    lienzo, uvs = p.m.pintar()
+    geo = geckolib.exportar_geo(p.m, uvs, lienzo, "khaset")
+    peor, _sin_pareja = geckolib.comprobar(p.m, uvs, geo)          # (las mallas no entran en esta comparacion)
+    if peor > 1e-2:
+        raise RuntimeError(f"khaset: la reconstruccion de GeckoLib no coincide ({peor} px)")
+    img = _imagen(lienzo)
+    _escribir_json(os.path.join(RAIZ, "geo", "entity", "khaset.geo.json"), geo)
+    carpeta = os.path.join(RAIZ, "textures", "entity")
+    img.save(os.path.join(carpeta, "khaset.png"))
+    brillo, furia = khaset_mascaras(p.m, uvs, img)
+    brillo.save(os.path.join(carpeta, "khaset_glowmask.png"))
+    furia.save(os.path.join(carpeta, "khaset_furia.png"))
+    brillo.save(os.path.join(carpeta, "khaset_furia_glowmask.png"))
+
+    rig = animar.Rig(geo)
+    horneadas = khaset_anim.hornear_todas(rig)
+    malas = []
+    for nombre, (_datos, cuadros, bucle) in horneadas.items():
+        r = animar.revisar(rig, cuadros, bucle is True)
+        if (r["atraviesa_piso"] and nombre not in PASAN_EL_PISO) or r["brinco_del_bucle"] > 1e-3:
+            malas.append((nombre, r))
+    if malas:
+        raise RuntimeError(f"animaciones que no pasan las pruebas: {malas}")
+    anims = animar.exportar({n: d for n, (d, _c, _b) in horneadas.items()}, "khaset")
+    _escribir_json(os.path.join(RAIZ, "animations", "entity", "khaset.animation.json"), anims)
+
+    # para el servidor: donde van las manos en cada tick de los ataques (el dano y la presa siguen a la animacion)
+    poses = {}
+    for nombre in POSES_KHASET:
+        _d, cuadros, _b = horneadas[nombre]
+        poses[nombre] = {}
+        for lado in ("d", "i"):
+            palmas, puntas = [], []
+            for _t, pose in cuadros:
+                pa, pu = _puntos_de_mano(rig, pose, lado)
+                palmas.append(pa)
+                puntas.append(pu)
+            poses[nombre][lado] = {"palma": palmas, "punta": puntas}
+    A = khaset_anim
+    tiempos = {"zarpazos": list(A.GOLPES_ZARPAZOS), "abalanzarse": [A.SALTO], "desvanecer": [A.HUNDIDO],
+               "barrido": list(A.BARRIDO), "lanzar_dardo": [A.DARDO], "contraataque": [A.CONTRA],
+               "agarrar": [A.AGARRA], "soltar": [A.SOLTAR], "sacrificio": list(A.SACRIFICIO),
+               "invocar": [A.INVOCA], "corona_rota": [A.CORONA]}
+    largos = {n: round(d["animation_length"], 4) for n, (d, _c, _b) in horneadas.items()}
+    _escribir_json(os.path.join(DATOS, "poses", "khaset.json"),
+                   {"escala": khaset_mob.ESCALA, "altar": list(A.ALTAR), "tiempos": tiempos, "largos": largos,
+                    "manos": poses})
+    alto = max(q[1] for P, *_ in rig.quads({}) for q in P)
+    return {"cubos": len(p.m.cubos), "mallas": len(p.m.mallas), "textura": img.size, "animaciones": len(horneadas),
+            "alto_en_bloques": round(alto * khaset_mob.ESCALA / 16, 2)}
+
+
+def _mascara_extras(modelo, uvs, img, enteros=(), brasas_en=()):
+    """Glowmask: las piezas cuyo nombre empieza con 'enteros' brillan completas; en las de 'brasas_en' solo los
+    pixeles color brasa."""
+    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    for e in list(modelo.cubos) + list(modelo.mallas):
+        hueso = e.hueso.split("/")[-1]
+        for rect in _rects_de(e, uvs):
+            if e.nombre.startswith(tuple(enteros)) or hueso in enteros:
+                caja = (int(min(rect[0], rect[2])), int(min(rect[1], rect[3])), int(max(rect[0], rect[2])) + 1,
+                        int(max(rect[1], rect[3])) + 1)
+                out.paste(img.crop(caja), caja[:2])
+            elif e.nombre.startswith(tuple(brasas_en)):
+                for x, y, c in _brasas(img, rect):
+                    out.putpixel((x, y), c)
+    return out
+
+
+def _bucle_cierra(cuadros, simetria):
+    """Si el primer y el ultimo cuadro son iguales salvo vueltas completas (o la simetria del hueso)."""
+    a, b = cuadros[0][1], cuadros[-1][1]
+    peor = 0.0
+    for h in set(a) | set(b):
+        ra, pa = a.get(h, ((0, 0, 0), (0, 0, 0)))
+        rb, pb = b.get(h, ((0, 0, 0), (0, 0, 0)))
+        paso = simetria.get(h, 360.0)
+        for x, y in zip(ra, rb):
+            d = (x - y) % paso
+            peor = max(peor, min(d, paso - d))
+        peor = max(peor, max(abs(x - y) for x, y in zip(pa, pb)))
+    return peor < 1e-3
+
+
+def extras_assets():
+    """El cristal del sacrificio, la Xiuhcoatl, el dardo y la astilla (ver personajes/khaset_extras.py)."""
+    X = khaset_extras
+    info = {}
+    piezas = (("cristal_sacrificio", X.cristal, X.ANIM_CRISTAL, dict(brasas_en=("obsidiana",)), {"cristal": 60.0}, ()),
+              ("xiuhcoatl", X.xiuhcoatl, X.ANIM_XIUHCOATL,
+               dict(enteros=("cresta", "lengua", "flama", "rayo", "ojos")), {}, ("surgir", "deshacer")),
+              ("dardo", X.dardo, None, None, {}, ()),
+              ("astilla", X.astilla, None, dict(brasas_en=("astilla",)), {}, ()))
+    for ident, construir, anims, brillo, simetria, bajo_piso in piezas:
+        p = construir()
+        p.m.luz_desde = LUZ_SIMETRICA
+        p.m.luz_por = "grupo"
+        lienzo, uvs = p.m.pintar()
+        geo = geckolib.exportar_geo(p.m, uvs, lienzo, ident)
+        img = _imagen(lienzo)
+        _escribir_json(os.path.join(RAIZ, "geo", "entity", f"{ident}.geo.json"), geo)
+        img.save(os.path.join(RAIZ, "textures", "entity", f"{ident}.png"))
+        if brillo:
+            _mascara_extras(p.m, uvs, img, **brillo).save(os.path.join(RAIZ, "textures", "entity", f"{ident}_glowmask.png"))
+        if anims:
+            rig = animar.Rig(geo)
+            horneadas = X.hornear(rig, anims)
+            for nombre, (_d, cuadros, bucle) in horneadas.items():
+                r = animar.revisar(rig, cuadros, False)
+                if r["atraviesa_piso"] and nombre not in bajo_piso:
+                    raise RuntimeError(f"{ident}.{nombre} atraviesa el piso: {r}")
+                if bucle is True and not _bucle_cierra(cuadros, simetria):
+                    raise RuntimeError(f"{ident}.{nombre} no cierra el bucle")
+            _escribir_json(os.path.join(RAIZ, "animations", "entity", f"{ident}.animation.json"),
+                           animar.exportar({n: d for n, (d, _c, _b) in horneadas.items()}, ident))
+        info[ident] = {"cubos": len(p.m.cubos), "mallas": len(p.m.mallas), "textura": img.size}
+    return info
+
+
 def textos():
     en = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Amethyst Spike",
           "item.mipack.crackatos_spawn_egg": "Crackatos Spawn Egg", "itemGroup.mipack": "Mipack"}
@@ -182,6 +365,8 @@ def arena(lado=49, alto=10):
 
 def main():
     print("crackatos:", crackatos_assets())
+    print("khaset:", khaset_assets())
+    print("extras:", extras_assets())
     print("pua:", pua_assets())
     circulos()
     textos()
