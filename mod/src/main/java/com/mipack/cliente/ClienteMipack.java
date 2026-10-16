@@ -24,6 +24,8 @@ public final class ClienteMipack {
     public static void renderers(EntityRenderersEvent.RegisterRenderers evento) {
         evento.registerEntityRenderer(Mipack.CRACKATOS.get(), CrackatosRenderer::new);
         evento.registerEntityRenderer(Mipack.PUA.get(), PuaRenderer::new);
+        evento.registerEntityRenderer(Mipack.ACARO.get(), AcaroRenderer::new);
+        evento.registerEntityRenderer(Mipack.GUERRERO.get(), RenderGuerrero::new);
         evento.registerEntityRenderer(Mipack.KHASET.get(), RenderersKhaset.Khaset::new);
         evento.registerEntityRenderer(Mipack.CRISTAL.get(), RenderersKhaset.Cristal::new);
         evento.registerEntityRenderer(Mipack.XIUHCOATL.get(), RenderersKhaset.Serpiente::new);
@@ -33,6 +35,11 @@ public final class ClienteMipack {
             var tipo = com.mipack.titanes.Titanes.tipo(e.getKey());
             evento.registerEntityRenderer(e.getValue().get(), c -> new RenderTitan(c, tipo));
         }
+    }
+
+    @SubscribeEvent
+    public static void modelos(EntityRenderersEvent.RegisterLayerDefinitions evento) {
+        evento.registerLayerDefinition(RenderGuerrero.CAPA, RenderGuerrero::capa);
     }
 
     /** El jugador con las poses de la pelea con Khaset (agarrado, en el altar, de rodillas, tapandose los oidos). */
@@ -61,6 +68,7 @@ public final class ClienteMipack {
     @SubscribeEvent
     public static void pantalla(RegisterGuiOverlaysEvent evento) {
         evento.registerAboveAll("khaset", new PantallaKhaset());
+        evento.registerAboveAll("zafarse", new BarraZafarse());
     }
 
     /** El cielo de Velkia en el mundo normal (el Nether y el End no cambian). */

@@ -36,16 +36,17 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * La Xiuhcoatl, la serpiente de fuego que invoca Khaset en la fase 2: sale del piso, persigue a un jugador reptando
- * (gira despacio: de lado se esquiva), muerde y quema, y deja un rastro de fuego. A los 9 s se deshace en brasas. Se le
- * puede matar (40 de vida).
+ * La Xiuhcoatl, la serpiente de fuego que invoca Khaset (de dos a seis a la vez): sale del piso, persigue a un
+ * jugador reptando mas rapido de lo que se corre (gira menos: de lado se esquiva), muerde y quema, y deja un rastro de
+ * fuego. A los 13 s se deshace en brasas. Se le puede matar (60 de vida). Lo de Khaset no le hace nada (ni el veneno
+ * de sus dardos).
  */
 public class Xiuhcoatl extends Monster implements GeoEntity {
     public static final float ESCALA = 2.0f;
-    private static final int T_SURGIR = 24, T_MORDER = 14, T_DESHACER = 20, VIDA = 180;
-    private static final float VELOCIDAD = 0.24f, GIRO = 5f, DANO_MORDIDA = 8f, DANO_CUERPO = 4f;
-    /** Ticks de retraso entre un tramo y el siguiente (un tramo mide 1 bloque y avanza 0.24 por tick). */
-    public static final int RETRASO = 4;
+    private static final int T_SURGIR = 20, T_MORDER = 12, T_DESHACER = 20, VIDA = 260;
+    private static final float VELOCIDAD = 0.4f, GIRO = 7.5f, DANO_MORDIDA = 10f, DANO_CUERPO = 5f;
+    /** Ticks de retraso entre un tramo y el siguiente (un tramo mide 1 bloque y avanza 0.4 por tick). */
+    public static final int RETRASO = 3;
 
     private static final RawAnimation A_SURGIR = RawAnimation.begin().thenPlayAndHold("animation.xiuhcoatl.surgir");
     private static final RawAnimation A_REPTAR = RawAnimation.begin().thenLoop("animation.xiuhcoatl.reptar");
@@ -68,7 +69,7 @@ public class Xiuhcoatl extends Monster implements GeoEntity {
     }
 
     public static AttributeSupplier.Builder atributos() {
-        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 40.0).add(Attributes.ARMOR, 4.0)
+        return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 60.0).add(Attributes.ARMOR, 4.0)
                 .add(Attributes.KNOCKBACK_RESISTANCE, 1.0).add(Attributes.MOVEMENT_SPEED, VELOCIDAD);
     }
 
@@ -137,7 +138,7 @@ public class Xiuhcoatl extends Monster implements GeoEntity {
                 if (this.ticksEnEstado == 6) {
                     Vec3 boca = this.position().add(Vec3.directionFromRotation(0, this.getYRot()).scale(2.2)).add(0, 0.6, 0);
                     for (LivingEntity e : enemigos(boca, 1.8)) {
-                        e.hurt(this.damageSources().mobAttack(this), DANO_MORDIDA);
+                        com.mipack.Golpes.pegar(e, this, DANO_MORDIDA, 60);
                         e.setSecondsOnFire(4);
                     }
                     this.playSound(SoundEvents.BLAZE_SHOOT, 1.5f, 0.6f);
@@ -165,7 +166,7 @@ public class Xiuhcoatl extends Monster implements GeoEntity {
                     continue;
                 for (LivingEntity e : enemigos(p.add(0, 0.5, 0), 1.2))
                     if (!this.quemados.containsKey(e.getUUID())) {
-                        e.hurt(this.damageSources().mobAttack(this), DANO_CUERPO);
+                        com.mipack.Golpes.pegar(e, this, DANO_CUERPO, 0);
                         e.setSecondsOnFire(3);
                         this.quemados.put(e.getUUID(), 20);
                     }
@@ -225,7 +226,7 @@ public class Xiuhcoatl extends Monster implements GeoEntity {
                 && sl.getEntity(this.dueno) instanceof KhasetEntity kk ? kk : null;
         List<LivingEntity> out = new ArrayList<>();
         for (LivingEntity e : this.level().getEntitiesOfClass(LivingEntity.class, new AABB(p, p).inflate(r)))
-            if (e != this && !(e instanceof KhasetEntity) && !(e instanceof Xiuhcoatl)
+            if (e != this && !(e instanceof KhasetEntity) && !(e instanceof Xiuhcoatl) && !(e instanceof GuerreroCalavera)
                     && (k != null ? k.valido(e) : e instanceof net.minecraft.world.entity.player.Player pl && !pl.isCreative()))
                 out.add(e);
         return out;
@@ -233,9 +234,16 @@ public class Xiuhcoatl extends Monster implements GeoEntity {
 
     @Override
     public boolean hurt(DamageSource fuente, float cantidad) {
-        if (fuente.getEntity() instanceof KhasetEntity || fuente.getDirectEntity() instanceof DardoAtlatl)
+        if (fuente.getEntity() instanceof KhasetEntity || fuente.getEntity() instanceof GuerreroCalavera
+                || fuente.getDirectEntity() instanceof DardoAtlatl || fuente.is(EfectosKhaset.CALOR))
             return false;
         return super.hurt(fuente, cantidad);
+    }
+
+    /** El veneno de los dardos de Khaset no le hace nada. */
+    @Override
+    public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance efecto) {
+        return efecto.getEffect() != net.minecraft.world.effect.MobEffects.POISON && super.canBeAffected(efecto);
     }
 
     @Override

@@ -41,7 +41,7 @@ public class Ola {
     private static final double VELOCIDAD = 0.9;             // bloques por tick
     private static final int MAX_POR_TICK = 110;             // bloques que levanta por tick, como mucho
     private static final int SUBE = 3, BAJA = 4, VIDA = 9;   // ticks: subiendo, bajando y en total
-    private static final float DANO = 8f;
+    private static final float DANO = 12f;
     private static final int SECTORES = 360;                  // la ola no pasa detras de las paredes: se tapa por sector
     private static final BlockPos PARED = new BlockPos(0, Integer.MIN_VALUE, 0);
 
@@ -187,14 +187,14 @@ public class Ola {
                 continue;
             if (!this.golpeados.add(e.getUUID()))
                 continue;
-            e.hurt(this.nivel.damageSources().mobAttack(this.jefe), DANO);
+            com.mipack.Golpes.pegar(e, this.jefe, DANO, 100);
             Vec3 afuera = d > 1e-3 ? new Vec3(dx / d, 0, dz / d) : Vec3.ZERO;
             CrackatosEntity.lanzar(e, afuera.scale(0.7), 1.15);
         }
     }
 
     private static boolean alcanzable(LivingEntity e) {
-        if (!e.isAlive() || e instanceof CrackatosEntity)
+        if (!e.isAlive() || e instanceof CrackatosEntity || e instanceof AcaroAmatista)
             return false;
         return !(e instanceof Player p) || (!p.isCreative() && !p.isSpectator());
     }

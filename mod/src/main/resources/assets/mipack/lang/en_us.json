@@ -23,5 +23,19 @@
   "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s",
   "entity.mipack.titan_candil": "Candil, the Mud Axolotl",
   "entity.mipack.titan_sombra_alta": "Sombra Alta, the Sky Manta",
-  "entity.mipack.titan_escarcha": "Escarcha, the Glacier Mammoth"
+  "entity.mipack.titan_escarcha": "Escarcha, the Glacier Mammoth",
+  "entity.mipack.guerrero_calavera": "Skull Warrior",
+  "entity.mipack.acaro_amatista": "Amethyst Mite",
+  "item.mipack.macuahuitl": "Macuahuitl",
+  "effect.mipack.esquirlas": "Amethyst Shards",
+  "gui.mipack.zafarse": "Break free! Click when the cursor is on the gold (3 times)",
+  "death.attack.mipack.golpe_jefe": "%1$s was crushed",
+  "death.attack.mipack.golpe_jefe.player": "%1$s was crushed by %2$s",
+  "death.attack.mipack.forcejeo": "%1$s struggled too hard",
+  "death.attack.mipack.forcejeo.player": "%1$s struggled too hard in the grip of %2$s",
+  "death.attack.mipack.esquirlas": "%1$s was pierced by amethyst shards",
+  "death.attack.mipack.esquirlas.player": "%1$s was pierced by the shards of %2$s",
+  "subtitles.mipack.khaset.silbato": "Death whistle screams",
+  "subtitles.mipack.khaset.rugido": "Khaset roars",
+  "subtitles.mipack.khaset.sacrificio": "Sacrificial heartbeat"
 }

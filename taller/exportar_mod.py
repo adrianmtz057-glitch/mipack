@@ -24,7 +24,7 @@ from .luz import LUZ_SIMETRICA
 from .personajes import candil, escarcha, sombra_alta, crackatos, crackatos_anim, khaset_anim, khaset_extras, khaset_mob
 
 RAIZ = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources", "assets", "mipack")
-ESCALA = 3.0                                  # la de CrackatosEntity.ESCALA
+ESCALA = 4.5                                  # la de CrackatosEntity.ESCALA
 
 
 def _escribir_json(ruta, datos, compacto=True):
@@ -82,6 +82,48 @@ def crackatos_assets():
     medidas = tuple((max(v) - min(v)) * ESCALA / 16 for v in (xs, ys, zs))
     return {"cubos": len(p.m.cubos), "textura": img.size, "animaciones": list(horneadas),
             "medidas_en_bloques (ancho, alto, largo)": tuple(round(m, 2) for m in medidas)}
+
+
+def crackatos_extras():
+    """Lo de la fase 2 de Crackatos: la mascara de sus cristales (los pixeles morados de la textura, mas claros: laten
+    con la capa de brillo) y la textura del acaro de amatista (el modelo del endermite, 64x32) con su brillo."""
+    import colorsys
+    base = Image.open(os.path.join(RAIZ, "textures", "entity", "crackatos.png")).convert("RGBA")
+    out = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    px, po = base.load(), out.load()
+    n = 0
+    for y in range(base.height):
+        for x in range(base.width):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            h, sat, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if 0.66 < h < 0.84 and sat > 0.38 and v > 0.47:          # la amatista (la piedra es del mismo tono, pero oscura)
+                k = min(1.0, v * 1.5 + 0.1)
+                po[x, y] = (min(255, int(r * 1.25 + 40 * k)), min(255, int(g * 1.1 + 20 * k)), min(255, int(b * 1.2 + 50 * k)), 255)
+                n += 1
+    out.save(os.path.join(RAIZ, "textures", "entity", "crackatos_cristales.png"))
+    # el acaro: facetas de amatista (como los picos de Crackatos) con puntas que brillan
+    from .personajes.jefe_piedra import AMATISTA
+    tonos_ = [hex_a(AMATISTA["s"]), hex_a(AMATISTA["b"]), hex_a(AMATISTA["l"])]
+    oscuro = hex_a("#2A1840")
+    tex = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    brillo = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
+    for y in range(32):
+        for x in range(64):
+            hsh = ((x * 73856093) ^ (y * 19349663) ^ 0x5bd1e995) & 0xFFFF
+            f = hsh / 0xFFFF
+            if (x + y) % 5 == 0 and f < 0.5:
+                c = oscuro                                   # las juntas entre cristales
+            else:
+                c = tonos_[0] if f < 0.3 else tonos_[1] if f < 0.75 else tonos_[2]
+            tex.putpixel((x, y), c)
+            if f > 0.9:
+                brillo.putpixel((x, y), (235, 200, 255, 255))
+                tex.putpixel((x, y), (214, 170, 255, 255))
+    tex.save(os.path.join(RAIZ, "textures", "entity", "acaro_amatista.png"))
+    brillo.save(os.path.join(RAIZ, "textures", "entity", "acaro_amatista_brillo.png"))
+    return {"pixeles_de_cristal": n}
 
 
 def pua_assets():
@@ -213,7 +255,7 @@ def escribir_poses_java(valores, cuadros_por, largos, tiempos):
 
 
 POSES_KHASET = ("zarpazos", "barrido", "barrido_i", "contraataque", "lanzar_dardo", "agarrar", "agarrar_dos",
-                "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "abalanzarse")
+                "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "abalanzarse", "pisoton", "pisoton_dos")
 PASAN_EL_PISO = ("desvanecer", "aparecer")          # se hunden a proposito
 
 
@@ -261,7 +303,7 @@ def khaset_assets():
     escribir_poses_java(valores, cuadros_por, largos, {
         "GOLPES_ZARPAZOS": list(A.GOLPES_ZARPAZOS), "BARRIDO": list(A.BARRIDO), "SACRIFICIO": list(A.SACRIFICIO),
         "SALTO": A.SALTO, "HUNDIDO": A.HUNDIDO, "DARDO": A.DARDO, "CONTRA": A.CONTRA, "AGARRA": A.AGARRA,
-        "SOLTAR": A.SOLTAR, "INVOCA": A.INVOCA, "CORONA": A.CORONA})
+        "SOLTAR": A.SOLTAR, "INVOCA": A.INVOCA, "CORONA": A.CORONA, "PISA": A.PISA})
     alto = max(q[1] for P, *_ in rig.quads({}) for q in P)
     return {"cubos": len(p.m.cubos), "mallas": len(p.m.mallas), "textura": img.size, "animaciones": len(horneadas),
             "alto_en_bloques": round(alto * khaset_mob.ESCALA / 16, 2)}
@@ -399,7 +441,16 @@ def textos():
           "death.attack.mipack.sacrificio": "%1$s was sacrificed",
           "death.attack.mipack.sacrificio.player": "%1$s was sacrificed by %2$s",
           "entity.mipack.titan_candil": "Candil, the Mud Axolotl", "entity.mipack.titan_sombra_alta": "Sombra Alta, the Sky Manta",
-          "entity.mipack.titan_escarcha": "Escarcha, the Glacier Mammoth"}
+          "entity.mipack.titan_escarcha": "Escarcha, the Glacier Mammoth",
+          "entity.mipack.guerrero_calavera": "Skull Warrior", "entity.mipack.acaro_amatista": "Amethyst Mite",
+          "item.mipack.macuahuitl": "Macuahuitl", "effect.mipack.esquirlas": "Amethyst Shards",
+          "gui.mipack.zafarse": "Break free! Click when the cursor is on the gold (3 times)",
+          "death.attack.mipack.golpe_jefe": "%1$s was crushed", "death.attack.mipack.golpe_jefe.player": "%1$s was crushed by %2$s",
+          "death.attack.mipack.forcejeo": "%1$s struggled too hard", "death.attack.mipack.forcejeo.player": "%1$s struggled too hard in the grip of %2$s",
+          "death.attack.mipack.esquirlas": "%1$s was pierced by amethyst shards",
+          "death.attack.mipack.esquirlas.player": "%1$s was pierced by the shards of %2$s",
+          "subtitles.mipack.khaset.silbato": "Death whistle screams", "subtitles.mipack.khaset.rugido": "Khaset roars",
+          "subtitles.mipack.khaset.sacrificio": "Sacrificial heartbeat"}
     es = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Púa de amatista",
           "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack",
           "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Cristal del sacrificio",
@@ -414,7 +465,16 @@ def textos():
           "death.attack.mipack.sacrificio": "%1$s fue sacrificado",
           "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
           "entity.mipack.titan_candil": "Candil, el ajolote del lodo", "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo",
-          "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar"}
+          "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar",
+          "entity.mipack.guerrero_calavera": "Guerrero calavera", "entity.mipack.acaro_amatista": "Ácaro de amatista",
+          "item.mipack.macuahuitl": "Macuahuitl", "effect.mipack.esquirlas": "Esquirlas de amatista",
+          "gui.mipack.zafarse": "¡Zafate! Haz clic cuando el cursor esté en lo dorado (3 veces)",
+          "death.attack.mipack.golpe_jefe": "%1$s fue aplastado", "death.attack.mipack.golpe_jefe.player": "%1$s fue aplastado por %2$s",
+          "death.attack.mipack.forcejeo": "%1$s forcejeó de más", "death.attack.mipack.forcejeo.player": "%1$s forcejeó de más en la mano de %2$s",
+          "death.attack.mipack.esquirlas": "%1$s quedó lleno de esquirlas de amatista",
+          "death.attack.mipack.esquirlas.player": "%1$s quedó lleno de las esquirlas de %2$s",
+          "subtitles.mipack.khaset.silbato": "Grita el silbato de la muerte", "subtitles.mipack.khaset.rugido": "Khaset ruge",
+          "subtitles.mipack.khaset.sacrificio": "Late el sacrificio"}
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
     for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg"):
@@ -424,6 +484,18 @@ def textos():
                    {"parent": "minecraft:item/generated", "textures": {"layer0": "mipack:item/cristal_sacrificio"}},
                    compacto=False)
     icono_cristal().save(os.path.join(RAIZ, "textures", "item", "cristal_sacrificio.png"))
+    # el guerrero calavera y su macuahuitl
+    from .personajes import guerrero
+    guerrero.textura().save(os.path.join(RAIZ, "textures", "entity", "guerrero_calavera.png"))
+    guerrero.macuahuitl().save(os.path.join(RAIZ, "textures", "item", "macuahuitl.png"))
+    _escribir_json(os.path.join(RAIZ, "models", "item", "macuahuitl.json"),
+                   {"parent": "minecraft:item/handheld", "textures": {"layer0": "mipack:item/macuahuitl"}}, compacto=False)
+    # los sonidos (los .ogg los hace taller/sonidos.py)
+    _escribir_json(os.path.join(RAIZ, "sounds.json"), {
+        "khaset.silbato": {"subtitle": "subtitles.mipack.khaset.silbato", "sounds": [{"name": "mipack:khaset/silbato", "attenuation_distance": 64}]},
+        "khaset.rugido": {"subtitle": "subtitles.mipack.khaset.rugido", "sounds": [{"name": "mipack:khaset/rugido", "attenuation_distance": 48}]},
+        "khaset.sacrificio": {"subtitle": "subtitles.mipack.khaset.sacrificio", "sounds": [{"name": "mipack:khaset/sacrificio", "attenuation_distance": 48}]},
+    }, compacto=False)
 
 
 def icono_cristal():
@@ -493,6 +565,7 @@ def arena(lado=49, alto=10):
 
 def main():
     print("crackatos:", crackatos_assets())
+    print("crackatos fase 2:", crackatos_extras())
     print("khaset:", khaset_assets())
     print("extras:", extras_assets())
     for t in TITANES:

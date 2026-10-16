@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  * aturdido, desorientado y el nivel de desangrado. Con eso se dibujan las poses y las gotas en todos los clientes.
  */
 public final class RedKhaset {
-    private static final String VERSION = "1";
+    private static final String VERSION = "2";
     public static final SimpleChannel CANAL = NetworkRegistry.newSimpleChannel(new ResourceLocation(Mipack.MODID, "khaset"),
             () -> VERSION, VERSION::equals, VERSION::equals);
 
@@ -30,6 +30,67 @@ public final class RedKhaset {
     public static void registrar() {
         CANAL.messageBuilder(Estado.class, 0, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(Estado::escribir).decoder(Estado::leer).consumerMainThread(Estado::recibir).add();
+        CANAL.messageBuilder(Barra.class, 1, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(Barra::escribir).decoder(Barra::leer).consumerMainThread(Barra::recibir).add();
+        CANAL.messageBuilder(Clic.class, 2, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(Clic::escribir).decoder(Clic::leer).consumerMainThread(Clic::recibir).add();
+    }
+
+    /**
+     * La barra para zafarse de la mano de Khaset (al que va agarrado): el cursor va y viene (un viaje dura 'periodo'
+     * ticks desde 'inicio', el tiempo del mundo) y hay que darle cuando pasa por la zona ('zona' es el centro, de 0 a
+     * 1, y 'ancho' lo que mide). 'aciertos' de 3. 'fallo': el ultimo clic fallo (para el destello rojo).
+     */
+    public record Barra(boolean activa, int aciertos, float zona, float ancho, int periodo, long inicio, boolean fallo) {
+        public static final Barra NADA = new Barra(false, 0, 0.5f, 0.2f, 20, 0L, false);
+
+        /** Donde va el cursor (0 a 1) en el tiempo 't' del mundo (con fraccion). */
+        public float cursor(double t) {
+            double f = ((t - inicio) / periodo) % 2.0;
+            if (f < 0)
+                f += 2.0;
+            return (float) (f <= 1.0 ? f : 2.0 - f);
+        }
+
+        void escribir(FriendlyByteBuf b) {
+            b.writeBoolean(activa);
+            b.writeVarInt(aciertos);
+            b.writeFloat(zona);
+            b.writeFloat(ancho);
+            b.writeVarInt(periodo);
+            b.writeLong(inicio);
+            b.writeBoolean(fallo);
+        }
+
+        static Barra leer(FriendlyByteBuf b) {
+            return new Barra(b.readBoolean(), b.readVarInt(), b.readFloat(), b.readFloat(), b.readVarInt(), b.readLong(),
+                    b.readBoolean());
+        }
+
+        void recibir(Supplier<NetworkEvent.Context> ctx) {
+            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> com.mipack.cliente.BarraZafarse.recibir(this));
+        }
+    }
+
+    /** El clic del que va agarrado, con donde vio el cursor. */
+    public record Clic(float cursor) {
+        void escribir(FriendlyByteBuf b) {
+            b.writeFloat(cursor);
+        }
+
+        static Clic leer(FriendlyByteBuf b) {
+            return new Clic(b.readFloat());
+        }
+
+        void recibir(Supplier<NetworkEvent.Context> ctx) {
+            var jugador = ctx.get().getSender();
+            if (jugador != null && jugador.getVehicle() instanceof KhasetEntity k)
+                k.clic(jugador, cursor);
+        }
+    }
+
+    public static void barra(net.minecraft.server.level.ServerPlayer p, Barra b) {
+        CANAL.send(PacketDistributor.PLAYER.with(() -> p), b);
     }
 
     /** Manda el estado de 'e' a quien lo ve (y a el mismo). */

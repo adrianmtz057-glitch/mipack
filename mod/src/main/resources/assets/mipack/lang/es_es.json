@@ -23,5 +23,19 @@
   "death.attack.mipack.sacrificio.player": "%1$s fue sacrificado por %2$s",
   "entity.mipack.titan_candil": "Candil, el ajolote del lodo",
   "entity.mipack.titan_sombra_alta": "Sombra Alta, la manta del cielo",
-  "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar"
+  "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar",
+  "entity.mipack.guerrero_calavera": "Guerrero calavera",
+  "entity.mipack.acaro_amatista": "Ácaro de amatista",
+  "item.mipack.macuahuitl": "Macuahuitl",
+  "effect.mipack.esquirlas": "Esquirlas de amatista",
+  "gui.mipack.zafarse": "¡Zafate! Haz clic cuando el cursor esté en lo dorado (3 veces)",
+  "death.attack.mipack.golpe_jefe": "%1$s fue aplastado",
+  "death.attack.mipack.golpe_jefe.player": "%1$s fue aplastado por %2$s",
+  "death.attack.mipack.forcejeo": "%1$s forcejeó de más",
+  "death.attack.mipack.forcejeo.player": "%1$s forcejeó de más en la mano de %2$s",
+  "death.attack.mipack.esquirlas": "%1$s quedó lleno de esquirlas de amatista",
+  "death.attack.mipack.esquirlas.player": "%1$s quedó lleno de las esquirlas de %2$s",
+  "subtitles.mipack.khaset.silbato": "Grita el silbato de la muerte",
+  "subtitles.mipack.khaset.rugido": "Khaset ruge",
+  "subtitles.mipack.khaset.sacrificio": "Late el sacrificio"
 }

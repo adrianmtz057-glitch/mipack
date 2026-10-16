@@ -5,8 +5,8 @@ package com.mipack.khaset;
 final class PosesKhasetDatos {
     static final float ESCALA = 3.0f;
     static final float[] ALTAR = {0.0f, 9.0f, -24.0f};
-    static final String[] ANIMS = {"zarpazos", "barrido", "barrido_i", "contraataque", "lanzar_dardo", "agarrar", "agarrar_dos", "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "abalanzarse"};
-    static final int[] CUADROS = {33, 39, 39, 19, 31, 35, 35, 33, 33, 21, 73, 41, 29};
+    static final String[] ANIMS = {"zarpazos", "barrido", "barrido_i", "contraataque", "lanzar_dardo", "agarrar", "agarrar_dos", "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "abalanzarse", "pisoton", "pisoton_dos"};
+    static final int[] CUADROS = {33, 39, 39, 19, 31, 35, 35, 33, 33, 21, 73, 41, 29, 25, 25};
     static final float[] GOLPES_ZARPAZOS = {0.38f, 0.78f, 1.22f};
     static final float[] BARRIDO = {0.72f, 1.0f};
     static final float[] SACRIFICIO = {0.6f, 2.2f, 2.8f};
@@ -18,8 +18,9 @@ final class PosesKhasetDatos {
     static final float SOLTAR = 0.1f;
     static final float INVOCA = 1.1f;
     static final float CORONA = 1.5f;
-    static final String[] LARGOS_NOMBRES = {"quieto", "acechar", "correr", "zarpazos", "abalanzarse", "grito", "desvanecer", "aparecer", "muerte", "mirar", "barrido", "barrido_i", "lanzar_dardo", "guardia", "contraataque", "agarrar", "agarrar_dos", "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "corona_rota"};
-    static final float[] LARGOS = {4.0f, 2.4f, 0.7f, 1.6f, 1.4f, 2.2f, 1.2f, 1.2f, 2.6f, 1.6f, 1.9f, 1.9f, 1.5f, 1.2f, 0.9f, 1.7f, 1.7f, 1.6f, 1.6f, 1.0f, 3.6f, 2.0f, 3.0f};
+    static final float PISA = 0.55f;
+    static final String[] LARGOS_NOMBRES = {"quieto", "acechar", "correr", "zarpazos", "abalanzarse", "grito", "desvanecer", "aparecer", "muerte", "mirar", "barrido", "barrido_i", "lanzar_dardo", "guardia", "contraataque", "agarrar", "agarrar_dos", "cargar", "cargar_dos", "soltar", "sacrificio", "invocar", "corona_rota", "pisoton", "pisoton_dos"};
+    static final float[] LARGOS = {4.0f, 2.4f, 0.7f, 1.6f, 1.4f, 2.2f, 1.2f, 1.2f, 2.6f, 1.6f, 1.9f, 1.9f, 1.5f, 1.2f, 0.9f, 1.7f, 1.7f, 1.6f, 1.6f, 1.0f, 3.6f, 2.0f, 3.0f, 1.2f, 1.2f};
     static final String DATOS = "AGEA1P+zAGAAr/+g/54AwAAF/6EAmf/2AFgBLP8dAFUBHP73/50AwAAQ/58AmQABACUCEf7eABwCKP6+/54AwQAl/58AmgAYAAwC"
             + "sv9lAAYC2v9q/6QAwwA8/6QAmwAwACUCvf/aACgC3P/1/6sAxgBN/6sAnQBEADACuv+qADIC3v++/6wAyQBU/64AoABOAGACIv7e"
             + "AGMCQf7D/6QAywBL/6gAoQBHAEYA9f8sAEIA2P8O/5wAyAA4/54AnwBCAAcAwv+///MAnP/C/54AwAAd/5wAmQAwACEAu//hABQA"
@@ -167,7 +168,23 @@ final class PosesKhasetDatos {
             + "AEgB2P55AEQB0/5O/7ABh/5q/7UBfP5AAFQBkv6IAFIBiP5f/6IBP/6L/6YBMP5iAGIBGP7CAGEBCP6b/5YAzf7h/5kAuP68AGkA"
             + "vv8nAGkApP8G/5IAiP9i/5QAaf9EAGkAuf9IAGkAnP8p/5MAif+J/5UAaf9uAGgAu/9jAGgAnf9H/5UAkv+p/5cAcP+QAGcAxP94"
             + "AGcApf9d/5cAnv/B/5kAfP+pAGUAzv+GAGUAsP9r/5kAq//R/5sAif+5AGQA2v+OAGQAvP9y/5sAt//a/54Alv/CAGIA5P+TAGIA"
-            + "xv92/50Awf/e/6AAoP/GAGEA6v+XAGAAzf96/54AyP/j/6EAp//K";
+            + "xv92/50Awf/e/6AAoP/GAGEA6v+XAGAAzf96/54AyP/j/6EAp//KAFIBqv8zAFEBzf81/54AqQAn/6EAfwApAFIBqf8yAFEBzP8z"
+            + "/54AqgAo/6EAgAArAFIBp/8wAFEByf8x/54AqwAq/6EAgQAtAFIBpP8uAFEBx/8u/54ArQAs/6EAgwAwAFIBov8rAFEBxP8r/54A"
+            + "rwAv/6EAhQAzAFIBn/8pAFEBwf8o/54AsgAx/6EAiAA2AFIBnP8nAFEBv/8m/54AtAAz/6EAigA5AFIBmv8mAFEBvf8k/54AtQA1"
+            + "/6EAjAA8AFIBmP8lAFEBu/8i/54AtwA2/6EAjQA9AFIBlv8jAFEBuf8h/54AuAA4/6EAjwBAAFIBnf8oAFEBwP8n/54AswAz/6EA"
+            + "iQA4AFIBq/80AFEBzv82/54AqAAm/6EAfgAoAFIBt/8+AFEB2P9E/54ApQAe/6EAewAdAFIBxf9MAFIB5f9Y/54AoQAT/6EAdwAO"
+            + "AFIBzf9XAFIB7P9m/54AoAAM/6EAdgAFAFIBy/9UAFIB6v9i/54AoAAO/6EAdgAHAFIBwP9HAFIB4f9R/54AogAX/6EAeAAUAFIB"
+            + "sv85AFEB1P8+/54ApgAh/6EAfAAiAFIBq/80AFEBzv82/54AqAAm/6EAfgAoAFIBq/80AFEBzv82/54AqAAm/6EAfgAoAFIBq/8z"
+            + "AFEBzf82/54AqAAm/6EAfgAoAFIBq/8zAFEBzf81/54AqAAn/6EAfgAoAFIBqv8zAFEBzf81/54AqQAn/6EAfgApAFIBqv8zAFEB"
+            + "zf81/54AqQAn/6EAfgApAFIBqv8zAFEBzf81/54AqQAn/6EAfwApAFIBqv8zAFEBzf81/6wBmP88/64Buv9HAFIBqf8yAFEBzP8z"
+            + "/6wBl/87/64BuP9GAFIBp/8wAFEByf8x/6wBlf86/64Bt/9EAFIBpP8uAFEBx/8u/6wBk/84/64BtP9BAFIBov8rAFEBxP8r/6wB"
+            + "kP82/64Bsv8+AFIBn/8pAFEBwf8o/6wBjv80/64BsP88AFIBnP8nAFEBv/8m/6wBi/8y/64Brf86AFIBmv8mAFEBvf8k/6wBif8x"
+            + "/64Bq/84AFIBmP8lAFEBu/8i/6wBiP8w/64Bqv83AFIBlv8jAFEBuf8h/6wBhv8v/64BqP81AFIBnf8oAFEBwP8n/6wBjP8z/64B"
+            + "rv86AFIBq/80AFEBzv82/6wBmf89/64Buv9IAFIBt/8+AFEB2P9E/6wBpP9F/60Bw/9UAFIBxf9MAFIB5f9Y/6wBsf9S/60Bzv9m"
+            + "AFIBzf9XAFIB7P9m/6wBuf9b/60B0/9yAFIBy/9UAFIB6v9i/6wBt/9Z/60B0v9vAFIBwP9HAFIB4f9R/6wBrP9O/60Byv9gAFIB"
+            + "sv85AFEB1P8+/6wBn/9C/64BwP9PAFIBq/80AFEBzv82/6wBmf89/64Buv9IAFIBq/80AFEBzv82/6wBmf89/64Buv9IAFIBq/8z"
+            + "AFEBzf82/6wBmf89/64Buv9IAFIBq/8zAFEBzf81/6wBmP88/64Buv9HAFIBqv8zAFEBzf81/6wBmP88/64Buv9HAFIBqv8zAFEB"
+            + "zf81/6wBmP88/64Buv9HAFIBqv8zAFEBzf81/6wBmP88/64Buv9H";
 
     private PosesKhasetDatos() {
     }

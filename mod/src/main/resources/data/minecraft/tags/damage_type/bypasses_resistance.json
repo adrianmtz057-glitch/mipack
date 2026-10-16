@@ -1,4 +1,7 @@
 {
   "replace": false,
-  "values": ["mipack:sacrificio"]
+  "values": [
+    "mipack:sacrificio",
+    "mipack:forcejeo"
+  ]
 }

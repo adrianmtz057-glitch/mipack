@@ -35,9 +35,14 @@ public final class EventosKhaset {
     private EventosKhaset() {
     }
 
+    /** Solo el servidor decide cuando se suelta: si el cliente tambien lo cancelaba, al soltarte en el servidor tu
+     * pantalla te dejaba pegado a su mano. Muerto o ya quitado, siempre se baja. */
     @SubscribeEvent
     public static void bajarse(EntityMountEvent evento) {
-        if (evento.isDismounting() && evento.getEntityBeingMounted() instanceof KhasetEntity k && !k.soltando())
+        if (evento.isDismounting() && !evento.getLevel().isClientSide()
+                && evento.getEntityBeingMounted() instanceof KhasetEntity k && !k.soltando()
+                && evento.getEntityMounting().isAlive() && !evento.getEntityMounting().isRemoved()
+                && !(evento.getEntityMounting() instanceof ServerPlayer sp && sp.hasDisconnected()))
             evento.setCanceled(true);
     }
 

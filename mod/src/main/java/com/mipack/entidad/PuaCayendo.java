@@ -33,15 +33,15 @@ import java.util.UUID;
  * <ul>
  * <li>Subiendo: las que salen volando del lomo cuando se sacude. Solo se ven (el modelo del jefe no pierde
  *     ninguna): suben girando y desaparecen.</li>
- * <li>Cayendo: la entidad se queda en el piso donde va a caer; primero se ve el circulo morado de aviso (2 bloques
- *     de radio) y despues de la espera la pua cae del cielo y explota al tocar el piso. La altura de la pua se
+ * <li>Cayendo: la entidad se queda en el piso donde va a caer; primero se ve el circulo morado de aviso (2.5 bloques
+ *     de radio) y despues de la espera la pua cae del cielo y explota al tocar el piso: a quien alcanza le deja una esquirla (EfectosCrackatos). La altura de la pua se
  *     calcula con el tiempo del mundo (igual en el servidor y en el cliente), asi cae suave sin mandar posiciones.</li>
  * </ul>
  */
 public class PuaCayendo extends Entity implements GeoEntity {
     public static final float ALTURA = 18f;                  // de donde cae (bloques sobre el piso)
-    public static final float RADIO = 2f;                    // el circulo de aviso y la explosion
-    private static final float DANO = 8f;
+    public static final float RADIO = 2.5f;                  // el circulo de aviso y la explosion
+    private static final float DANO = 10f;
     private static final float V0 = 0.8f, ACEL = 0.09f;       // caida: h(t) = ALTURA - (V0 t + ACEL t^2)
     public static final float T_CAIDA = (float) ((-V0 + Math.sqrt(V0 * V0 + 4 * ACEL * ALTURA)) / (2 * ACEL));
     private static final int VIDA_SUBIENDO = 26;
@@ -148,7 +148,8 @@ public class PuaCayendo extends Entity implements GeoEntity {
             Vec3 afuera = new Vec3(e.getX() - x, 0, e.getZ() - z);
             if (afuera.length() > RADIO + 0.4)
                 continue;
-            e.hurt(this.damageSources().explosion(this, dueno), DANO);
+            com.mipack.Golpes.pegar(e, dueno != null ? dueno : this, DANO, 100);
+            EfectosCrackatos.clavar(e);                       // se queda una esquirla hasta que Crackatos muera
             Vec3 dir = afuera.lengthSqr() > 1e-4 ? afuera.normalize() : Vec3.ZERO;
             CrackatosEntity.lanzar(e, dir.scale(0.5), 0.5);
         }
@@ -156,7 +157,7 @@ public class PuaCayendo extends Entity implements GeoEntity {
     }
 
     private static boolean alcanzable(LivingEntity e) {
-        if (!e.isAlive() || e instanceof CrackatosEntity)
+        if (!e.isAlive() || e instanceof CrackatosEntity || e instanceof AcaroAmatista)
             return false;
         return !(e instanceof Player p) || (!p.isCreative() && !p.isSpectator());
     }

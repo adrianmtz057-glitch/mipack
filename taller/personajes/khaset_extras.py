@@ -1,10 +1,11 @@
 """
 Lo que acompana a Khaset en el mod (GeckoLib), con la misma paleta y la misma textura de bloques que el:
-  - cristal(): el CRISTAL DEL SACRIFICIO. Una piedra de sacrificio azteca (techcatl) de tezontle, la piedra
-    volcanica roja de los templos, sobre un zocalo de basalto con una franja de piramides escalonadas de oro sobre
-    turquesa; la cara de arriba es abombada (la presa se acuesta de espaldas, arqueada) con un canal oscuro. Encima,
-    a 6 bloques, flota un cristal de obsidiana con grietas de brasa (como las manos de Khaset) y dos aros de oro y
-    turquesa que giran a su alrededor. Khaset lleva ahi a sus presas.
+  - cristal(): el CRISTAL DEL SACRIFICIO. Una caja de piedra tallada azteca (tepetlacalli) de basalto gris pardo:
+    en los lados largos, guerreros con penacho, escudo y lanza y sacerdotes con baston en procesion, en relieve y con
+    restos de pintura roja y turquesa; en los cortos, un sol; arriba, la franja de la serpiente ondulada y postes
+    tallados en las esquinas; la cara de arriba tiene su borde tallado y el canal oscuro de la sangre. Encima, a 6
+    bloques, flota un cristal de obsidiana con grietas de brasa y dos aros de oro y turquesa. Khaset acuesta ahi a sus
+    presas.
   - dardo(): el dardo del atlatl: una de las plumas de su abanico (turquesa con la punta verde y el filete naranja)
     con una punta de obsidiana.
   - xiuhcoatl(): la XIUHCOATL, la serpiente de fuego (en codices: turquesa, el cuerpo en placas, el hocico
@@ -57,50 +58,169 @@ ESCALON = ("...##...",
            "########")
 
 
-def _zocalo(t):
-    """Basalto con una franja de piramides escalonadas de oro sobre turquesa en los lados."""
+# ---- la piedra: una caja de piedra tallada (tepetlacalli) de basalto, como las del Templo Mayor: en los lados,
+# guerreros y sacerdotes en relieve; arriba, la franja de la serpiente ondulada; en las esquinas, postes tallados.
+
+BASALTO_T = tonos("#6E655C")              # la piedra gris parda, gastada
+OCRE = "#8E3B2A"                          # restos de pintura roja
+TURQ = "#4C8C84"                          # y turquesa
+
+
+def _grano(x, y, z):
+    h = math.sin(x * 12.9898 + y * 78.233 + z * 37.719) * 43758.5453
+    return h - math.floor(h)
+
+
+def _piedra_tono(nivel, t, extra=0.0):
+    """El color de la piedra en un nivel del relieve: 0 hondo (fondo tallado), 1 medio, 2 alto, 3 canto con luz."""
+    g = _grano(round(t.x * 2) / 2, round(t.y * 2) / 2, round(t.z * 2) / 2) + extra
+    tonos_ = (("s", "s", "s2"), ("s", "b", "b"), ("b", "l", "l"), ("l", "h", "l"))[nivel]
+    k = 0 if g < 0.25 else 1 if g < 0.8 else 2
+    return hex_(BASALTO_T[tonos_[k]])
+
+
+def _figura(tipo, c, r):
+    """El relieve de una figura (16 x 22 texeles, de perfil mirando a la derecha): 0 fondo, 1 piedra alzada,
+    2 pintura roja, 3 pintura turquesa."""
+    if not (0 <= c < 16 and 0 <= r < 22):
+        return 0
+    if tipo == 0:                                   # guerrero con penacho, escudo y lanza
+        if r <= 4 and c in (3, 5, 7, 9, 11) and r >= (0 if c in (5, 7, 9) else 1):
+            return 3 if r <= 1 else 1                  # plumas (puntas turquesa)
+        if r == 4 and 3 <= c <= 11:
+            return 2                                   # la banda del penacho
+        if 5 <= r <= 9 and 5 <= c <= 10 or (r == 7 and c == 11):
+            return 2 if (r == 6 and c == 8) else 1      # cabeza (ojo) y nariz
+        if c == 13 and 2 <= r <= 21:
+            return 1                                   # la lanza
+        if r == 1 and 12 <= c <= 14:
+            return 1
+        if 11 <= r <= 12 and 11 <= c <= 12:
+            return 1                                   # el brazo que la agarra
+        if (c - 3) ** 2 + (r - 13.5) ** 2 <= 7.5:
+            return 3 if (c - 3) ** 2 + (r - 13.5) ** 2 <= 2.5 else 1       # el escudo (chimalli)
+        if 10 <= r <= 16 and 5 <= c <= 10:
+            return 2 if r == 14 else 1                 # el cuerpo y el maxtlatl
+        if 17 <= r <= 20 and (5 <= c <= 6 or 9 <= c <= 10):
+            return 1
+        if r == 21 and (4 <= c <= 6 or 9 <= c <= 11):
+            return 1
+        return 0
+    # sacerdote con el baston y el tocado redondo
+    if (c - 8) ** 2 + (r - 3.5) ** 2 <= 12 and r <= 5:
+        return 3 if (c - 8) ** 2 + (r - 3.5) ** 2 <= 3 else 1
+    if 5 <= r <= 9 and 6 <= c <= 10 or (r == 7 and c == 11):
+        return 2 if (r == 6 and c == 9) else 1
+    if c == 2 and 3 <= r <= 21:
+        return 1                                       # el baston
+    if (c - 2) ** 2 + (r - 2) ** 2 <= 2.5:
+        return 2
+    if 11 <= r <= 12 and 2 <= c <= 5:
+        return 1
+    if 10 <= r <= 19 and 5 <= c <= 11 and c - 5 >= (r - 10) * 0.0:
+        return 2 if r in (15, 16) and c % 2 == 0 else 1  # la tilma larga con flecos
+    if r in (20, 21) and (6 <= c <= 7 or 9 <= c <= 10):
+        return 1
+    return 0
+
+
+def _relieve(nivel_en, c, r, t, color_en=None):
+    """Sombras del relieve: lo alzado tiene canto con luz arriba e izquierda y sombra abajo y derecha; el fondo junto a
+    lo alzado se oscurece."""
+    n = nivel_en(c, r)
+    if n:
+        if not nivel_en(c - 1, r) or not nivel_en(c, r - 1):
+            return _piedra_tono(3, t)
+        if not nivel_en(c + 1, r) or not nivel_en(c, r + 1):
+            return _piedra_tono(1, t, -0.3)
+        if color_en and n >= 2 and _grano(c * 1.3, r * 0.7, 3.0) > 0.35:     # la pintura se gasto en partes
+            return hex_(OCRE if n == 2 else TURQ)
+        return _piedra_tono(2, t)
+    if nivel_en(c - 1, r) or nivel_en(c, r - 1):
+        return hex_(BASALTO_T["s2"])                         # la sombra que echa lo alzado
+    return _piedra_tono(0, t)
+
+
+ZOC = (22.0, 2.0, 14.0)                    # zocalo: medio largo, alto, medio ancho
+CAJA = (20.0, 14.0, 12.0)                  # la caja: medio largo, alto de arriba, medio ancho
+FRISO = (21.0, 19.0, 13.0)                 # la franja de arriba (sobresale 1 px): medio largo, alto, medio ancho
+
+
+def _lados_caja(t):
+    """Los lados de la caja: en los largos, cuatro figuras en procesion entre postes; en los cortos, el sol."""
     if t.cara in ("up", "down"):
-        return voxel(BASALTO)(t)
-    u = t.x if abs(t.n[2]) >= abs(t.n[0]) else t.z
-    fila = int((ZOCALO[1] - t.y) * 2)                          # dos texeles por px de alto (dens 2)
-    if 1 <= fila <= 4:
-        col = math.floor(u * 2 + 100) % 8
-        return hex_(ORO["b"] if ESCALON[fila - 1][col] == "#" else TURQUESA["s"])
-    return hex_(ORO["s"]) if fila in (0, 5) else voxel(BASALTO)(t)
-
-
-def _piedra(t):
-    """Los lados de la piedra: tezontle con una greca tallada arriba y abajo y, al centro de los lados largos, un
-    disco de sol con un mosaico de turquesa."""
-    tez = _tezontle()
-    if t.cara == "down":
-        return tez(t)
-    alto = t.y - ZOCALO[1]
+        return _piedra_tono(1, t)
     largo = abs(t.n[2]) >= abs(t.n[0])
-    if t.cara != "up" and abs(t.n[1]) < 0.6:
-        u = t.x if largo else t.z
-        if 1.0 < alto < 2.0 or PIEDRA[2] - ZOCALO[1] - 2.5 < alto < PIEDRA[2] - ZOCALO[1] - 1.5:
-            return hex_(TEZONTLE["s2"] if math.floor(u * 2 + 100) % 4 < 2 else TEZONTLE["s"])
-        if largo:
-            d = math.hypot(t.x, alto - 6.0)
-            if d < 4.2:
-                if d < 1.6:
-                    return hex_(ORO["l"])
-                if d < 3.0:
-                    return hex_(TURQUESA["b"] if math.floor((math.atan2(alto - 6.0, t.x) + 4) * 8 / math.pi) % 2
-                                else TURQUESA["l"])
-                return hex_(ORO["b"])
-    return tez(t)
+    hx, y1, hz = CAJA
+    medio = hx if largo else hz
+    u = (t.x if largo else t.z) * (1 if (t.n[2] > 0 or t.n[0] < 0) else -1)
+    c = math.floor((u + medio) * 2)
+    r = math.floor((y1 - t.y) * 2)
+    ancho = int(medio * 4)
+    if r < 2 or r >= int((y1 - ZOC[1]) * 2) - 1:
+        return _relieve(lambda a, b: 1 if b < 2 or b >= int((y1 - ZOC[1]) * 2) - 1 else 0, c, r, t)   # marco
+    if c < 4 or c >= ancho - 4:                                # los postes de las esquinas: chevrones
+        return _relieve(lambda a, b: 1 if (a < 4 or a >= ancho - 4) and not ((b + abs((a % (ancho - 4)) - 2)) % 5 == 0)
+                        else 0, c, r, t)
+    if largo:
+        k = (c - 4) // 18                                     # cuatro figuras de 18 texeles
+        tipo = k % 2
+        return _relieve(lambda a, b: _figura(tipo, (a - 4) - ((a - 4) // 18) * 18 - 1, b - 2), c, r, t, color_en=True)
+    # el sol en los lados cortos
+    cx, cy = ancho / 2, (int((y1 - ZOC[1]) * 2)) / 2
+
+    def sol(a, b):
+        d = math.hypot(a + 0.5 - cx, (b + 0.5 - cy) * 1.15)
+        ang = math.atan2(b - cy, a - cx)
+        if d < 3.2:
+            return 2
+        if 4.5 < d < 6.2:
+            return 3
+        if 7.0 < d < 10.5 and math.cos(ang * 8) > 0.55:
+            return 1
+        return 0
+    return _relieve(sol, c, r, t, color_en=True)
 
 
-def _lomo(t):
-    """La cara de arriba: tezontle gastado con un canal oscuro a lo largo y manchas viejas."""
-    tez = _tezontle(0.1)
-    if abs(t.z) < 0.9 and abs(t.x) < PIEDRA[1][0] - 2:
-        return hex_(SANGRE["s"] if math.floor(t.x * 2 + 100) % 3 else SANGRE["s2"])
-    if math.sin(t.x * 0.9 + 1.0) * math.sin(t.z * 1.3) > 0.7:
-        return hex_(SANGRE["b"])
-    return tez(t)
+def _friso(t):
+    """La franja de arriba: la serpiente ondulada (como las olas talladas de la caja) entre dos filetes; arriba, la
+    cara de la piedra con su borde tallado y el canal oscuro."""
+    if t.cara == "down":
+        return _piedra_tono(0, t)
+    if t.cara == "up":
+        hx, _y, hz = FRISO
+        bx, bz = hx - abs(t.x), hz - abs(t.z)
+        if 1.5 < min(bx, bz) < 2.5:
+            return hex_(BASALTO_T["s2"])                      # el surco del borde
+        if abs(t.z) < 0.9 and abs(t.x) < hx - 4:
+            return hex_(SANGRE["s"] if math.floor(t.x * 2 + 100) % 3 else SANGRE["s2"])
+        if math.sin(t.x * 0.9 + 1.0) * math.sin(t.z * 1.3) > 0.9:
+            return hex_(SANGRE["s"])
+        return _piedra_tono(1, t)
+    largo = abs(t.n[2]) >= abs(t.n[0])
+    u = t.x if largo else t.z
+    c = math.floor((u + 40) * 2)
+    r = math.floor((FRISO[1] - t.y) * 2)
+    alto = int((FRISO[1] - CAJA[1]) * 2)
+
+    def ola(a, b):
+        if b <= 0 or b >= alto - 1:
+            return 1                                          # los filetes
+        y = alto / 2 + 2.4 * math.sin(2 * math.pi * a / 20)
+        if abs(b + 0.5 - y) < 1.7:
+            return 2 if (a % 6 == 0) else 1                   # el cuerpo de la serpiente con escamas pintadas
+        return 0
+    return _relieve(ola, c, r, t, color_en=True)
+
+
+def _zoc(t):
+    """El zocalo: basalto mas oscuro con escalones tallados."""
+    if t.cara in ("up", "down"):
+        return _piedra_tono(0, t)
+    largo = abs(t.n[2]) >= abs(t.n[0])
+    c = math.floor(((t.x if largo else t.z) + 40) * 2)
+    r = math.floor((ZOC[1] - t.y) * 2)
+    return _relieve(lambda a, b: 1 if b >= 1 and (a // 3) % 2 == 0 else 0, c, r, t)
 
 
 def _obsidiana(t):
@@ -127,21 +247,9 @@ def _aro(t):
 
 def cristal():
     p = Personaje("cristal_sacrificio")
-    hx, h, hz = ZOCALO
-    p.caja("piedra", "zocalo", (-hx, 0, -hz), (hx, h, hz), _zocalo, dens=2)
-    (bx, bz), (ax, az), y1, y2 = PIEDRA
-    anillo_ab = [(bx, h, bz), (bx, h, -bz), (-bx, h, -bz), (-bx, h, bz)][::-1]
-    anillo_ar = [(ax, y1, az), (ax, y1, -az), (-ax, y1, -az), (-ax, y1, az)][::-1]
-    p.malla("piedra", "techcatl", geo.tronco(_ccw(anillo_ab), _ccw(anillo_ar), tapa_arriba=False), _piedra, dens=2)
-    # el lomo abombado: dos faldones que suben a una arista a lo largo (x)
-    lomo = geo.Armador()
-    a = [lomo.v(q) for q in ((ax, y1, az), (ax, y1, -az), (-ax, y1, -az), (-ax, y1, az))]
-    c = [lomo.v(q) for q in ((ax - 1.0, y2, 0.0), (-ax + 1.0, y2, 0.0))]
-    lomo.cara((a[1], a[2], c[1], c[0]), (0, 1, -1), "lomo")
-    lomo.cara((a[3], a[0], c[0], c[1]), (0, 1, 1), "lomo")
-    lomo.cara((a[0], a[1], c[0]), (1, 1, 0), "lomo")
-    lomo.cara((a[2], a[3], c[1]), (-1, 1, 0), "lomo")
-    p.malla("piedra", "lomo", (lomo.vs, lomo.caras), _lomo, dens=2)
+    p.caja("piedra", "zocalo", (-ZOC[0], 0, -ZOC[2]), (ZOC[0], ZOC[1], ZOC[2]), _zoc, dens=2)
+    p.caja("piedra", "caja", (-CAJA[0], ZOC[1], -CAJA[2]), (CAJA[0], CAJA[1], CAJA[2]), _lados_caja, dens=2)
+    p.caja("piedra", "friso", (-FRISO[0], CAJA[1], -FRISO[2]), (FRISO[0], FRISO[1], FRISO[2]), _friso, dens=2)
     # el cristal y sus aros
     r, up, dn = CRISTAL
     p.malla("cristal", "obsidiana", geo.bipiramide((0.0, ALTO_CRISTAL, 0.0), r, up, dn, lados=6, giro=0.0),

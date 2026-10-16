@@ -22,10 +22,10 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
  * El dardo del atlatl: una pluma del penacho (o, sin corona, una astilla de obsidiana ardiendo). Deja un rastro verde y
- * donde pega abre una nube de veneno CORTO: 2.5 s de veneno por cada vez que te toca la nube (el normal dura mucho mas).
+ * donde pega abre una nube grande (4.5 bloques de radio) de veneno CORTO: 2.5 s de veneno por cada vez que te toca la nube (el normal dura mucho mas).
  */
 public class DardoAtlatl extends AbstractArrow implements GeoEntity {
-    private static final float DANO = 6f, VELOCIDAD = 1.9f;
+    private static final float DANO = 7f, VELOCIDAD = 2.1f;
     private static final EntityDataAccessor<Boolean> ASTILLA = SynchedEntityData.defineId(DardoAtlatl.class, EntityDataSerializers.BOOLEAN);
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
@@ -76,7 +76,7 @@ public class DardoAtlatl extends AbstractArrow implements GeoEntity {
 
     @Override
     protected void onHitEntity(EntityHitResult r) {
-        if (r.getEntity() instanceof KhasetEntity || r.getEntity() instanceof Xiuhcoatl)
+        if (r.getEntity() instanceof KhasetEntity || r.getEntity() instanceof Xiuhcoatl || r.getEntity() instanceof GuerreroCalavera)
             return;
         r.getEntity().hurt(this.damageSources().arrow(this, this.getOwner()), DANO);
         if (astilla())
@@ -99,9 +99,9 @@ public class DardoAtlatl extends AbstractArrow implements GeoEntity {
         if (this.getOwner() instanceof LivingEntity le)
             n.setOwner(le);
         n.setParticle(ParticulasKhaset.VENENO.get());
-        n.setRadius(2.6f);
-        n.setRadiusPerTick(-0.01f);
-        n.setDuration(60);
+        n.setRadius(4.5f);
+        n.setRadiusPerTick(-0.015f);
+        n.setDuration(90);
         n.setWaitTime(0);
         n.addEffect(new MobEffectInstance(MobEffects.POISON, 50, 0));
         this.level().addFreshEntity(n);

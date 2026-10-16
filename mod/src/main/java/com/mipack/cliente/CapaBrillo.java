@@ -29,6 +29,11 @@ public class CapaBrillo<T extends GeoAnimatable> extends AutoGlowingGeoLayer<T> 
         return Tipos.BRILLO.apply(brillo);
     }
 
+    /** El tipo de dibujo que brilla (las dos caras, translucido) para cualquier textura de brillo. */
+    public static RenderType tipo(ResourceLocation brillo) {
+        return Tipos.BRILLO.apply(brillo);
+    }
+
     /** Solo para llegar a las piezas protegidas de RenderType. */
     private static final class Tipos extends RenderType {
         static final Function<ResourceLocation, RenderType> BRILLO = Util.memoize(t -> create("mipack_brillo",

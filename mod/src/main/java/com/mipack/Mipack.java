@@ -53,11 +53,17 @@ public class Mipack {
     public static final DeferredRegister<Item> OBJETOS = DeferredRegister.create(ForgeRegistries.ITEMS, MODID);
     public static final DeferredRegister<CreativeModeTab> PESTANAS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MODID);
 
-    /** Crackatos: en el juego mide como el Ender Dragon (el render lo crece 2 veces); la caja de golpes es la del cuerpo. */
+    /** Crackatos: el modelo se dibuja 4.5 veces mas grande (mas que el Ender Dragon); la caja de golpes es la del cuerpo. */
     public static final RegistryObject<EntityType<CrackatosEntity>> CRACKATOS = ENTIDADES.register("crackatos",
             () -> EntityType.Builder.of(CrackatosEntity::new, MobCategory.MONSTER)
                     .sized(3.0f * CrackatosEntity.ESCALA, 2.75f * CrackatosEntity.ESCALA).fireImmune().clientTrackingRange(16).updateInterval(1)
                     .build(MODID + ":crackatos"));
+
+    /** Los acaros de amatista que salen de la bruma de Crackatos en su fase 2 (el modelo del endermite, mas grande). */
+    public static final RegistryObject<EntityType<com.mipack.entidad.AcaroAmatista>> ACARO = ENTIDADES.register("acaro_amatista",
+            () -> EntityType.Builder.<com.mipack.entidad.AcaroAmatista>of(com.mipack.entidad.AcaroAmatista::new, MobCategory.MONSTER)
+                    .sized(0.4f * 1.8f, 0.3f * 1.8f).clientTrackingRange(8)
+                    .build(MODID + ":acaro_amatista"));
 
     /** Las puas de amatista que salen volando de su lomo y las que caen del cielo. */
     public static final RegistryObject<EntityType<PuaCayendo>> PUA = ENTIDADES.register("pua",
@@ -71,10 +77,10 @@ public class Mipack {
                     .sized(3.0f, 10.5f).fireImmune().clientTrackingRange(16).updateInterval(1)
                     .build(MODID + ":khaset"));
 
-    /** El cristal del sacrificio: la piedra (2.5 x 1.1 bloques) con el cristal flotando arriba. */
+    /** El cristal del sacrificio: la caja de piedra tallada (2.75 x 1.2 bloques) con el cristal flotando arriba. */
     public static final RegistryObject<EntityType<CristalSacrificio>> CRISTAL = ENTIDADES.register("cristal_sacrificio",
             () -> EntityType.Builder.<CristalSacrificio>of(CristalSacrificio::new, MobCategory.MISC)
-                    .sized(2.5f, 1.1f).fireImmune().clientTrackingRange(16).updateInterval(5)
+                    .sized(2.75f, 1.2f).fireImmune().clientTrackingRange(16).updateInterval(5)
                     .build(MODID + ":cristal_sacrificio"));
 
     public static final RegistryObject<EntityType<DardoAtlatl>> DARDO = ENTIDADES.register("dardo_atlatl",
@@ -86,6 +92,12 @@ public class Mipack {
             () -> EntityType.Builder.of(Xiuhcoatl::new, MobCategory.MONSTER)
                     .sized(2.2f, 1.6f).fireImmune().clientTrackingRange(10).updateInterval(1)
                     .build(MODID + ":xiuhcoatl"));
+
+    /** Los guerreros calavera del Quinto Sol (la ultima fase de Khaset): el modelo del esqueleto con penacho. */
+    public static final RegistryObject<EntityType<com.mipack.khaset.GuerreroCalavera>> GUERRERO = ENTIDADES.register("guerrero_calavera",
+            () -> EntityType.Builder.<com.mipack.khaset.GuerreroCalavera>of(com.mipack.khaset.GuerreroCalavera::new, MobCategory.MONSTER)
+                    .sized(0.6f, 1.99f).fireImmune().clientTrackingRange(8)
+                    .build(MODID + ":guerrero_calavera"));
 
     public static final RegistryObject<EntityType<AvisoKhaset>> AVISO = ENTIDADES.register("aviso",
             () -> EntityType.Builder.<AvisoKhaset>of(AvisoKhaset::new, MobCategory.MISC)
@@ -99,6 +111,10 @@ public class Mipack {
     public static final RegistryObject<Item> CRISTAL_ITEM = OBJETOS.register("cristal_sacrificio",
             () -> new CristalSacrificio.Objeto(new Item.Properties().stacksTo(1)));
 
+    /** El macuahuitl de los guerreros calavera: un mazo de madera con navajas de obsidiana (a veces lo sueltan). */
+    public static final RegistryObject<Item> MACUAHUITL = OBJETOS.register("macuahuitl",
+            () -> new net.minecraft.world.item.SwordItem(net.minecraft.world.item.Tiers.STONE, 4, -2.8f, new Item.Properties()));
+
     public static final RegistryObject<CreativeModeTab> PESTANA = PESTANAS.register("mipack",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.mipack"))
@@ -107,16 +123,20 @@ public class Mipack {
                         out.accept(HUEVO_CRACKATOS.get());
                         out.accept(HUEVO_KHASET.get());
                         out.accept(CRISTAL_ITEM.get());
+                        out.accept(MACUAHUITL.get());
                     })
                     .build());
 
     public Mipack() {
+        Golpes.subirTopeDeVida();
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         Titanes.registrar(ENTIDADES);
         ENTIDADES.register(bus);
         OBJETOS.register(bus);
         PESTANAS.register(bus);
         EfectosKhaset.EFECTOS.register(bus);
+        com.mipack.entidad.EfectosCrackatos.EFECTOS.register(bus);
+        SonidosMipack.SONIDOS.register(bus);
         ParticulasKhaset.PARTICULAS.register(bus);
         bus.addListener(this::preparar);
         bus.addListener(this::atributos);
@@ -130,8 +150,10 @@ public class Mipack {
 
     private void atributos(EntityAttributeCreationEvent event) {
         event.put(CRACKATOS.get(), CrackatosEntity.atributos().build());
+        event.put(ACARO.get(), com.mipack.entidad.AcaroAmatista.atributos().build());
         event.put(KHASET.get(), KhasetEntity.atributos().build());
         event.put(XIUHCOATL.get(), Xiuhcoatl.atributos().build());
+        event.put(GUERRERO.get(), com.mipack.khaset.GuerreroCalavera.atributos().build());
         Titanes.atributos(event);
     }
 

@@ -703,8 +703,10 @@ def placa(t):
 def craneo(t):
     """Craneo (malla en el sistema de la cabeza): adelante el fondo de las cuencas, casi negro; a los costados la sien
     hundida; el resto, piel con venas."""
-    if t.n[2] < -0.8:
-        return hex_(OSCURO)
+    if t.n[2] < -0.8 and t.y < PLACA[1][1] - 0.1:
+        return hex_(OSCURO)                                   # solo lo que queda detras de la placa (sin el yelmo,
+    if t.n[2] < -0.5:                                         # la frente se ve: es hueso, no hueco)
+        return hex_(CARA["l"] if t.y > 3.0 else CARA["b"])
     if abs(t.n[0]) > 0.8 and -3.8 < t.z < -1.6 and 0.4 < t.y < 2.3:
         return hex_(PIEL["s"])
     return CRANEO_TEX(t)

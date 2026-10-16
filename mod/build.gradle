@@ -91,6 +91,11 @@ minecraft {
             // ./gradlew runClient -Pcaptura=true: fotos automaticas de Crackatos (ver cliente/Captura.java)
             property 'mipack.captura', project.findProperty('captura') ?: 'false'
             property 'mipack.prueba', project.findProperty('captura') ?: 'false'
+            // -Pventana=1600x900: el tamano de la ventana (para fotos mas grandes)
+            if (project.findProperty('ventana')) {
+                def (ancho, alto) = project.findProperty('ventana').toString().tokenize('x')
+                args '--width', ancho, '--height', alto
+            }
         }
 
         server {

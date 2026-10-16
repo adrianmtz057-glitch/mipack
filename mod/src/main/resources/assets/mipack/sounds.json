@@ -1,0 +1,29 @@
+{
+  "khaset.silbato": {
+    "subtitle": "subtitles.mipack.khaset.silbato",
+    "sounds": [
+      {
+        "name": "mipack:khaset/silbato",
+        "attenuation_distance": 64
+      }
+    ]
+  },
+  "khaset.rugido": {
+    "subtitle": "subtitles.mipack.khaset.rugido",
+    "sounds": [
+      {
+        "name": "mipack:khaset/rugido",
+        "attenuation_distance": 48
+      }
+    ]
+  },
+  "khaset.sacrificio": {
+    "subtitle": "subtitles.mipack.khaset.sacrificio",
+    "sounds": [
+      {
+        "name": "mipack:khaset/sacrificio",
+        "attenuation_distance": 48
+      }
+    ]
+  }
+}

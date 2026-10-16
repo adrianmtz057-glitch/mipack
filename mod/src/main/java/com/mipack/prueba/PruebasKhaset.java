@@ -26,8 +26,10 @@ import java.util.Set;
 /**
  * La pelea de prueba de Khaset (./gradlew runGameTestServer): en la arena de 49x49, con el cristal del sacrificio de
  * un lado y tres husks aguantadores (en modo de prueba Khaset tambien caza mobs). Primero tiene que hacer su
- * repertorio y sacrificar a alguien en el cristal (el calor sube); luego se le baja a la mitad de la vida: rompe la
- * corona, invoca a la Xiuhcoatl; se le pega de frente hasta que se pone en guardia y contraataca; al final se le mata.
+ * repertorio, repartir el foco entre los husks, pisar con la presa en la mano y sacrificar a alguien en el cristal
+ * (el calor sube); luego los husks traen totem (el totem salva del sacrificio y el los suelta) y se le baja a la
+ * mitad de la vida: rompe la corona, invoca varias Xiuhcoatl; se le pega de frente hasta que se pone en guardia y
+ * contraataca; despues al 15 %: el Quinto Sol saca guerreros calavera. Al final se le mata y los guerreros se deshacen.
  */
 @GameTestHolder(Mipack.MODID)
 @PrefixGameTestTemplate(false)
@@ -39,11 +41,11 @@ public class PruebasKhaset {
     private static final class Pelea {
         final List<Husk> husks = new ArrayList<>();
         Estado antes = Estado.QUIETO;
-        boolean mitad, golpes;
+        boolean mitad, golpes, totems;
         int dardos, serpientes;
     }
 
-    @GameTest(template = "arena", timeoutTicks = 16000)
+    @GameTest(template = "arena", timeoutTicks = 30000)
     public static void pelea(GameTestHelper h) {
         KhasetEntity k = h.spawn(Mipack.KHASET.get(), new BlockPos(30, PISO, 24));
         CristalSacrificio cristal = h.spawn(Mipack.CRISTAL.get(), new BlockPos(8, PISO, 24));
@@ -58,6 +60,9 @@ public class PruebasKhaset {
                 x.getAttribute(Attributes.MAX_HEALTH).setBaseValue(300.0);
                 x.setHealth(300f);
                 x.setPersistenceRequired();
+                if (p.totems)
+                    x.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND,
+                            new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.TOTEM_OF_UNDYING));
                 p.husks.add(x);
             }
             Estado ahora = k.getEstado();
@@ -73,21 +78,27 @@ public class PruebasKhaset {
                     Set<Estado> faltan = EnumSet.copyOf(FASE_1);
                     faltan.removeAll(k.visitados());
                     boolean barrio = k.visitados().contains(Estado.BARRIDO) || k.visitados().contains(Estado.BARRIDO_I);
-                    if (!faltan.isEmpty() || !barrio || k.sacrificados() < 1 || p.dardos == 0)
-                        throw new GameTestAssertException("faltan " + faltan + (barrio ? "" : " BARRIDO") + " sacrificados "
-                                + k.sacrificados() + " dardos " + p.dardos);
-                    if (k.calor() < 0.14f)
+                    boolean piso = k.visitados().contains(Estado.PISOTON) || k.visitados().contains(Estado.PISOTON_DOS);
+                    if (!faltan.isEmpty() || !barrio || !piso || k.sacrificados() < 1 || p.dardos < 3 || k.perseguidos() < 2)
+                        throw new GameTestAssertException("faltan " + faltan + (barrio ? "" : " BARRIDO") + (piso ? "" : " PISOTON")
+                                + " sacrificados " + k.sacrificados() + " dardos " + p.dardos + " perseguidos " + k.perseguidos());
+                    if (k.calor() < 0.045f)
                         throw new GameTestAssertException("el sacrificio no subio el calor: " + k.calor());
                 })
                 .thenExecute(() -> {
-                    Mipack.LOGGER.info("[PruebaK] fase 1 completa: calor {}, sacrificados {}", k.calor(), k.sacrificados());
+                    Mipack.LOGGER.info("[PruebaK] fase 1 completa: calor {}, sacrificados {}, persiguio a {}", k.calor(),
+                            k.sacrificados(), k.perseguidos());
+                    p.totems = true;
+                    for (Husk x : p.husks)
+                        x.setItemSlot(net.minecraft.world.entity.EquipmentSlot.OFFHAND,
+                                new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.TOTEM_OF_UNDYING));
                     k.setHealth(k.getMaxHealth() * 0.45f);
                 })
                 .thenWaitUntil(() -> {
                     if (!k.coronaRota() || !k.visitados().contains(Estado.CORONA))
                         throw new GameTestAssertException("no rompio la corona (estado " + k.getEstado() + ")");
-                    if (!k.visitados().contains(Estado.INVOCAR) || p.serpientes == 0)
-                        throw new GameTestAssertException("no invoco a la Xiuhcoatl");
+                    if (!k.visitados().contains(Estado.INVOCAR) || p.serpientes < 2)
+                        throw new GameTestAssertException("no invoco a las Xiuhcoatl (" + p.serpientes + ")");
                 })
                 .thenExecute(() -> Mipack.LOGGER.info("[PruebaK] corona rota y serpiente: ahora la guardia"))
                 .thenWaitUntil(() -> {
@@ -103,7 +114,17 @@ public class PruebasKhaset {
                     }
                 })
                 .thenExecute(() -> {
-                    Mipack.LOGGER.info("[PruebaK] hizo todo: {}", k.visitados());
+                    Mipack.LOGGER.info("[PruebaK] guardia lista: ahora el Quinto Sol");
+                    k.setHealth(k.getMaxHealth() * 0.15f);
+                })
+                .thenWaitUntil(() -> {
+                    if (k.fase() < 3 || k.guerrerosSalidos() == 0)
+                        throw new GameTestAssertException("no llego al Quinto Sol con guerreros (fase " + k.fase() + ")");
+                    if (k.totems() < 1)
+                        throw new GameTestAssertException("todavia no salva ningun totem (sacrificados " + k.sacrificados() + ")");
+                })
+                .thenExecute(() -> {
+                    Mipack.LOGGER.info("[PruebaK] hizo todo: {} (totems {}, guerreros {})", k.visitados(), k.totems(), k.guerrerosSalidos());
                     k.kill();
                 })
                 .thenWaitUntil(() -> {
@@ -111,6 +132,11 @@ public class PruebasKhaset {
                         throw new GameTestAssertException("no ha desaparecido (estado " + k.getEstado() + ")");
                     if (!k.visitados().contains(Estado.MUERTE))
                         throw new GameTestAssertException("no hizo su muerte");
+                })
+                .thenWaitUntil(() -> {
+                    int quedan = h.getLevel().getEntitiesOfClass(com.mipack.khaset.GuerreroCalavera.class, arena.inflate(30)).size();
+                    if (quedan > 0)
+                        throw new GameTestAssertException("quedan " + quedan + " guerreros");
                 })
                 .thenExecute(cristal::discard)
                 .thenSucceed();

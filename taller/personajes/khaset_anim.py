@@ -672,6 +672,38 @@ def soltar(rig):
     return L, pose, False
 
 
+PISA = 0.55                    # el pie cae: la onda de fuego
+
+
+def pisoton(rig, lados=("d",)):
+    """Con la presa (o las dos) en alto todavia pelea: levanta la rodilla, se echa atras y pisa con todo (PISA: sale
+    la onda de fuego por el piso); las manos no sueltan."""
+    L = 1.2
+    base = _clave(rig, 0.0, _sosten_llenar(lados), {k: SOSTEN[k] for k in lados})[1]
+    x, y0, z0 = _tobillo(rig, "d", _z_pies(rig))
+
+    def pose(t):
+        p = Pose({h: v for h, v in base.items()})
+        sube = suave(t, [(0.0, 0.0), (0.4, 1.0), (0.48, 1.0), (PISA, 0.0), (L, 0.0)])
+        golpe = _bulto(t, PISA - 0.02, PISA + 0.35)
+        p.pos("raiz", y=-1.0 + 1.2 * sube - 1.0 * golpe)
+        p.rot("cintura", rx=-8.0 - 7.0 * sube + 12.0 * golpe)
+        p.rot("Head", rx=-6.0 - 10.0 * sube + 14.0 * golpe)
+        p.rot("mandibula", rx=-26.0 * _bulto(t, PISA - 0.1, PISA + 0.5))
+        for k in lados:
+            p.rot(DEDOS[k], rx=45.0 + 10.0 * golpe)
+        _plumas(p, 0.3 + 0.5 * golpe, 4.0 * math.sin(t * 25.0) * golpe)
+        _panos(p, t, 0.6, 5.0 + 8.0 * golpe)
+        _plantar(rig, p, {"d": ((x, y0 + 13.0 * sube, z0 - 5.0 * sube), -25.0 * sube + 12.0 * golpe),
+                          "i": (_tobillo(rig, "i", _z_pies(rig)), 8.0 * golpe)})
+        return p
+    return L, pose, False
+
+
+def pisoton_dos(rig):
+    return pisoton(rig, ("d", "i"))
+
+
 # la piedra del sacrificio queda enfrente: la presa acostada encima, a 1 bloque del piso
 ALTAR = (0.0, 9.0, -24.0)
 
@@ -792,7 +824,7 @@ ANIMACIONES = {"quieto": quieto, "acechar": acechar, "correr": correr, "zarpazos
                "barrido": barrido, "barrido_i": barrido_i, "lanzar_dardo": lanzar_dardo, "guardia": guardia,
                "contraataque": contraataque, "agarrar": agarrar, "agarrar_dos": agarrar_dos, "cargar": cargar,
                "cargar_dos": cargar_dos, "soltar": soltar, "sacrificio": sacrificio, "invocar": invocar,
-               "corona_rota": corona_rota}
+               "corona_rota": corona_rota, "pisoton": pisoton, "pisoton_dos": pisoton_dos}
 
 
 def hornear_todas(rig, solo=None):

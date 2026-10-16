@@ -24,14 +24,15 @@ import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
- * El cristal del sacrificio: la piedra de tezontle (techcatl) con el cristal de obsidiana flotando a 6 bloques. Se
- * pone con su objeto (como un cristal del End) mirando hacia quien lo pone; Khaset lleva ahi a sus presas. No se
+ * El cristal del sacrificio: la caja de piedra tallada azteca (tepetlacalli: guerreros en relieve y la serpiente
+ * ondulada) con el cristal de obsidiana flotando a 6 bloques. Se pone con su objeto (como un cristal del End) con el
+ * lado largo de frente a quien lo pone; Khaset acuesta ahi a sus presas, a lo largo de la piedra. No se
  * rompe: solo un jugador en creativo lo quita pegandole. Se puede pisar.
  * Estados: QUIETO (flota), LLAMANDO (Khaset trae una presa: gira rapido y baja) y SACRIFICIO (recibe el corazon).
  */
 public class CristalSacrificio extends Entity implements GeoEntity {
     /** Alto de la cara de arriba de la piedra (bloques): ahi se acuesta la presa. */
-    public static final double ALTO_PIEDRA = 1.1;
+    public static final double ALTO_PIEDRA = 1.19;
 
     private static final RawAnimation A_QUIETO = RawAnimation.begin().thenLoop("animation.cristal_sacrificio.quieto");
     private static final RawAnimation A_LLAMANDO = RawAnimation.begin().thenLoop("animation.cristal_sacrificio.llamando");

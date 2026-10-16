@@ -2,7 +2,9 @@ package com.mipack.cliente;
 
 import com.mipack.Mipack;
 import com.mipack.khaset.EfectosKhaset;
+import com.mipack.khaset.CristalSacrificio;
 import com.mipack.khaset.KhasetEntity;
+import com.mipack.khaset.PosesKhaset;
 import com.mipack.khaset.ParticulasKhaset;
 import com.mipack.khaset.RedKhaset;
 import com.mojang.math.Axis;
@@ -184,9 +186,11 @@ public final class PosesJugador {
         if (pose == Pose.DERRIBADO) {
             ps.translate(0, -0.42, 0);
         } else if (pose == Pose.ALTAR) {
-            float eje = p.getVehicle() instanceof KhasetEntity k ? k.getYRot() + 90f : p.getYRot();   // a lo largo de la piedra
+            float eje = ejeDelAltar(p);                          // a lo largo de la piedra (derecho, no chueco)
             p.yBodyRot = eje;
             p.yBodyRotO = eje;
+            p.yHeadRot = eje;
+            p.yHeadRotO = eje;
             Vec3 f = Vec3.directionFromRotation(0, eje);
             Vec3 derecha = new Vec3(-f.z, 0, f.x);
             ps.translate(f.x * 0.9, 0.35, f.z * 0.9);
@@ -194,6 +198,20 @@ public final class PosesJugador {
         } else if (pose == Pose.AGARRADO) {
             ps.mulPose(Axis.ZP.rotationDegrees(6f * Mth.sin((p.tickCount + evento.getPartialTick()) * 0.3f)));
         }
+    }
+
+    /** El giro del cuerpo acostado: a lo largo del lado largo de la piedra del sacrificio (su eje x). */
+    static float ejeDelAltar(Player p) {
+        Float giro = null;
+        if (p.getVehicle() instanceof KhasetEntity k)
+            giro = k.giroDelAltar();
+        else
+            for (CristalSacrificio c : p.level().getEntitiesOfClass(CristalSacrificio.class, p.getBoundingBox().inflate(2.5)))
+                giro = c.getYRot();
+        if (giro == null)
+            return p.getYRot();
+        Vec3 largo = PosesKhaset.rotar(giro, new Vec3(1, 0, 0));
+        return (float) Math.toDegrees(Math.atan2(-largo.x, largo.z));
     }
 
     @SubscribeEvent
