@@ -43,7 +43,7 @@ def _caras_mundo(modelo, uvs):
     return out
 
 
-def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro, fondo=None):
+def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro, fondo=None, doble=False):
     import numpy as np
     cy, sy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
     cp, sp = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
@@ -67,7 +67,9 @@ def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro, fondo=None):
         n /= nl
         nv = V @ n
         if nv[2] >= 0:                       # mira hacia atras: la camara mira +Z
-            continue
+            if not doble:                    # doble: tambien se ve por detras (como en el juego, sin descartar caras)
+                continue
+            n = -n
         luz = 0.6 * n[0] ** 2 + (1.0 if n[1] > 0 else 0.5) * n[1] ** 2 + 0.8 * n[2] ** 2
         sx = ancho / 2 - Q[:, 0] * escala     # la derecha del modelo (+X) sale a la izquierda en el frente
         sy_ = alto / 2 - Q[:, 1] * escala
@@ -105,7 +107,7 @@ def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro, fondo=None):
 
 
 def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio=None, vistas=VISTAS, caras=None,
-                  fondo=None, ancho_px=None):
+                  fondo=None, ancho_px=None, doble=False):
     """Vistas del modelo en un PNG. Con centro/radio (en px del modelo) hace zoom a esa zona (ej. la cara).
     caras: las caras ya armadas (como las da _caras_mundo), por ejemplo un modelo posado o reconstruido."""
     try:
@@ -122,7 +124,7 @@ def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio
     radio = float(np.linalg.norm(hi - lo)) / 2 if radio is None else float(radio)
     escala = (alto_px * 0.9) / (2 * radio)
     ancho = ancho_px or (alto_px if zoom else int(alto_px * 0.62))
-    paneles = [_render(caras, tex, yaw, pitch, escala, ancho, alto_px, centro, fondo) for _, yaw, pitch in vistas]
+    paneles = [_render(caras, tex, yaw, pitch, escala, ancho, alto_px, centro, fondo, doble) for _, yaw, pitch in vistas]
     img = np.concatenate(paneles, axis=1)
     Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).save(ruta_png)
     return ruta_png
