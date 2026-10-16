@@ -49,6 +49,14 @@ public final class CapturaDetalle {
     private CapturaDetalle() {
     }
 
+    /** NBT de mas al invocarla (con NBT, /summon no le da su equipo). */
+    private static String extra() {
+        return switch (QUE) {
+            case "guerrero_calavera" -> ",HandItems:[{id:\"mipack:macuahuitl\",Count:1b},{}]";
+            default -> "";
+        };
+    }
+
     /** NBT de la segunda forma (o null si no tiene). */
     private static String segunda() {
         return switch (QUE) {
@@ -86,7 +94,7 @@ public final class CapturaDetalle {
             for (String c : new String[]{"time set 6000", "weather clear", "gamerule doDaylightCycle false",
                     "gamerule doWeatherCycle false", "gamerule doMobSpawning false", "kill @e[type=!player]",
                     String.format("fill %d %d %d %d %d %d minecraft:smooth_stone", x - 20, y - 1, z - 20, x + 20, y - 1, z + 20),
-                    String.format("summon mipack:%s %d %d %d {Rotation:[0f,0f],NoAI:1b,PersistenceRequired:1b}", QUE, x, y, z)})
+                    String.format("summon mipack:%s %d %d %d {Rotation:[0f,0f],NoAI:1b,PersistenceRequired:1b%s}", QUE, x, y, z, extra())})
                 comando(server, c);
         }
         if (ticks < INICIO || centro == null)
@@ -111,9 +119,9 @@ public final class CapturaDetalle {
         int foto = u / CADA, angulo = foto % ANGULOS, altura = foto / ANGULOS;
         double alto = e.getBbHeight(), ancho = Math.max(e.getBbWidth(), alto * 0.45);
         double a = Math.toRadians(angulo * 360.0 / ANGULOS + e.getYRot());
-        double dist = Math.max(4.0, ancho * 1.25);
+        double dist = alto < 1 ? 1.2 : alto < 3 ? alto * 1.25 : Math.max(4.0, ancho * 1.25);   // los chicos, de cerca
         Vec3 objetivo = e.position().add(0, alto * ALTURAS[altura], 0);
-        Vec3 cam = objetivo.add(-Math.sin(a) * dist, alto * 0.08, Math.cos(a) * dist);
+        Vec3 cam = objetivo.add(-Math.sin(a) * dist, alto < 1 ? dist * 0.5 : alto * 0.08, Math.cos(a) * dist);   // a los chiquitos, desde arriba
         mirar(mc, cam, objetivo);
         if (u % CADA == CADA - 1)
             foto(mc, String.format("%s_f%d_h%d_a%d", QUE, forma, altura, angulo));

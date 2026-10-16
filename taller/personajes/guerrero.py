@@ -142,28 +142,30 @@ def textura():
 
 
 MACUAHUITL = (
-    "............nn.",
-    "...........nbbn",
-    "..........nbwbn",
-    ".........nbwbn.",
-    "........nbwbn..",
-    ".......nbwbn...",
-    "......nbwbn....",
-    ".....nbwbn.....",
-    "....nbwbn......",
-    "...nbwbn.......",
-    "..ndwbn........",
-    ".gdwn..........",
-    "gdgn...........",
-    "dgd............",
-    "gd.............",
-    "...............",
+    "..............n.",
+    "...........nnlwn",
+    "...........blwsn",
+    ".........nnlwsn.",
+    ".........nlwsnn.",
+    ".......nnlwsb...",
+    ".......blwsnn...",
+    ".....nnlwsn.....",
+    ".....nlwsnn.....",
+    "...nnlwsb.......",
+    "...noosn........",
+    "...gd...........",
+    "..dg............",
+    ".gd.............",
+    "dg..............",
+    "d...............",
 )
 
 
 def macuahuitl():
-    """16x16: madera (w), la orilla de navajas de obsidiana (n, b brillo morado), el mango (d, g cuero)."""
-    colores = {"w": "#8A5A32", "n": "#1B1220", "b": "#6E4E8E", "d": "#5A3A20", "g": "#B8862E"}
+    """16x16: el remo de madera (l luz, w, s sombra, o la guarda), los dos cantos de navajas de obsidiana con sus
+    puntas (n, b brillo morado del vidrio) y el mango (d, g el cuero dorado)."""
+    colores = {"l": "#A8743F", "w": "#8A5A32", "s": "#6A4224", "o": "#3A2414", "n": "#140C18", "b": "#8A62B8",
+               "d": "#5A3A20", "g": "#C8962E"}
     img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     for y, fila in enumerate(MACUAHUITL):
         for x, ch in enumerate(fila):

@@ -72,6 +72,11 @@ public class AcaroAmatista extends Endermite {
         }
     }
 
+    private boolean jefeVivo() {
+        return this.jefe != null && this.level() instanceof ServerLevel sl && sl.getEntity(this.jefe) instanceof CrackatosEntity c
+                && c.isAlive();
+    }
+
     /** Se rompe en polvo de amatista. */
     public void deshacer(ServerLevel sl) {
         sl.sendParticles(new DustParticleOptions(new Vector3f(0.62f, 0.32f, 0.95f), 1.5f), this.getX(), this.getY() + 0.3,
@@ -83,8 +88,8 @@ public class AcaroAmatista extends Endermite {
     @Override
     public boolean doHurtTarget(Entity e) {
         boolean pego = super.doHurtTarget(e);
-        if (pego && e instanceof LivingEntity le && this.random.nextInt(4) == 0)
-            EfectosCrackatos.clavar(le);                          // a veces deja una esquirla
+        if (pego && e instanceof LivingEntity le && this.random.nextInt(4) == 0 && jefeVivo())
+            EfectosCrackatos.clavar(le);                          // a veces deja una esquirla (si Crackatos sigue vivo)
         return pego;
     }
 

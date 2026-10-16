@@ -40,6 +40,7 @@ public final class ClienteMipack {
     @SubscribeEvent
     public static void modelos(EntityRenderersEvent.RegisterLayerDefinitions evento) {
         evento.registerLayerDefinition(RenderGuerrero.CAPA, RenderGuerrero::capa);
+        evento.registerLayerDefinition(AcaroRenderer.CAPA, AcaroRenderer::capa);
     }
 
     /** El jugador con las poses de la pelea con Khaset (agarrado, en el altar, de rodillas, tapandose los oidos). */

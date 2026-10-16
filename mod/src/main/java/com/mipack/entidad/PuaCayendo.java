@@ -143,12 +143,16 @@ public class PuaCayendo extends Entity implements GeoEntity {
         sl.playSound(null, x, y, z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 1.6f, 1.25f);
         sl.playSound(null, x, y, z, SoundEvents.AMETHYST_CLUSTER_BREAK, SoundSource.HOSTILE, 2.0f, 0.6f);
         Entity dueno = this.jefe != null ? sl.getEntity(this.jefe) : null;
+        if (!(dueno instanceof CrackatosEntity c) || !c.isAlive()) {   // ya murio: se deshace sin pegar (no deja esquirlas)
+            this.discard();
+            return;
+        }
         AABB zona = new AABB(x - RADIO, y - 1, z - RADIO, x + RADIO, y + 2.5, z + RADIO);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, zona, PuaCayendo::alcanzable)) {
             Vec3 afuera = new Vec3(e.getX() - x, 0, e.getZ() - z);
             if (afuera.length() > RADIO + 0.4)
                 continue;
-            com.mipack.Golpes.pegar(e, dueno != null ? dueno : this, DANO, 100);
+            com.mipack.Golpes.pegar(e, dueno, DANO, 100);
             EfectosCrackatos.clavar(e);                       // se queda una esquirla hasta que Crackatos muera
             Vec3 dir = afuera.lengthSqr() > 1e-4 ? afuera.normalize() : Vec3.ZERO;
             CrackatosEntity.lanzar(e, dir.scale(0.5), 0.5);

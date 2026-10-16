@@ -15,7 +15,9 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.MobType;
+import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -29,9 +31,11 @@ import net.minecraft.world.entity.monster.RangedAttackMob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 /**
@@ -58,6 +62,15 @@ public class GuerreroCalavera extends Monster implements RangedAttackMob {
         this.setPersistenceRequired();
         this.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Mipack.MACUAHUITL.get()));
         this.setDropChance(EquipmentSlot.MAINHAND, 0.06f);
+    }
+
+    /** Con huevo o con /summon tambien sale con su macuahuitl. */
+    @Override
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor nivel, DifficultyInstance d, MobSpawnType tipo,
+                                        @Nullable SpawnGroupData datos, @Nullable CompoundTag tag) {
+        SpawnGroupData r = super.finalizeSpawn(nivel, d, tipo, datos, tag);
+        this.populateDefaultEquipmentSlots(this.random, d);
+        return r;
     }
 
     @Override

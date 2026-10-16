@@ -103,24 +103,9 @@ def crackatos_extras():
                 po[x, y] = (min(255, int(r * 1.25 + 40 * k)), min(255, int(g * 1.1 + 20 * k)), min(255, int(b * 1.2 + 50 * k)), 255)
                 n += 1
     out.save(os.path.join(RAIZ, "textures", "entity", "crackatos_cristales.png"))
-    # el acaro: facetas de amatista (como los picos de Crackatos) con puntas que brillan
-    from .personajes.jefe_piedra import AMATISTA
-    tonos_ = [hex_a(AMATISTA["s"]), hex_a(AMATISTA["b"]), hex_a(AMATISTA["l"])]
-    oscuro = hex_a("#2A1840")
-    tex = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
-    brillo = Image.new("RGBA", (64, 32), (0, 0, 0, 0))
-    for y in range(32):
-        for x in range(64):
-            hsh = ((x * 73856093) ^ (y * 19349663) ^ 0x5bd1e995) & 0xFFFF
-            f = hsh / 0xFFFF
-            if (x + y) % 5 == 0 and f < 0.5:
-                c = oscuro                                   # las juntas entre cristales
-            else:
-                c = tonos_[0] if f < 0.3 else tonos_[1] if f < 0.75 else tonos_[2]
-            tex.putpixel((x, y), c)
-            if f > 0.9:
-                brillo.putpixel((x, y), (235, 200, 255, 255))
-                tex.putpixel((x, y), (214, 170, 255, 255))
+    # el acaro: piedra de Crackatos con su geoda en el lomo (ver personajes/acaro.py)
+    from .personajes import acaro
+    tex, brillo = acaro.textura()
     tex.save(os.path.join(RAIZ, "textures", "entity", "acaro_amatista.png"))
     brillo.save(os.path.join(RAIZ, "textures", "entity", "acaro_amatista_brillo.png"))
     return {"pixeles_de_cristal": n}

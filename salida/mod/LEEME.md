@@ -34,7 +34,7 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 
 **Alzarse y azotar:** se para en dos patas y azota. Sale una **ola** que recorre toda la arena. **Brinca justo cuando te llegue.** Si hay 3 o más juntos cerca de él, lo hace más seguido.
 
-**Fase 2 (mitad de vida):** ruge, **sus cristales empiezan a brillar y latir** y **se rodea de bruma morada**. De la bruma salen **ácaros de amatista** (como endermites, pero más grandes, rápidos y de mordida fuerte; a veces dejan esquirla), mientras corre va soltando púas y caen púas sueltas sobre los que estén lejos.
+**Fase 2 (mitad de vida):** ruge, **sus cristales empiezan a brillar y latir** y **se rodea de bruma morada**. De la bruma salen **ácaros de amatista** (como endermites, pero más grandes, con una geoda de cristales que brillan en el lomo, colmillos y seis patas; rápidos y de mordida fuerte, a veces dejan esquirla), mientras corre va soltando púas y caen púas sueltas sobre los que estén lejos.
 
 **Golpes:** atraviesan la armadura (los encantamientos de Protección sí cuentan, así que la netherita con Protección IV aguanta pero ya no es inmortal) y **te tiran el escudo** como un hacha. Las flechas le hacen 75 %.
 
@@ -115,7 +115,7 @@ Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, come
 El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).
 
 ## Fotos
-En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera).
+En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera). De cerca: `acaro_amatista_*` y `guerrero_calavera_*`.
 
 ## Si algo sale mal
 - **"Missing mod geckolib":** te falta GeckoLib, o es de otra versión de Minecraft o de otro cargador (tiene que ser Forge 1.20.1).
