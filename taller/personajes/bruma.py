@@ -1,32 +1,26 @@
 """
-LA BRUMA (version 3): un espectro hecho de una sola cobija larguisima echada encima de un cuerpo que no se ve.
-  CUERPO (la morfologia que dibujo el usuario): derecho, nada jorobado. La cabeza alta y ovalada, el cuello y el
-    torso como un palo flaco, los hombros angostos y los brazos largos y delgados que cuelgan a los lados, un poco
-    abiertos, con las manos a la altura de la cadera.
-  MANTO: una cobija (un rectangulo de tela con las orillas rotas en picos disparejos) cosida por la linea del centro
-    a la cresta de la capucha y soltada para que caiga de verdad (taller/tela.py) sobre la cabeza, los hombros y los
-    brazos. Queda ABIERTA al frente (no es una tunica cerrada): por la abertura solo se ve oscuridad. Las MANGAS son
-    la misma cobija colgando de los brazos; por eso todo es largo y abajo cuelgan picos asimetricos. Un viento suave
-    la echa hacia atras (volumen atras sin quedar redonda).
-  CAPUCHA puntiaguda y torcida (la opcion C que escogio el usuario): la cobija cae sobre la cabeza alta y una punta
-    que se dobla hacia adelante y a su derecha; la orilla de la cobija enmarca la cara y adentro solo hay vacio.
-  MANOS de hueso con dedos larguisimos y garras: la derecha cuelga con los dedos hacia abajo y la izquierda, mas
-    abierta, los encoge.
-Textura: bandas limpias (sin ruido ni tramado) que siguen los pliegues: crestas claras, valles oscuros, mas clara
-arriba; por dentro mas oscura; las orillas deshilachadas y unos hoyos de tela vieja.
-Medidas en px (16 por bloque), a tamano real: unos 5.3 bloques de alto; flota. El frente es -Z, su derecha es +X.
-Huesos: raiz / cuerpo / (capucha, manto, faldon_frente, faldon_atras, faldon_d, faldon_i, brazo_d / (manga_d,
-antebrazo_d / mano_d), brazo_i / ...). Solo modelo (sin animaciones todavia).
+LA BRUMA (version 4): el espectro con la ropa como la dibujo el usuario sobre su referencia.
+  CUERPO derecho y flaco (no se ve: adentro solo hay vacio).
+  CAPUCHA alta y angosta que acaba en punta (un poco torcida hacia adelante); la cara es un hueco negro.
+  MANGAS anchas que cuelgan de los hombros hasta la cadera y se abren en campana; de cada puno sale una mano de hueso
+    con dedos larguisimos y garras.
+  FRENTE abierto: entre las mangas, del cuello a la cintura, la ropa se abre y solo se ve oscuridad; abajo tambien se
+    abre un poco, como abrigo.
+  FALDA: de la cintura para abajo se abre muchisimo (campana), con pliegues que bajan derechos y el ruedo roto en
+    picos disparejos: largos y hacia afuera de su lado derecho, mas cortos y ondulados del izquierdo; atras es mas
+    larga (volumen atras).
+Cada pieza es una tela hecha a mano (rejillas de puntos), con su cara de adentro mas oscura. Textura: bandas limpias
+que siguen los pliegues (crestas claras, valles oscuros, mas clara arriba) y las orillas deshilachadas.
+Medidas en px (16 por bloque), a tamano real: unos 5.5 bloques con la punta; flota. El frente es -Z, su derecha +X.
+Huesos: raiz / cuerpo / (capucha, manto, falda_frente, falda_atras, falda_d, falda_i, brazo_d / (manga_d, mano_d),
+brazo_i / (manga_i, mano_i)). Solo modelo (sin animaciones todavia).
 """
 
-import hashlib
 import math
-import os
 
 import numpy as np
 
 from ..kit import Personaje
-from ..tela import Capsula, Esfera, Tela
 from ..textura import TRANSPARENTE, hex_a_rgba as hex_
 from .bloques import voxel
 from .khaset import cono, tubo_camino
@@ -39,28 +33,25 @@ HUESO = {"s": "#5E6355", "b": "#80857A", "l": "#A3A797"}
 GARRA = "#1E1C19"
 VACIO = "#020304"
 
-# el cuerpo que no se ve (lo que sostiene la tela): derecho y flaco
-CABEZA = ((0.0, 69.0, -1.0), (0.0, 76.5, -1.3), 3.8)          # cabeza alta y ovalada: capsula de abajo a arriba
-CAPUCHA = ((0.0, 76.5, -1.3, 3.6), (0.5, 80.0, -2.2, 2.7), (1.6, 83.5, -3.5, 1.8), (2.9, 86.4, -5.0, 1.0),
-           (4.0, 88.6, -6.6, 0.4))                             # la punta torcida hacia adelante y a su derecha
-NUCA = ((0.0, 73.0, 1.4), 4.2)                                 # un poco de volumen atras de la capucha
-HOMBROS = ((-4.8, 65.0, -0.5), (4.8, 65.0, -0.5), 2.2)
-TORSO = ((0.0, 66.0, -0.5), (0.0, 30.0, 0.0), 2.8)             # el palo
-BRAZO_D = ((4.8, 65.0, -0.5), (8.5, 55.0, -1.5), (10.5, 46.0, -3.5))       # hombro, codo, muneca: cuelga
-BRAZO_I = ((-4.8, 65.0, -0.5), (-11.5, 56.0, -1.0), (-16.5, 48.5, -4.0))   # mas abierto
-GRUESO_BRAZO = (1.5, 1.2)
-ANCHO, LARGO = 62.0, 50.0                              # la cobija: medio ancho (x) y medio largo (z)
-PICOS_ATRAS, PICOS_LADO = 28.0, 20.0                   # cuanto se meten los picos de la orilla de atras y de los lados
-PASO = 2.0                                             # separacion de los puntos de la tela
-FRENTE = (0.3, 77.5, -5.3)                             # donde va la orilla de la cobija, sobre la frente
-CRESTA = (FRENTE, (1.4, 82.0, -5.0), (4.0, 88.6, -6.6), (2.4, 84.5, -2.0), (0.9, 79.0, 2.4), (0.2, 73.5, 5.6),
-          (0.0, 68.0, 4.6))                            # la costura: frente, punta de la capucha, nuca
-# las manos agarran la orilla de la cobija: (cuanto de la orilla hay de la frente a la mano, donde la agarran)
-AGARRE_D = (33.0, (11.6, 47.0, -4.6))
-AGARRE_I = (-34.0, (-17.6, 49.5, -5.2))
-VIENTO = 0.018
-VUELO = 0.014                                          # que tanto se abre la tela de abajo
-CACHE = os.path.join(os.path.dirname(__file__), "bruma_tela.npz")
+# --- medidas (salen del dibujo del usuario: 1 px del modelo = unos 14.6 px del dibujo)
+CUELLO, PECHO, CINTURA, RUEDO = 67.0, 55.0, 37.0, 8.0   # alturas
+# la ropa del cuerpo: (y, medio ancho, hondo adelante, hondo atras, centro z, medio angulo de la abertura en grados)
+CUERPO = ((67.0, 7.4, 4.8, 5.0, -0.4, 4), (63.0, 7.6, 4.8, 5.2, -0.3, 22), (55.0, 6.4, 4.4, 5.0, -0.2, 32),
+          (45.0, 6.2, 4.4, 5.0, 0.0, 24), (37.0, 7.0, 5.0, 5.6, 0.4, 8), (30.0, 11.0, 8.0, 9.4, 1.6, 4),
+          (20.0, 18.0, 13.0, 16.0, 3.6, 4), (8.0, 26.0, 19.0, 24.0, 6.0, 6))
+# mangas: (hombro, medio, puno), radios (hombro, medio, puno), inclinacion del puno
+MANGA_D = (((7.0, 66.5, -0.5), (10.2, 54.0, -1.0), (12.3, 41.5, -2.0)), (2.8, 3.6, 5.6), 1.6)
+MANGA_I = (((-7.0, 66.5, -0.5), (-10.4, 54.5, -0.8), (-12.6, 42.5, -1.5)), (2.8, 3.5, 5.3), 1.2)
+# capucha: (y, medio ancho, hondo adelante, hondo atras, centro z, corrimiento x, medio angulo de la cara en grados);
+# las filas de abajo con angulo grande caen sobre la espalda
+CAPUCHA = ((62.5, 7.8, 6.0, 7.4, 0.6, 0.0, 115), (66.5, 7.0, 5.8, 6.6, -0.2, 0.0, 16),
+           (70.0, 5.8, 5.6, 5.6, -0.8, 0.0, 32), (73.5, 5.3, 5.6, 5.2, -1.2, 0.0, 34),
+           (77.0, 4.8, 5.2, 4.8, -1.4, 0.2, 28), (80.0, 4.0, 4.4, 4.0, -1.4, 0.5, 14),
+           (83.0, 2.8, 3.0, 2.8, -1.2, 0.9, 0), (85.8, 1.6, 1.7, 1.6, -1.0, 1.3, 0),
+           (88.5, 0.35, 0.35, 0.35, -0.9, 1.6, 0))
+CABEZA = ((0.0, 68.0, -0.8), (0.0, 77.0, -1.2), 3.6)          # el vacio de la cara (una capsula negra)
+MANO_D = ((11.6, 43.5, -2.4), (-0.25, -0.95, -0.25), 0.25)   # muneca, hacia donde, que tanto cierra
+MANO_I = ((-11.9, 44.5, -1.9), (0.22, -0.95, -0.25), 0.55)
 
 
 def _azar(k):
@@ -84,143 +75,94 @@ def _cruz(a, b):
     return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
 
 
-# ---------------------------------------------------------------- la cobija que cae
-
-def cuerpo():
-    """Lo que la tela no atraviesa."""
-    c = [Capsula(*CABEZA)]
-    c += [Capsula(a[:3], b[:3], a[3], b[3]) for a, b in zip(CAPUCHA, CAPUCHA[1:])]
-    c += [Esfera(*NUCA), Capsula(*HOMBROS), Capsula(*TORSO)]
-    for hombro, codo, muneca in (BRAZO_D, BRAZO_I):
-        c += [Capsula(hombro, codo, GRUESO_BRAZO[0], GRUESO_BRAZO[1]),
-              Capsula(codo, muneca, GRUESO_BRAZO[1], GRUESO_BRAZO[1] * 0.9)]
-    return c
-
-
-def _viento(P):
-    """Un viento suave hacia atras y la bruma que levanta el vuelo de abajo (lo abre hacia afuera, como campana)."""
-    f = np.zeros_like(P)
-    k = np.clip((70.0 - P[:, 1]) / 55.0, 0.0, 1.0)
-    f[:, 2] = VIENTO * k                                   # hacia atras, mas abajo
-    afuera = P[:, [0, 2]] - np.array([0.0, 1.0])
-    L = np.maximum(np.linalg.norm(afuera, axis=1), 1e-6)
-    abre = VUELO * np.clip((58.0 - P[:, 1]) / 45.0, 0.0, 1.0)
-    f[:, 0] += abre * afuera[:, 0] / L
-    f[:, 2] += abre * afuera[:, 1] / L
-    return f
+def _interp(tabla, y, col):
+    """Valor de la columna 'col' de una tabla por alturas (de arriba hacia abajo o al reves), en la altura y."""
+    filas = sorted(tabla, key=lambda f: f[0])
+    if y <= filas[0][0]:
+        return filas[0][col]
+    for a, b in zip(filas, filas[1:]):
+        if a[0] <= y <= b[0]:
+            t = (y - a[0]) / (b[0] - a[0])
+            return a[col] + (b[col] - a[col]) * t
+    if y >= filas[-1][0]:
+        return filas[-1][col]
+    return filas[-1][col]
 
 
-def _picos(x, n, semilla, alto):
-    """Una orilla rota en picos: dientes disparejos (ancho y alto) a lo largo de x (de -1 a 1)."""
-    out = np.zeros_like(x, dtype=float)
-    for k in range(n):
-        c = -1 + 2 * (k + 0.5) / n
-        w = 2.0 / n * (0.7 + 0.6 * _azar(k * 3.1 + semilla))
-        a = alto * (0.35 + 0.65 * _azar(k * 5.3 + semilla))
-        out = np.maximum(out, a * np.clip(1 - np.abs(x - c) / w, 0, 1))
-    return out
+# ---------------------------------------------------------------- telas hechas a mano (rejillas)
+
+class Pieza:
+    """Una tela como rejilla de puntos P[i][j] (i a lo ancho, j a lo largo): de ahi salen los cuadritos, las normales,
+    la luz de los pliegues, la posicion en la tela y la distancia a la orilla."""
+
+    def __init__(self, P, borde):
+        self.P = np.asarray(P, float)                          # (nu, nv, 3)
+        self.borde = np.asarray(borde, float)                  # (nu, nv): px hasta la orilla suelta mas cercana
+
+    def normales(self):
+        P = self.P
+        du = np.zeros_like(P)
+        dv = np.zeros_like(P)
+        du[1:-1] = P[2:] - P[:-2]
+        du[0], du[-1] = P[1] - P[0], P[-1] - P[-2]
+        dv[:, 1:-1] = P[:, 2:] - P[:, :-2]
+        dv[:, 0], dv[:, -1] = P[:, 1] - P[:, 0], P[:, -1] - P[:, -2]
+        n = np.cross(du, dv)
+        return n / np.maximum(np.linalg.norm(n, axis=-1, keepdims=True), 1e-9)
+
+    def luz(self):
+        """Por punto: luz de arriba y de frente, crestas claras y valles oscuros, mas clara hacia arriba."""
+        P, n = self.P, self.normales()
+        Q = P.copy()
+        for eje, k in ((0, 2), (1, 2)):
+            a = np.roll(P, k, axis=eje)
+            b = np.roll(P, -k, axis=eje)
+            if eje == 0:
+                a[:k], b[-k:] = P[:k], P[-k:]
+            else:
+                a[:, :k], b[:, -k:] = P[:, :k], P[:, -k:]
+            Q = Q + a + b
+        Q = Q / 5.0
+        pliegue = np.einsum("ijk,ijk->ij", Q - P, n)          # > 0: valle
+        L = np.array([0.0, 1.0, -0.5])
+        L /= np.linalg.norm(L)
+        luz = np.clip(n @ L, -0.2, 1.0)
+        alto = (P[..., 1] - 4.0) / 84.0
+        return 0.40 + 0.26 * luz - np.clip(pliegue * 0.5, -0.22, 0.26) + 0.22 * (alto - 0.5)
+
+    def a_modelo(self, p, hueso_de, nombre):
+        """Pasa la tela al modelo: por fuera con su luz y, un pelito adentro y al reves, la cara de adentro oscura."""
+        nu, nv = self.P.shape[:2]
+        S = self.luz()
+        n = self.normales()
+        adentro = self.P - n * 0.25
+        por_hueso = {}
+        for i in range(nu - 1):
+            for j in range(nv - 1):
+                q = ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))
+                pts = [self.P[a, b] for a, b in q]
+                if any(np.linalg.norm(pts[k] - pts[(k + 1) % 4]) < 1e-4 for k in range(4)):
+                    continue                                   # cuadrito aplastado (no se ve)
+                c = np.mean(pts, axis=0)
+                por_hueso.setdefault(hueso_de(c), []).append(((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)))
+        for hueso, qs in por_hueso.items():
+            usados = sorted({ij for q in qs for ij in q})
+            nuevo = {ij: k for k, ij in enumerate(usados)}
+            for capa, PP, voltea in (("", self.P, False), ("_dentro", adentro, True)):
+                vs = [tuple(float(c) for c in PP[ij]) for ij in usados]
+                caras, pintores = [], []
+                for q in qs:
+                    orden = list(q[::-1]) if voltea else list(q)
+                    caras.append(tuple(nuevo[ij] for ij in orden))
+                    A = np.array([PP[ij] for ij in orden])
+                    pintores.append(_pintor_cuadro(A, [S[ij] for ij in orden], [self.borde[ij] for ij in orden],
+                                                   dentro=voltea))
+                p.m.malla(hueso, f"{nombre}_{hueso.split('/')[-1]}{capa}", vs, caras, pintores, dens=D, luz=False)
 
 
-def _forma(u, v):
-    """La cobija en su propio plano (u a lo ancho, v de la frente hacia atras): un rectangulo con las orillas de atras
-    y de los lados rotas en picos (distintos de cada lado)."""
-    fu = u / ANCHO
-    fv = (v + LARGO) / (2 * LARGO) * 2 - 1
-    atras = v <= LARGO - PICOS_ATRAS + _picos(fu, 11, 1.0, PICOS_ATRAS)
-    lados = np.where(u >= 0, u <= ANCHO - PICOS_LADO + _picos(fv, 7, 8.0, PICOS_LADO),
-                     -u <= ANCHO - PICOS_LADO + _picos(fv, 7, 6.0, PICOS_LADO))
-    return (v >= -LARGO) & atras & lados
-
-
-def _en_cresta(d):
-    acum = 0.0
-    for a, b in zip(CRESTA, CRESTA[1:]):
-        L = math.dist(a, b)
-        if acum + L >= d:
-            t = (d - acum) / L
-            return tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
-        acum += L
-    return CRESTA[-1]
-
-
-def _manos_tapadas(P):
-    """La tela que quedara encima de las manos se quita (las manos siempre se ven)."""
-    m = np.zeros(len(P), bool)
-    for hombro, codo, muneca in (BRAZO_D, BRAZO_I):
-        d = np.array(_norm(_menos(muneca, codo)))
-        a = np.array(muneca) + d * 1.4
-        b = np.array(muneca) + d * 10.0
-        ab = b - a
-        t = np.clip(((P - a) @ ab) / (ab @ ab), 0.0, 1.0)
-        m |= np.linalg.norm(P - (a + t[:, None] * ab), axis=1) < 2.4
-    return m
-
-
-def _clave():
-    datos = repr((CABEZA, CAPUCHA, NUCA, HOMBROS, TORSO, BRAZO_D, BRAZO_I, GRUESO_BRAZO, ANCHO, LARGO, PICOS_ATRAS,
-                  PICOS_LADO, PASO, CRESTA, AGARRE_D, AGARRE_I, VIENTO, VUELO, 7))
-    return hashlib.sha1(datos.encode()).hexdigest()[:16]
-
-
-def manto():
-    """La cobija ya caida (se guarda en bruma_tela.npz; se vuelve a simular si cambian las medidas)."""
-    t = Tela((0.0, 88.0, FRENTE[2] + LARGO), max(ANCHO, LARGO) + 2.0, PASO, forma=_forma)
-    largo_cresta = sum(math.dist(a, b) for a, b in zip(CRESTA, CRESTA[1:]))
-    cosida = (np.abs(t.uv[:, 0]) < PASO * 0.6) & (t.uv[:, 1] + LARGO <= largo_cresta)
-    a_donde = {int(k): _en_cresta(float(t.uv[k, 1] + LARGO)) for k in np.nonzero(cosida)[0]}
-    orilla = t.uv[:, 1] < -LARGO + PASO * 0.6                  # la orilla de adelante de la cobija
-    for u, donde in (AGARRE_D, AGARRE_I):                     # la que agarran las manos
-        k = int(np.argmin(np.where(orilla, np.abs(t.uv[:, 0] - u), 1e9)))
-        a_donde[k] = donde
-    fijo = np.zeros(len(t.P), bool)
-    fijo[list(a_donde)] = True
-    t.fijar(fijo)
-    destino = np.array([a_donde[int(k)] for k in np.nonzero(fijo)[0]])
-    t.P[fijo] = destino
-    t.antes[fijo] = destino
-    clave = _clave()
-    if os.path.exists(CACHE):
-        z = np.load(CACHE)
-        if str(z["clave"]) == clave and len(z["P"]) == len(t.P):
-            t.P = z["P"].astype(float)
-            t.vivo = z["vivo"].astype(bool)
-            t._resortes()
-            return t
-    c = cuerpo()
-    t.simular(c, pasos=600, vueltas=12, viento=_viento, a_donde=destino)
-    tapadas = _manos_tapadas(t.P) & ~t.fijo
-    if tapadas.any():
-        t.quitar(tapadas)
-        t.simular(c, pasos=160, vueltas=12, viento=_viento, a_donde=destino)
-    t.quitar(~t.pegados())                                 # pedacitos que quedaron sueltos
-    np.savez_compressed(CACHE, clave=clave, P=t.P.astype(np.float32), vivo=t.vivo)
-    return t
-
-
-# ---------------------------------------------------------------- la textura de la tela
-
-def _tonos_por_punto(t, cuadros):
-    """Un valor de luz por punto: luz de arriba y de frente, crestas claras y valles oscuros (contra la tela
-    suavizada), mas clara hacia arriba."""
-    n = t.normales(cuadros)
-    liso = t.suavizada(cuadros, 5)
-    pliegue = np.einsum("ij,ij->i", liso - t.P, n)        # > 0: valle
-    L = np.array([0.0, 1.0, -0.5])
-    L /= np.linalg.norm(L)
-    luz = np.clip(n @ L, -0.2, 1.0)
-    alto = (t.P[:, 1] - 4.0) / 80.0
-    return 0.40 + 0.26 * luz - np.clip(pliegue * 0.16, -0.22, 0.26) + 0.22 * (alto - 0.5)
-
-
-# hoyos de tela vieja: (u, v, radio) en la cobija, lejos de la capucha
-HOYOS = tuple(((-40.0 + 80.0 * _azar(k * 2.3)), (-10.0 + 46.0 * _azar(k * 5.7)), 0.8 + 1.0 * _azar(k * 9.1))
-              for k in range(10))
-
-
-def _pintor_cuadro(A, S, UV, B, dentro=False):
-    """El pintor de un cuadrito de tela: interpola la luz, la posicion en la cobija y la distancia a la orilla dentro
-    del cuadrito (por triangulos) y decide el tono; las orillas se deshilachan y hay unos hoyos. dentro: la cara de
-    adentro de la cobija (mas oscura)."""
+def _pintor_cuadro(A, S, B, dentro=False):
+    """Interpola la luz y la distancia a la orilla dentro del cuadrito (por triangulos) y decide el tono; las orillas
+    sueltas se deshilachan. dentro: la cara de adentro (mas oscura)."""
     rampa = [hex_(c) for c in RAMPA]
     tris = []
     for (i0, i1, i2) in ((0, 1, 2), (0, 2, 3)):
@@ -230,7 +172,7 @@ def _pintor_cuadro(A, S, UV, B, dentro=False):
         den = d00 * d11 - d01 * d01
         tris.append((tuple(a), tuple(v0), tuple(v1), d00, d01, d11, 1.0 / den if abs(den) > 1e-12 else 0.0,
                      (i0, i1, i2)))
-    Sl, UVl, Bl = list(S), [tuple(x) for x in UV], list(B)
+    Sl, Bl = [float(x) for x in S], [float(x) for x in B]
 
     def pintor(t):
         mejor = None
@@ -249,89 +191,170 @@ def _pintor_cuadro(A, S, UV, B, dentro=False):
         tot = u + v + w or 1.0
         u, v, w = u / tot, v / tot, w / tot
         s = u * Sl[i0] + v * Sl[i1] + w * Sl[i2]
-        cu = u * UVl[i0][0] + v * UVl[i1][0] + w * UVl[i2][0]
-        cv = u * UVl[i0][1] + v * UVl[i1][1] + w * UVl[i2][1]
         b = u * Bl[i0] + v * Bl[i1] + w * Bl[i2]
         k = int(s * len(rampa)) - (3 if dentro else 0)
-        # la orilla: se deshilacha (hilos disparejos) y es mas oscura
-        if b < 2.0:
-            hilo = _azar(int(cu * 2.0) * 7 + int(cv * 2.0) * 13)
-            if b < 2.0 * (0.25 + 0.75 * hilo):
+        if b < 1.6:                                            # la orilla suelta: hilos disparejos
+            hilo = _azar(int(t.x * 2.0) * 7 + int(t.y * 2.0) * 13 + int(t.z * 2.0) * 3)
+            if b < 1.6 * (0.2 + 0.8 * hilo):
                 return TRANSPARENTE
             k -= 1
-        elif b < 4.0:
+        elif b < 3.5:
             k -= 1
-        # hoyos de tela vieja (con la orilla oscura)
-        for hu, hv, hr in HOYOS:
-            dd = math.hypot(cu - hu, cv - hv)
-            if dd < hr:
-                return TRANSPARENTE
-            if dd < hr + 0.6:
-                k -= 2
         return rampa[max(0, min(len(rampa) - 1, k))]
     return pintor
 
 
-def _hueso_de(c):
-    """A que hueso va un cuadrito de tela (por donde quedo): la capucha, las mangas (la tela que cuelga de cada
-    brazo), el manto o un faldon (para que se mueva)."""
-    x, y, z = c
-    if y > 66.5 and math.hypot(x, z + 1.0) < 9.0:
-        return "raiz/cuerpo/capucha"
-    for lado, (hombro, codo, muneca) in (("d", BRAZO_D), ("i", BRAZO_I)):
-        if (x > 6.5 if lado == "d" else x < -6.5) and y > 30.0:
-            return f"raiz/cuerpo/brazo_{lado}/manga_{lado}"
-    if y < 38.0:
-        a = math.degrees(math.atan2(x, -(z - 1.0)))      # 0 adelante, 90 a su derecha
+# ---------------------------------------------------------------- las piezas
+
+def _picos_ruedo(th):
+    """Cuanto mas abajo llega el ruedo en el angulo th (0 adelante, pi/2 su derecha): picos disparejos, largos y hacia
+    afuera de su lado derecho, cortos y ondulados del izquierdo."""
+    out = 0.0
+    n = 15
+    for k in range(n):
+        c = 2 * math.pi * (k + 0.3 * _azar(k * 1.7)) / n
+        derecha = max(0.0, math.sin(c))                        # 1 en su lado derecho
+        izquierda = max(0.0, -math.sin(c))
+        amp = (4.0 + 11.0 * derecha * (0.6 + 0.4 * _azar(k * 3.3)) + 2.0 * izquierda * _azar(k * 5.1)
+               + 4.0 * max(0.0, -math.cos(c)) * _azar(k * 7.7))
+        ancho = 2 * math.pi / n * (0.55 + 0.35 * _azar(k * 2.9))
+        d = abs(((th - c + math.pi) % (2 * math.pi)) - math.pi)
+        out = max(out, amp * max(0.0, 1 - d / ancho))
+    return out + 1.2 * math.sin(th * 9.0 + 0.7) * (1 if math.sin(th) < 0 else 0)   # ondulado del izquierdo
+
+
+def falda_y_cuerpo(p):
+    """La ropa del cuerpo: del cuello al ruedo, abierta adelante. Cada columna llega a su propio ruedo (los picos)."""
+    nu, nv = 84, 46
+    filas_y = [f[0] for f in CUERPO]
+    P = np.zeros((nu, nv, 3))
+    borde = np.zeros((nu, nv))
+    for i in range(nu):
+        u = i / (nu - 1)
+        for j in range(nv):
+            v = j / (nv - 1)
+            # la altura: de cuello a ruedo; el ruedo de esta columna depende de su angulo (se calcula con el de abajo)
+            abre = math.radians(_interp(CUERPO, CINTURA, 5))
+            th_ruedo = math.radians(_interp(CUERPO, RUEDO, 5))
+            th = th_ruedo + u * (2 * math.pi - 2 * th_ruedo)
+            base = RUEDO + 3.5 + 4.0 * math.cos(th)            # adelante mas corto, atras mas largo
+            ruedo = base - _picos_ruedo(th)
+            y = CUELLO + (ruedo - CUELLO) * v ** 1.0
+            abre = math.radians(_interp(CUERPO, max(y, RUEDO), 5))
+            th = abre + u * (2 * math.pi - 2 * abre)
+            yy = max(y, RUEDO - 6.0)
+            rx = _interp(CUERPO, yy, 1) + (max(0.0, RUEDO - y) * 0.7)
+            rzf = _interp(CUERPO, yy, 2) + (max(0.0, RUEDO - y) * 0.5)
+            rzb = _interp(CUERPO, yy, 3) + (max(0.0, RUEDO - y) * 0.7)
+            zc = _interp(CUERPO, yy, 4)
+            sn, cs = math.sin(th), math.cos(th)
+            rz = rzb + (rzf - rzb) * (cs + 1) / 2
+            # pliegues que bajan derechos, cada vez mas hondos
+            hondo = 0.25 + 2.4 * max(0.0, (CINTURA + 4 - y) / (CINTURA + 4 - RUEDO)) ** 1.2
+            pl = hondo * (0.62 * math.sin(11 * th + 0.4) + 0.38 * math.sin(17 * th + 1.9)
+                          + 0.25 * math.sin(7 * th + 2.6 + y * 0.05))
+            P[i, j] = (math.sin(th) * (rx + pl), y, zc - cs * (rz + pl))
+    # distancia a la orilla: hacia abajo por la columna (el ruedo) y de lado hasta la abertura
+    largo_col = np.concatenate([np.zeros((nu, 1)), np.cumsum(np.linalg.norm(np.diff(P, axis=1), axis=-1), axis=1)], 1)
+    al_ruedo = largo_col[:, -1:] - largo_col
+    largo_fila = np.concatenate([np.zeros((1, nv)), np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=-1), axis=0)], 0)
+    a_la_abertura = np.minimum(largo_fila, largo_fila[-1:] - largo_fila)
+    borde = np.minimum(al_ruedo, a_la_abertura)
+
+    def hueso_de(c):
+        x, y, z = c
+        if y > CINTURA - 2:
+            return "raiz/cuerpo/manto"
+        a = math.degrees(math.atan2(x, -(z - 2.0)))
         if -45 <= a < 45:
-            return "raiz/cuerpo/faldon_frente"
+            return "raiz/cuerpo/falda_frente"
         if 45 <= a < 135:
-            return "raiz/cuerpo/faldon_d"
+            return "raiz/cuerpo/falda_d"
         if -135 <= a < -45:
-            return "raiz/cuerpo/faldon_i"
-        return "raiz/cuerpo/faldon_atras"
-    return "raiz/cuerpo/manto"
+            return "raiz/cuerpo/falda_i"
+        return "raiz/cuerpo/falda_atras"
+    Pieza(P, borde).a_modelo(p, hueso_de, "ropa")
 
 
-def tela_en_el_modelo(p, t):
-    """La cobija en el modelo: por fuera con su luz y, un pelito mas adentro y al reves, la cara de adentro mas
-    oscura (en el juego la tela se ve de los dos lados; asi por la abertura y por debajo se ve oscura)."""
-    cuadros = t.cuadros()
-    S = _tonos_por_punto(t, cuadros)
-    B = t.a_la_orilla()
-    n = t.normales(cuadros)
-    adentro = t.P - n * 0.25
-    por_hueso = {}
-    for q in cuadros:
-        c = t.P[list(q)].mean(axis=0)
-        por_hueso.setdefault(_hueso_de(c), []).append(q)
-    for hueso, qs in por_hueso.items():
-        usados = sorted({i for q in qs for i in q})
-        nuevo = {v: k for k, v in enumerate(usados)}
-        for capa, P, voltea in (("", t.P, False), ("_dentro", adentro, True)):
-            vs = [tuple(float(c) for c in P[i]) for i in usados]
-            caras, pintores = [], []
-            for q in qs:
-                ids = list(q)
-                cara = tuple(nuevo[i] for i in q)
-                caras.append(tuple(reversed(cara)) if voltea else cara)
-                orden = ids[::-1] if voltea else ids
-                pintores.append(_pintor_cuadro(P[orden], S[orden], t.uv[orden], B[orden], dentro=voltea))
-            p.m.malla(hueso, hueso.split("/")[-1] + capa, vs, caras, pintores, dens=D, luz=False)
+def manga(p, lado, datos):
+    """Una manga ancha que cuelga del hombro y se abre en campana; el puno inclinado y roto en picos chiquitos."""
+    (hombro, medio, puno), (r0, r1, r2), inclina = datos
+    nu, nv = 26, 18
+    camino = []
+    for j in range(nv):
+        v = j / (nv - 1)
+        if v < 0.5:
+            c = _mas(hombro, _menos(medio, hombro), v * 2)
+            r = r0 + (r1 - r0) * v * 2
+        else:
+            c = _mas(medio, _menos(puno, medio), v * 2 - 1)
+            r = r1 + (r2 - r1) * (v * 2 - 1) ** 1.4
+        camino.append((c, r))
+    P = np.zeros((nu, nv, 3))
+    s = 1 if lado == "d" else -1
+    for j, (c, r) in enumerate(camino):
+        a = camino[max(0, j - 1)][0]
+        b = camino[min(nv - 1, j + 1)][0]
+        eje = _norm(_menos(b, a))
+        e1 = _norm(_cruz(eje, (0.0, 0.0, 1.0)))               # hacia afuera / adentro
+        e2 = _norm(_cruz(e1, eje))
+        v = j / (nv - 1)
+        for i in range(nu):
+            th = -2 * math.pi * i / (nu - 1)                   # este sentido deja la cara de afuera por fuera
+            pl = (0.15 + 0.7 * v) * math.sin(7 * th + 1.1 * (s > 0))
+            rr = r + pl
+            q = _mas(_mas(c, e1, rr * math.cos(th)), e2, rr * math.sin(th) * 0.9)
+            if j == nv - 1 or j == nv - 2:                     # el puno: inclinado y roto
+                afuera = math.cos(th) * s
+                baja = inclina * afuera + (1.4 * max(0.0, 1 - abs(((th * 3.0) % 2.0) - 1.0)) if j == nv - 1 else 0.0)
+                q = _mas(q, eje, baja * (1.0 if j == nv - 1 else 0.4))
+            P[i, j] = q
+    largo_col = np.concatenate([np.zeros((nu, 1)), np.cumsum(np.linalg.norm(np.diff(P, axis=1), axis=-1), axis=1)], 1)
+    borde = largo_col[:, -1:] - largo_col
+    Pieza(P, borde).a_modelo(p, lambda c: f"raiz/cuerpo/brazo_{lado}/manga_{lado}", f"manga_{lado}")
+    p.m.pivotes[f"raiz/cuerpo/brazo_{lado}"] = hombro
+    p.m.pivotes[f"raiz/cuerpo/brazo_{lado}/manga_{lado}"] = hombro
 
 
-# ---------------------------------------------------------------- lo que asoma
+def capucha(p):
+    """La capucha alta que acaba en punta: anillos de abajo hacia arriba con el hueco de la cara adelante (y la tela de
+    atras que cae sobre la espalda), cerrada arriba en la punta."""
+    nu = 36
+    filas = []
+    for a, b in zip(CAPUCHA, CAPUCHA[1:]):
+        filas += [tuple(a[c] + (b[c] - a[c]) * k / 2 for c in range(len(a))) for k in range(2)]
+    filas.append(CAPUCHA[-1])
+    nv = len(filas)
+    P = np.zeros((nu, nv, 3))
+    for j, (y, rx, rzf, rzb, zc, xo, abre) in enumerate(filas):
+        th0 = math.radians(abre)
+        for i in range(nu):
+            th = th0 + (2 * math.pi - 2 * th0) * i / (nu - 1)
+            sn, cs = math.sin(th), math.cos(th)
+            rz = rzb + (rzf - rzb) * (cs + 1) / 2
+            pl = 0.45 * (1 - j / (nv - 1)) * math.sin(6 * th + 0.8)
+            P[i, j] = (xo + (rx + pl) * sn, y, zc - (rz + pl) * cs)
+    P = P[:, ::-1]                                             # de arriba hacia abajo (la punta en j = 0)
+    largo_fila = np.concatenate([np.zeros((1, nv)), np.cumsum(np.linalg.norm(np.diff(P, axis=0), axis=-1), axis=0)], 0)
+    a_la_cara = np.minimum(largo_fila, largo_fila[-1:] - largo_fila)
+    largo_col = np.concatenate([np.zeros((nu, 1)), np.cumsum(np.linalg.norm(np.diff(P, axis=1), axis=-1), axis=1)], 1)
+    al_ruedo = largo_col[:, -1:] - largo_col
+    abiertas = np.array([math.radians(f[6]) > 0.01 for f in filas[::-1]])
+    borde = np.where(abiertas[None, :], np.minimum(a_la_cara, al_ruedo), al_ruedo)
+    borde = np.maximum(borde, np.where(np.arange(nv)[None, :] < 3, 9.0, 0.0))     # la punta no se deshilacha
+    Pieza(P, borde).a_modelo(p, lambda c: "raiz/cuerpo/capucha", "capucha")
+
 
 def vacio(p):
-    """Adentro: el vacio negro (la cabeza alta y el palo del cuerpo, un poco mas chicos que lo que sostiene la tela),
-    para que por la cara y por la abertura del frente solo se vea oscuridad."""
+    """Adentro: el vacio negro (la cabeza y el cuerpo), para que por la cara y la abertura solo se vea oscuridad."""
     negro = hex_(VACIO)
-    (a, b, r) = CABEZA
-    p.malla("raiz/cuerpo/capucha", "vacio", tubo_camino([(*a, r * 0.85, r * 0.85), (*b, r * 0.8, r * 0.8),
-                                                         (*CAPUCHA[1][:3], 2.2, 2.2)], lados=8),
+    a, b, r = CABEZA
+    p.malla("raiz/cuerpo/capucha", "vacio", tubo_camino([(*a, r, r), (*b, r * 0.9, r * 0.9),
+                                                         (0.6, 81.0, -1.4, 2.2, 2.2)], lados=8),
             lambda t: negro, dens=1, luz=False)
-    a, b, r = TORSO
-    p.malla("raiz/cuerpo/manto", "vacio_cuerpo", tubo_camino([(*a, r * 1.4, r * 1.2), (*b, r * 1.2, r * 1.1)], lados=8),
+    p.malla("raiz/cuerpo/manto", "vacio_cuerpo", tubo_camino([(0.0, 66.0, -0.2, 5.6, 3.8), (0.0, 50.0, 0.0, 4.8, 3.4),
+                                                               (0.0, 34.0, 0.6, 5.6, 4.2), (0.0, 22.0, 2.0, 9.0, 7.0)],
+                                                              lados=8),
             lambda t: negro, dens=1, luz=False)
 
 
@@ -371,28 +394,28 @@ def mano(p, g, muneca, adelante, abajo, nombre, cierra=0.0, k=1.6):
 
 
 def manos(p):
-    for lado, (hombro, codo, muneca), cierra in (("d", BRAZO_D, 0.15), ("i", BRAZO_I, 0.6)):
-        b = f"raiz/cuerpo/brazo_{lado}"
-        a = f"{b}/antebrazo_{lado}"
-        m = f"{a}/mano_{lado}"
-        adelante = _norm(_menos(muneca, codo))
-        abajo = _norm(_mas(_cruz(_cruz(adelante, (0.0, 0.0, -1.0)), adelante), (0.0, 0.0, -0.4)))
-        mano(p, m, _mas(muneca, adelante, 0.6), adelante, abajo, f"mano_{lado}", cierra)
-        p.m.pivotes[b] = hombro
-        p.m.pivotes[f"{b}/manga_{lado}"] = hombro
-        p.m.pivotes[a] = codo
-        p.m.pivotes[m] = muneca
+    for lado, (muneca, hacia, cierra) in (("d", MANO_D), ("i", MANO_I)):
+        g = f"raiz/cuerpo/brazo_{lado}/mano_{lado}"
+        adelante = _norm(hacia)
+        s = 1 if lado == "d" else -1
+        abajo = _norm(_cruz(adelante, (0.0, 0.0, s * 1.0)))     # los dedos se curvan hacia el cuerpo
+        if abajo[0] * s > 0:
+            abajo = tuple(-c for c in abajo)
+        mano(p, g, muneca, adelante, abajo, f"mano_{lado}", cierra)
+        p.m.pivotes[g] = muneca
 
 
 def construir():
     p = Personaje("bruma", altura=64)
     p.m.luz = False                                         # la luz ya viene en la textura (bandas por pliegue)
-    t = manto()
-    tela_en_el_modelo(p, t)
+    falda_y_cuerpo(p)
+    manga(p, "d", MANGA_D)
+    manga(p, "i", MANGA_I)
+    capucha(p)
     vacio(p)
     manos(p)
-    p.m.pivotes.update({"raiz": (0.0, 0.0, 0.0), "raiz/cuerpo": (0.0, 40.0, 0.0), "raiz/cuerpo/capucha": (0.0, 67.0, -1.0),
-                        "raiz/cuerpo/manto": (0.0, 65.0, 0.0), "raiz/cuerpo/faldon_frente": (0.0, 38.0, -4.0),
-                        "raiz/cuerpo/faldon_atras": (0.0, 38.0, 5.0), "raiz/cuerpo/faldon_d": (4.0, 38.0, 0.5),
-                        "raiz/cuerpo/faldon_i": (-4.0, 38.0, 0.5)})
+    p.m.pivotes.update({"raiz": (0.0, 0.0, 0.0), "raiz/cuerpo": (0.0, 40.0, 0.0),
+                        "raiz/cuerpo/capucha": (0.0, 66.0, -0.5), "raiz/cuerpo/manto": (0.0, 64.0, 0.0),
+                        "raiz/cuerpo/falda_frente": (0.0, CINTURA, -4.0), "raiz/cuerpo/falda_atras": (0.0, CINTURA, 5.0),
+                        "raiz/cuerpo/falda_d": (5.0, CINTURA, 0.5), "raiz/cuerpo/falda_i": (-5.0, CINTURA, 0.5)})
     return p
