@@ -61,18 +61,24 @@ def _mirador(Y, poi, radio, objetivo, W=960, H=540):
     return float(cams[0, 0]), float(cams[0, 2])
 
 
-def camaras(Y, W=960, H=540):
-    """Cámaras comprobadas de cada vista: lista de (vista, Camara)."""
+def camaras(Y, W=960, H=540, vistas=None):
+    """Cámaras comprobadas de cada vista: lista de (vista, Camara).  objetivo: nombre de un
+    punto de interés o (x, z) / (x, z, Y) en bloques."""
     out = []
-    for v in VISTAS:
+    for v in (VISTAS if vistas is None else vistas):
         objetivo = None
-        if v.get('objetivo'):
-            tx, tz = poi_blocks(v['objetivo'])
-            objetivo = (tx, suelo(Y, tx, tz) + OJO, tz)
+        if v.get('objetivo') is not None:
+            o = v['objetivo']
+            if isinstance(o, str):
+                tx, tz = poi_blocks(o)
+                objetivo = (tx, suelo(Y, tx, tz) + OJO, tz)
+            else:
+                tx, tz = o[0], o[1]
+                objetivo = (tx, o[2] if len(o) > 2 else suelo(Y, tx, tz) + OJO, tz)
         desde = v['desde']
         if desde[0] == 'mirador':
             x, z = _mirador(Y, desde[1], desde[2], objetivo, W, H)
-        elif isinstance(desde[0], str):
+        elif isinstance(desde[0], str) and desde[0] != 'mirador':
             bx, bz = poi_blocks(desde[0])
             x, z = bx + desde[1], bz + desde[2]
         else:
@@ -109,15 +115,22 @@ def _envolver(d, txt, f, ancho):
     return lineas + [actual]
 
 
-def generar(Y, ocean, out_dir, prefijo='v1', W=960, H=540):
+def generar(Y, ocean, out_dir, prefijo='v1', W=960, H=540, tipo=None, WL=None, extra=None):
+    """tipo/WL (agua.superficie): río, lagos, cascadas, arroyos y lava se pintan en la textura y
+    la superficie del agua hace de suelo.  extra: vistas adicionales (mismo formato que VISTAS)."""
     os.makedirs(out_dir, exist_ok=True)
     n = Y.shape[0]
     dx = N / n
+    if WL is not None:
+        Y = np.where(np.isfinite(WL), np.maximum(Y, WL), Y)
     tex = np.asarray(relief_image(Y, dx, water=ocean)).astype(np.float32)
+    if tipo is not None:
+        from .agua import pintar
+        tex = pintar(tex, tipo)
     f1 = ImageFont.truetype(FONT, 18)
     f2 = ImageFont.truetype(FONT_N, 14)
     paths = []
-    for k, (v, cam) in enumerate(camaras(Y, W, H)):
+    for k, (v, cam) in enumerate(camaras(Y, W, H, VISTAS + list(extra or []))):
         im = render(Y, tex, cam, W, H, niebla=4000.0 if v.get('y') is not None else 2500.0)
         d = ImageDraw.Draw(im)
         lineas = _envolver(d, _etiqueta(cam), f2, W - 16)

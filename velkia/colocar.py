@@ -6,7 +6,8 @@ mapa 2 y el terreno modificado.  Reglas:
   * Jardines colgantes: en el domo central de los Jardines.
   * Vieja Velkia: el canal (agua a Y=87) a la cota del río; el fondo del cañón se ensancha
     en una vega (solo corte) para que la roca no entierre la ciudad.
-  * Aldea oeste (terrazas): ladera con pendiente y orientación de diseño cerca de su punto.
+  * Aldea oeste (terrazas): en su punto del mapa 2; el terreno ya trae preparada una ladera de
+    ~3° con la orientación del diseño (modelado.ladera_aldea_oeste).
   * Aldea sur: en su punto, junto al Río Salado.
   * Torre: cima/promontorio cercano a la costa.
 """
@@ -15,7 +16,9 @@ from scipy import ndimage as ndi
 
 from .estructuras import SITIOS, Sitio, recortar
 from .layout import N, SEA, poi_blocks
-from .ubicacion import buscar_cima, buscar_ladera
+from .ubicacion import buscar_cima
+
+TALUD = 0.5            # pendiente máxima del corte y del relleno alrededor de la huella (1:2)
 
 CONSTRUCCIONES = [
     # etiqueta, sitio, carpetas, grupo (comparte dy), modo de asiento
@@ -52,30 +55,61 @@ def _muestrear(Y, dx, m, mask=None):
     return Y[ci, cj]
 
 
-def colocar(Y, dx, rio_y=None, dist_costa=None, analisis=None, log=True):
-    """Y: cotas absolutas (malla dx).  rio_y: función (x, z) -> cota del agua del río cercano.
-    analisis: dict opcional con pendiente/aspecto de diseño de la aldea oeste, etc.
-    Devuelve lista de dicts con la colocación de cada construcción."""
+def _objetivo(m, borde=8):
+    """(suelo, asiento) por columna de la huella.
+    suelo: techo del terreno del schematic; donde no hay terreno (columnas de edificios), una
+    membrana armónica sin pasar de la base de la columna.  Sirve para el dy y para la costura
+    del borde.
+    asiento: igual que suelo en una franja de 'borde' bloques junto al contorno (la costura con
+    el terreno natural); hacia dentro el terreno queda bajo la base de cada columna, porque el
+    schematic trae su propio suelo (losas, terrazas, rellenos) y lo pone al pegarse."""
+    from .asiento import _rellenar_huecos
+    foot = m['foot']
+    g = m['ground'].astype(np.float64)
+    ok = foot & (g > -900)
+    if not ok.any():
+        t = np.where(foot, m['bottom'] - 1.0, np.nan)
+        return t, t
+    t = np.where(ok, g, np.nan)
+    hueco = foot & ~ok
+    if hueco.any():
+        arm = _rellenar_huecos(t, ok, hueco)
+        bajo = (m['bottom'][hueco] - 1.0).astype(np.float64)
+        t[hueco] = np.minimum(arm, bajo)
+    a = t.copy()
+    dentro = ndi.binary_erosion(foot, iterations=borde)
+    a[dentro] = np.minimum(t[dentro], m['bottom'][dentro] - 1.0)
+    return t, a
+
+
+def _dif_borde(Y, dx, m, ref, ancho=8):
+    """Terreno menos suelo del schematic en la franja del borde de la huella (la costura): el
+    dy se elige para que la costura case, aunque dentro haya terrazas o plataformas."""
+    f = m['foot']
+    borde = f & ~ndi.binary_erosion(f, iterations=ancho) & np.isfinite(ref)
+    if not borde.any():
+        borde = f & np.isfinite(ref)
+    terr = _muestrear(Y, dx, m, borde)
+    return terr - ref[borde]
+
+
+def colocar(Y, dx, rio_y=None, dist_costa=None, analisis=None, log=True, busqueda=None):
+    """Y: cotas absolutas (malla dx; para el asiento final, dx = 1).  rio_y: función (x, z) ->
+    cota del agua del río cercano.  busqueda: (Yc, dxc, dist_costa_c) malla gruesa para buscar
+    la cima de la torre (por defecto la misma Y).
+    Devuelve (lista de dicts con la colocación de cada construcción, terreno asentado)."""
     from . import asiento
-    analisis = analisis or {}
     out = []
     Ymod = Y.copy()
-    # ---------------------------------------------- traslaciones XZ
+    Yb, dxb, dcb = busqueda if busqueda is not None else (Y, dx, dist_costa)
+    # ---------------------------------------------- traslaciones XZ (solo la torre busca su cima)
     shifts = {}
     tx, tz = poi_blocks('torre_llama_eterna')
-    cx, cz, cy = buscar_cima(Y, dx, tx, tz, radio=700.0, dist_costa=dist_costa, max_costa=650.0)
+    cx, cz, cy = buscar_cima(Yb, dxb, tx, tz, radio=700.0, dist_costa=dcb, max_costa=650.0)
     t0 = _sitio('torre_llama_eterna', ['torre_llama_eterna']).maps()
     torre_c = np.unravel_index(np.argmax(np.where(t0['foot'], t0['top'], -999)), t0['top'].shape)
     shifts['Torre de la llama eterna'] = (int(round(cx - (t0['x0'] + torre_c[1]))),
                                          int(round(cz - (t0['z0'] + torre_c[0]))))
-    ax, az = poi_blocks('aldea_fantasma_oeste')
-    a0 = _sitio('aldea_fantasma_oeste', ['aldea_fantasma_norte']).maps()
-    # diseño original: terrazas suaves, 0,051 bloques/bloque (2,9°) bajando hacia 25,7° (ESE)
-    pend = analisis.get('aldea_oeste_pendiente', 0.051)
-    asp = analisis.get('aldea_oeste_aspecto', 25.7)
-    lx, lz, info = buscar_ladera(Y, dx, ax, az, 800.0, pend, asp, 250.0)
-    zz, xx = np.nonzero(a0['foot'])
-    shifts['Aldea fantasma oeste'] = (int(round(lx - (a0['x0'] + xx.mean()))), int(round(lz - (a0['z0'] + zz.mean()))))
     # ---------------------------------------------- dy y asiento
     grupos = {}
     for nombre, sitio, carpetas, grupo, modo in CONSTRUCCIONES:
@@ -88,13 +122,10 @@ def colocar(Y, dx, rio_y=None, dist_costa=None, analisis=None, log=True):
         terr = _muestrear(Ymod, dx, m)
         if o['modo'] == 'base':
             suelo = int(m['bottom'][m['foot']].min()) - 1
-            ref = np.full(m['foot'].shape, float(suelo))
+            ref = np.where(m['foot'], float(suelo), np.nan)
+            o['ref_asiento'] = ref
         else:
-            g = m['ground'].astype(float)
-            g[(g < -900) | ~m['foot']] = np.nan
-            if np.isnan(g).all():
-                g = np.where(m['foot'], m['bottom'] - 1.0, np.nan)
-            ref = g
+            ref, o['ref_asiento'] = _objetivo(m)
         o['ref'] = ref
         o['terreno'] = terr
         if o['nombre'] == 'Vieja Velkia' and rio_y is not None:
@@ -102,36 +133,102 @@ def colocar(Y, dx, rio_y=None, dist_costa=None, analisis=None, log=True):
             wy = rio_y(m['x0'] + xx.mean(), m['z0'] + zz.mean())
             o['dy'] = int(round(wy - int(m['water_y'][m['water']].max())))
         else:
-            o['dy'] = int(round(np.median(terr) - np.nanmedian(ref[m['foot']])))
-    # grupo complejo: un solo dy (mediana ponderada por área)
+            o['dy'] = int(round(np.median(_dif_borde(Ymod, dx, m, ref))))
+    # grupo complejo: un solo dy (el de la costura de todas sus piezas)
     comp = [o for o in out if o['grupo'] == 'complejo']
     if comp:
-        allv = np.concatenate([o['terreno'] - np.nanmedian(o['ref'][o['maps']['foot']]) for o in comp])
+        allv = np.concatenate([_dif_borde(Ymod, dx, o['maps'], o['ref']) for o in comp])
         dyc = int(round(np.median(allv)))
         for o in comp:
             o['dy'] = dyc
-    # asiento: Vieja Velkia primero con vega (solo corte), luego el resto
+    # asiento por unidades: el complejo (piezas que encajan entre sí) va como UNA huella, para
+    # que el talud de una pieza no rehaga el suelo de otra ya asentada
+    unidades = []
+    for o in out:
+        if o['grupo'] and any(u['grupo'] == o['grupo'] for u in unidades):
+            next(u for u in unidades if u['grupo'] == o['grupo'])['piezas'].append(o)
+        else:
+            unidades.append({'grupo': o['grupo'], 'piezas': [o]})
+    for u in unidades:
+        foot, x0, z0, target, target_a = _union(u['piezas'])
+        nombre = u['piezas'][0]['nombre'] if len(u['piezas']) == 1 else 'complejo'
+        if nombre == 'Vieja Velkia':
+            # vega: huella ensanchada 80 bloques a la cota del suelo de la ciudad (solo corte)
+            pad = 80
+            fp = np.pad(foot, pad)
+            vega = ndi.distance_transform_edt(~fp) <= pad
+            tv = np.where(vega, np.nanmedian(target[foot]), np.nan)
+            tv = np.where(fp, np.pad(target, pad, constant_values=np.nan), tv)
+            Ycut, _ = asiento.asentar(Ymod, dx, vega, x0 - pad, z0 - pad, tv, slope_cut=1.8, slope_fill=0.0)
+            Ymod = np.minimum(Ymod, Ycut)
+        for o in u['piezas']:
+            m = o['maps']
+            o['antes'] = asiento.evaluar_asiento(Ymod, dx, m['foot'], m['x0'], m['z0'], o['ref'] + o['dy'])
+        Ymod, inf = asiento.asentar(Ymod, dx, foot, x0, z0, target_a, slope_fill=TALUD,
+                                    slope_cut=TALUD, border_min=max(6.0, 2.0 * dx), target_borde=target)
+        for o in u['piezas']:
+            o['informe'] = inf
+        if log:
+            print(f"  {nombre}: dy {u['piezas'][0]['dy']:+d}  corte máx {inf.get('corte_max', 0):.0f}  "
+                  f"relleno máx {inf.get('relleno_max', 0):.0f}", flush=True)
+    # evaluación final, con todo ya asentado: flotación/enterramiento en el borde y talud del anillo
+    todas = np.zeros(Ymod.shape, bool) if dx == 1 else None
+    if todas is not None:
+        for o in out:
+            m = o['maps']
+            zz, xx = np.nonzero(m['foot'])
+            todas[zz + m['z0'], xx + m['x0']] = True
     for o in out:
         m = o['maps']
-        target = o['ref'] + o['dy']
-        x0, z0 = m['x0'], m['z0']
-        foot = m['foot'].copy()
-        if o['nombre'] == 'Vieja Velkia':
-            # vega: huella ensanchada 80 bloques a la cota del suelo de la ciudad (solo corte)
-            vega = ndi.binary_dilation(foot, iterations=80)
-            tv = np.where(vega, np.nanmedian(target[foot]), np.nan)
-            tv = np.where(foot, target, tv)
-            Ycut, _ = asiento.asentar(Ymod, dx, vega, x0, z0, tv, slope_cut=1.8, slope_fill=0.0)
-            Ymod = np.minimum(Ymod, Ycut)
-            foot_use, target_use = foot, target
-        else:
-            foot_use, target_use = foot, target
-        antes = asiento.evaluar_asiento(Ymod, dx, foot_use, x0, z0, target_use)
-        Ymod, inf = asiento.asentar(Ymod, dx, foot_use, x0, z0, target_use)
-        o['informe'] = inf
-        o['antes'] = antes
-        o['despues'] = asiento.evaluar_asiento(Ymod, dx, foot_use, x0, z0, target_use)
-        if log:
-            print(f"  {o['nombre']}: desplazamiento {o['shift']}  dy {o['dy']:+d}  "
-                  f"corte máx {inf.get('corte_max', 0):.0f}  relleno máx {inf.get('relleno_max', 0):.0f}", flush=True)
+        o['despues'] = asiento.evaluar_asiento(Ymod, dx, m['foot'], m['x0'], m['z0'], o['ref'] + o['dy'])
+        if todas is not None:
+            o['talud'] = talud_anillo(Ymod, m['foot'], m['x0'], m['z0'], todas)
     return out, Ymod
+
+
+def _union(piezas):
+    """Huella, esquina y objetivos (suelo, asiento) de una o varias piezas en una sola caja."""
+    if len(piezas) == 1:
+        o = piezas[0]
+        m = o['maps']
+        return m['foot'].copy(), m['x0'], m['z0'], o['ref'] + o['dy'], o['ref_asiento'] + o['dy']
+    x0 = min(o['maps']['x0'] for o in piezas)
+    z0 = min(o['maps']['z0'] for o in piezas)
+    x1 = max(o['maps']['x0'] + o['maps']['foot'].shape[1] for o in piezas)
+    z1 = max(o['maps']['z0'] + o['maps']['foot'].shape[0] for o in piezas)
+    foot = np.zeros((z1 - z0, x1 - x0), bool)
+    t = np.full(foot.shape, np.nan)
+    ta = np.full(foot.shape, np.nan)
+    for o in piezas:
+        m = o['maps']
+        sl = (slice(m['z0'] - z0, m['z0'] - z0 + m['foot'].shape[0]), slice(m['x0'] - x0, m['x0'] - x0 + m['foot'].shape[1]))
+        f = m['foot']
+        foot[sl] |= f
+        v = np.where(f, o['ref'] + o['dy'], np.nan)
+        va = np.where(f, o['ref_asiento'] + o['dy'], np.nan)
+        t[sl] = np.where(np.isnan(t[sl]), v, np.where(np.isnan(v), t[sl], np.maximum(t[sl], v)))
+        ta[sl] = np.where(np.isnan(ta[sl]), va, np.where(np.isnan(va), ta[sl], np.minimum(ta[sl], va)))
+    return foot, x0, z0, t, ta
+
+
+def talud_anillo(Y, foot, x0, z0, excluir, ancho=60):
+    """Pendiente del terreno (bloques/bloque) en un anillo de 'ancho' bloques alrededor de la
+    huella, sin contar otras huellas.  Devuelve (p95, p99, máx)."""
+    pad = ancho + 2
+    L, W = foot.shape
+    a0, b0 = z0 - pad, x0 - pad
+    a1, b1 = a0 + L + 2 * pad, b0 + W + 2 * pad
+    if a0 < 1 or b0 < 1 or a1 >= Y.shape[0] - 1 or b1 >= Y.shape[1] - 1:
+        return (0.0, 0.0, 0.0)
+    fp = np.zeros((L + 2 * pad, W + 2 * pad), bool)
+    fp[pad:pad + L, pad:pad + W] = foot
+    dist = ndi.distance_transform_edt(~fp)
+    win = np.asarray(Y[a0 - 1:a1 + 1, b0 - 1:b1 + 1], np.float64)
+    gz, gx = np.gradient(win)
+    G = np.hypot(gz, gx)[1:-1, 1:-1]
+    otras = ndi.binary_dilation(excluir[a0:a1, b0:b1] & ~fp, iterations=2)
+    anillo = (dist >= 1) & (dist <= ancho) & ~otras
+    g = G[anillo]
+    if g.size == 0:
+        return (0.0, 0.0, 0.0)
+    return (float(np.percentile(g, 95)), float(np.percentile(g, 99)), float(g.max()))

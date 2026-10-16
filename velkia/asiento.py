@@ -170,7 +170,7 @@ def _informe_vacio():
 
 # --------------------------------------------------------------------- asiento
 def asentar(h, dx, foot, x0, z0, target, slope_fill=0.70, slope_cut=1.2, border_min=6.0,
-            return_report=True):
+            return_report=True, target_borde=None):
     """Corte y relleno de h (cotas absolutas, malla de dx bloques) para asentar una huella.
 
     foot, target: huella (bool) y cota de suelo requerida (NaN = sin requisito) por columna,
@@ -184,19 +184,26 @@ def asentar(h, dx, foot, x0, z0, target, slope_fill=0.70, slope_cut=1.2, border_
     volumen_corte, volumen_relleno (bloques³), corte_max, relleno_max, ancho_borde_max,
     desajuste_borde_antes/despues (máx |terreno - objetivo| en el borde); además
     pendiente_max_banda, exceso_pendiente (pendiente / admisible; <= 1 cumple),
-    dist_modificada_max, iteraciones y ventana (a0, a1, b0, b1) en celdas."""
+    dist_modificada_max, iteraciones y ventana (a0, a1, b0, b1) en celdas.
+    target_borde: cota de la costura (por defecto target).  Dentro de la huella el terreno va a
+    target (puede quedar bajo la base del schematic); la banda exterior parte de target_borde."""
     out = h.copy()
     ras = _rasterizar(foot, target, x0, z0, dx, h.shape)
     if ras is None or (slope_fill <= 0 and slope_cut <= 0):
         return (out, _informe_vacio()) if return_report else out
     i0, j0, req, tgt = ras
+    tgt_b = tgt
+    if target_borde is not None:
+        rb = _rasterizar(foot, target_borde, x0, z0, dx, h.shape)
+        if rb is not None and rb[0] == i0 and rb[1] == j0 and rb[2].shape == req.shape:
+            tgt_b = np.where(np.isfinite(rb[3]), rb[3], tgt)
     pf = slope_fill if slope_fill > 0 else slope_cut
     pc = slope_cut if slope_cut > 0 else slope_fill
     n, m = h.shape
     # ventana de trabajo: caja de la huella más la banda más ancha posible
     hb = h[i0:i0 + req.shape[0], j0:j0 + req.shape[1]].astype(np.float64)
     borde = req & ~ndi.binary_erosion(req, border_value=0)
-    d = (tgt - hb)[borde]
+    d = (tgt_b - hb)[borde]
     w0 = max(border_min, K_SMOOTH * float(np.max(np.abs(d) / np.where(d > 0, pf, pc))))
     M = int(np.ceil(min(ANCHO_MAX, ENSANCHE_MAX * w0) / dx)) + 2
     a0, a1 = max(i0 - M, 0), min(i0 + req.shape[0] + M, n)
@@ -206,12 +213,14 @@ def asentar(h, dx, foot, x0, z0, target, slope_fill=0.70, slope_cut=1.2, border_
     T = np.full(H.shape, np.nan)
     sl = (slice(i0 - a0, i0 - a0 + req.shape[0]), slice(j0 - b0, j0 - b0 + req.shape[1]))
     R[sl], T[sl] = req, tgt
+    Tb = np.full(H.shape, np.nan)
+    Tb[sl] = tgt_b
     # objetivo extendido hacia fuera de forma CONTINUA: convolución normalizada a tres escalas,
     # mezcladas según la distancia a la huella (el vecino de borde más cercano daría saltos en
     # las fronteras de Voronoi cuando el objetivo no es plano: patios, muescas, terrazas)
     dist, (ii, jj) = ndi.distance_transform_edt(~R, sampling=dx, return_indices=True)
-    Te = _extension_continua(T, R, dist, dx)
-    d0 = T[ii, jj] - H[ii, jj]
+    Te = _extension_continua(Tb, R, dist, dx)
+    d0 = Tb[ii, jj] - H[ii, jj]
     p = np.where(d0 > 0, pf, pc)
     borde = R & ~ndi.binary_erosion(R, border_value=0)
     w_e = np.zeros(H.shape)
@@ -220,7 +229,7 @@ def asentar(h, dx, foot, x0, z0, target, slope_fill=0.70, slope_cut=1.2, border_
     # pendiente admisible: la pedida, o la del objetivo o del terreno natural si ya son mayores
     # la pendiente propia del objetivo se mide DENTRO de la huella y se lleva al exterior por el
     # borde más cercano (no con la de Te, que ocultaría cualquier escalón de la banda)
-    pt = np.where(R, _pendiente(np.where(R, T, np.nan), dx), 0.0)
+    pt = np.where(R, _pendiente(np.where(R, Tb, np.nan), dx), 0.0)
     pt = np.nan_to_num(ndi.maximum_filter(np.nan_to_num(pt), size=3))
     adm = np.maximum(p, pt[ii, jj])
     adm = np.maximum(adm, SOBREPASO * ndi.maximum_filter(_pendiente(H, dx), size=3)) * (1 + TOL)

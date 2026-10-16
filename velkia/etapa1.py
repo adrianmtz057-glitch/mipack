@@ -63,7 +63,7 @@ def ela_field(lay, base, north_drop=60.0):
     return base - north_drop * np.clip((3000 - zz) / 2000.0, -1, 1) + 25.0 * (xx - 3500) / 3500.0
 
 
-def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False):
+def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False, modelar=True):
     t0 = time.time()
     os.makedirs(out_dir, exist_ok=True)
     lay = Layout(n, seed=seed)
@@ -212,9 +212,8 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
         print(f'  ciclo glaciar {k + 1}/6 listo, erosión glaciar máx {gl_ero.max():.0f} m', flush=True)
     H_lgm = H.copy()
 
-    # ------------------------------------------------ Jardines: excavación glaciar del valle
-    print('== Jardines (valle glaciar en U)', flush=True)
-    st.h, st.b, lagos_jardines = jardines.excavar(st.h, st.b, lay, chain)
+    # (el valle en U de los Jardines, las mesas, el volcán joven y Bashi se modelan al final:
+    #  modelado.py, sobre el estado tras P4, para poder iterarlos sin repetir la historia)
 
     # ------------------------------------------------ P4 Holoceno
     print('== P4 Holoceno (mar a 0)', flush=True)
@@ -228,18 +227,18 @@ def etapa1(n=1024, out_dir='salida', seed=7, log_every=25, solo_tectonica=False)
         D_func=D, sinks=sink, fixed_rec=fixed_rec, baseflow=bflow, G_arr=Garr, Kmult_arr=Kmul, breach=cadenas, river_floor=rfloor, log_every=log_every, label='P4',
         callback=sink_cb)
 
-    # ------------------------------------------------ guardar
-    rec, stack, filled = lem.route_flow(st.h, st.h < 0, 1e-4, fixed_rec)
-    stack = lem.fix_stack(rec, n * n)
-    P = fo.precip(st.h)
-    Q = lem.accumulate(stack, rec, (P * dx * dx).ravel()).reshape(n, n)
-    np.savez_compressed(os.path.join(out_dir, 'etapa1.npz'), h=st.h, b=st.b, Q=Q, filled=filled,
-                        gl_ero=gl_ero, H_ice=H, H_lgm=H_lgm, rio_xy=rio_xy, rio_fijo=rio_fijo,
-                        chain=chain, zone_id=lay.zone_id, prov=geo.prov,
-                        oxbows=np.array(len(oxbows)), lava=lava, lagos_jardines=lagos_jardines,
-                        afluentes=np.array(list(afl_xy.keys())),
-                        **{'afl_' + k: v for k, v in afl_xy.items()},
-                        **{'cad_' + str(i): c for i, c in enumerate(cadenas)},
-                        boca=np.array([boca['x'], boca['z']]) if isinstance(boca, dict) and 'x' in boca else np.zeros(2))
+    # ------------------------------------------------ guardar el estado tras P4 y modelar
+    datos = dict(h=st.h, b=st.b, gl_ero=gl_ero, H_ice=H, H_lgm=H_lgm, rio_xy=rio_xy, rio_fijo=rio_fijo,
+                 chain=chain, fixed_rec=fixed_rec, zone_id=lay.zone_id, prov=geo.prov,
+                 oxbows=np.array(len(oxbows)), lava=lava, volcan=np.array([vx - 70.0, vz - 20.0]),
+                 afluentes=np.array(list(afl_xy.keys())),
+                 **{'afl_' + k: v for k, v in afl_xy.items()},
+                 **{'cad_' + str(i): c for i, c in enumerate(cadenas)},
+                 boca=np.array([boca['x'], boca['z']]) if isinstance(boca, dict) and 'x' in boca else np.zeros(2))
+    np.savez_compressed(os.path.join(out_dir, 'etapa1_p4.npz'), **datos)
+    if modelar:
+        from .modelado import modelar_desde
+        modelar_desde(os.path.join(out_dir, 'etapa1_p4.npz'), os.path.join(out_dir, 'etapa1.npz'),
+                      lay=lay, geo=geo, fo=fo)
     print(f'Etapa 1 lista en {time.time() - t0:.0f} s', flush=True)
     return st, lay, geo, fo

@@ -2,15 +2,19 @@
 
 El glaciar que bajaba de la cordillera excavó un valle en U en una meseta de granito.  El valle
 sigue el eje del hielo (el mismo que hoy sigue el río): estrecho donde entra desde el norte,
-ensanchado en una cubeta en el centro y estrecho otra vez en la garganta de salida al sureste.
-Fondo plano, paredes casi verticales que se tienden hacia arriba, valles laterales colgados
-(cascadas en la pared), una roca aborregada alargada en el sentido del hielo y cubetas
-sobreexcavadas en el fondo que hoy son una cadena de lagos a lo largo del río.  El umbral
-rocoso de la garganta (riegel) retiene los lagos.
+ensanchado en una cubeta en el centro y estrecho otra vez en la garganta de salida.
 
-Se aplica al final de la fase glaciar como plantilla de la erosión del glaciar de los Jardines
-y de la meseta granítica que lo encierra (el modelo SIA a 8 bloques/celda no resuelve bien un
-valle de este tamaño); la erosión fluvial y de laderas posterior actúa sobre él.
+Forma (Yosemite): fondo plano y ancho; paredes de granito casi verticales de ~230 m con un
+pequeño talud al pie y el borde superior apenas redondeado; la meseta arriba.  Los glaciares
+laterales, más pequeños, excavaron menos: sus valles quedan colgados en el borde de la pared y
+sus arroyos caen al valle en cascada.  El río principal entra igual, por un valle colgado.
+Un domo de exfoliación junto a la pared quedó cortado a pico por el glaciar (tipo Half Dome).
+En el fondo, una roca aborregada alargada en el sentido del hielo y cubetas sobreexcavadas que
+hoy son una cadena de lagos; el umbral rocoso de la garganta (riegel) los retiene.
+
+Se aplica tras la historia erosiva (modelado.py) como plantilla de la erosión del glaciar de los
+Jardines: el modelo de hielo a 8 bloques/celda no resuelve paredes de este tamaño.  Todas las
+medidas de la pared van en bloques, así que la forma no depende de la resolución.
 """
 import numpy as np
 from scipy import ndimage as ndi
@@ -29,8 +33,16 @@ def _suave1d(v, k):
     return np.convolve(vp, w, 'same')[k:-k]
 
 
-def excavar(h, b, lay, chain, wall_h=105.0, lip_h=55.0, lake_depth=7.0, seed=17):
-    """Devuelve (h, b, lagos).  h, b relativos al mar; chain = celdas del río (fuente -> mar)."""
+def _sstep(t):
+    t = np.clip(t, 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+
+def excavar(h, b, lay, chain, wall_h=230.0, wall_w=75.0, meseta_w=200.0, enlace_w=420.0,
+            lip_h=60.0, lake_depth=7.0, domo_h=95.0, domo_r=330.0, n_colgados=5, seed=17):
+    """Devuelve (h, b, lagos, info).  h, b relativos al mar; chain = celdas del río (fuente -> mar).
+    info: 'cascadas' (lista de dicts x, z, y_borde, y_pie, dir), 'domo' (x, z, r), 'piso',
+    'pared' (máscara de pared + meseta de granito)."""
     n = lay.n
     dx = lay.dx
     zz, xx = lay.coords()
@@ -38,86 +50,139 @@ def excavar(h, b, lay, chain, wall_h=105.0, lip_h=55.0, lake_depth=7.0, seed=17)
     rng = np.random.default_rng(seed)
     h = h.copy()
     b = b.copy()
+    vacio = (h, b, np.zeros((n, n), bool), {'cascadas': [], 'domo': None, 'piso': None,
+                                           'pared': np.zeros((n, n), bool)})
     # ---------------------------------------------- eje del valle (río) cerca de los Jardines
     cx = (chain % n + 0.5) * dx
     cz = (chain // n + 0.5) * dx
     rch = jardines_r(cx, cz)
     idx = np.nonzero(rch < 1.45)[0]
     if idx.size < 4:
-        return h, b, np.zeros((n, n), bool)
+        return vacio
     k0, k1 = idx[0], idx[-1]
     ax = np.c_[cx[k0:k1 + 1], cz[k0:k1 + 1]]
     s = np.r_[0, np.cumsum(np.hypot(*np.diff(ax, axis=0).T))]
-    s /= s[-1]
-    # semiancho del valle a lo largo del eje: estrecho, cubeta ancha, garganta
-    base = 130.0 + 520.0 * np.sin(np.pi * np.clip((s - 0.08) / 0.80, 0, 1)) ** 0.8
+    largo = s[-1]
+    s /= largo
+    # tangente y normal del eje (suavizadas)
+    tg = np.gradient(ax, axis=0)
+    tg = np.c_[_suave1d(tg[:, 0], 9), _suave1d(tg[:, 1], 9)]
+    tg /= np.linalg.norm(tg, axis=1, keepdims=True) + 1e-9
+    nrm = np.c_[-tg[:, 1], tg[:, 0]]
+    # semiancho del FONDO a lo largo del eje: estrecho, cubeta ancha, garganta
+    base = 110.0 + 470.0 * np.sin(np.pi * np.clip((s - 0.08) / 0.80, 0, 1)) ** 0.8
     base *= 1.0 + 0.18 * _suave1d(rng.standard_normal(s.size), 25) / 0.4
-    semi = np.clip(base, 110.0, 700.0)
+    semi = np.clip(base, 95.0, 620.0)
     # entrada colgada: la cascada está donde el eje cruza la pared norte
-    s_casc = float(s[np.argmax(jardines_r(ax[:, 0], ax[:, 1]) < 0.95)]) if np.any(jardines_r(ax[:, 0], ax[:, 1]) < 0.95) else 0.1
+    dentro = jardines_r(ax[:, 0], ax[:, 1]) < 0.95
+    s_casc = float(s[np.argmax(dentro)]) if dentro.any() else 0.1
     # ---------------------------------------------- distancia (deformada) al eje
-    wu = spectral_noise((n, n), 2.8, seed + 1, kmin=6.0) * 70.0
-    wv = spectral_noise((n, n), 2.8, seed + 2, kmin=6.0) * 70.0
+    # contorno en planta: entrantes y contrafuertes de cientos de bloques (no dientes de sierra)
+    wu = spectral_noise((n, n), 3.0, seed + 1, kmin=4.0, kmax=35.0) * 85.0
+    wv = spectral_noise((n, n), 3.0, seed + 2, kmin=4.0, kmax=35.0) * 85.0
     pts = np.c_[(xx + wu).ravel(), (zz + wv).ravel()]
     tree = cKDTree(ax)
-    d, k = tree.query(pts, distance_upper_bound=2500.0)
+    alcance = semi.max() + wall_w + meseta_w + enlace_w + 200.0
+    d, k = tree.query(pts, distance_upper_bound=alcance)
     d = np.where(np.isfinite(d), d, 1e9).reshape(n, n)
     k = np.minimum(k, ax.shape[0] - 1).reshape(n, n)
-    w = semi[k]
-    u = d / w
     sk = s[k]
-    interior = (u < 0.72) & (sk > s_casc)
-    floor = float(np.median(h[interior])) if interior.any() else float(np.median(h[u < 0.72]))
-    # ---------------------------------------------- meseta granítica y paredes
+    dr = d - semi[k]                       # distancia al pie de la pared (<0: fondo del valle)
+    # más allá de los extremos del eje: coordenada a lo largo de la tangente final/inicial
+    a_fin = (xx - ax[-1, 0]) * tg[-1, 0] + (zz - ax[-1, 1]) * tg[-1, 1]
+    a_ini = -((xx - ax[0, 0]) * tg[0, 0] + (zz - ax[0, 1]) * tg[0, 1])
+    interior = (dr < -0.15 * semi[k]) & (sk > s_casc) & (sk < 0.9)
+    floor = float(np.median(h[interior])) if interior.any() else float(np.median(h[dr < 0]))
+    e_in = float(h.ravel()[chain[k0]])     # cota del río donde empieza el eje
+    # ---------------------------------------------- meseta granítica
     ruido = spectral_noise((n, n), 3.2, seed + 3)
-    alto = floor + wall_h * (1.0 + 0.10 * ruido)
-    # valles laterales colgados: muescas en la meseta que llegan al borde de la pared
-    lateral = np.zeros((n, n))
-    for a in rng.uniform(0, 2 * np.pi, 5):
-        kk = int(rng.integers(int(0.25 * ax.shape[0]), int(0.85 * ax.shape[0])))
-        px, pz = ax[kk]
-        lado = np.array([np.cos(a), np.sin(a)])
-        q = np.c_[xx.ravel() - px, zz.ravel() - pz] @ lado
-        perp = np.abs(np.c_[xx.ravel() - px, zz.ravel() - pz] @ np.array([-lado[1], lado[0]]))
-        mask = (q > semi[kk] * 0.85) & (q < semi[kk] + 700.0)
-        lateral = np.maximum(lateral, (mask * np.exp(-(perp / 55.0) ** 2)).reshape(n, n))
-    alto = alto - 38.0 * lateral
-    pared = np.clip((u - 0.72) / 0.28, 0, 1) ** 0.55
-    fondo_eje = np.where(sk <= s_casc, floor + lip_h, floor)      # valle colgado aguas arriba
+    ruido2 = spectral_noise((n, n), 3.0, seed + 4, kmax=40.0)
+    alto = floor + wall_h * (1.0 + 0.08 * ruido)
+    # domo cortado a pico (Half Dome): junto a la pared, hacia la salida, del lado sin colgados
+    kd = int(np.searchsorted(s, 0.78))
+    lado_d = 1.0 if rng.random() < 0.5 else -1.0
+    dcx, dcz = ax[kd] + lado_d * nrm[kd] * (semi[kd] + 0.30 * domo_r)
+    rd = np.hypot(xx - dcx, zz - dcz) / domo_r
+    alto = alto + domo_h * np.sqrt(np.clip(1.0 - rd ** 2, 0, 1)) + 0.10 * domo_h * _sstep((1.25 - rd) / 0.25)
+    # valles colgados: tributarios perpendiculares a la pared; su fondo queda muy por encima del
+    # valle y su arroyo cae en cascada desde el borde
+    cascadas = []
+    usados = []
+    for _ in range(n_colgados * 6):
+        if len(cascadas) >= n_colgados:
+            break
+        kk = int(rng.integers(int(0.22 * ax.shape[0]), int(0.88 * ax.shape[0])))
+        lado = 1.0 if rng.random() < 0.5 else -1.0
+        if lado == lado_d and abs(s[kk] - 0.78) < 0.12:
+            continue                                   # no tapar el domo
+        if any(abs(s[kk] - su) < 0.10 and lado == ls for su, ls in usados):
+            continue
+        usados.append((s[kk], lado))
+        dirn = lado * nrm[kk]
+        lip = ax[kk] + dirn * (semi[kk] + wall_w)
+        prof_lab = rng.uniform(70.0, 120.0)          # cuánto más bajo que la meseta queda su fondo
+        ancho = rng.uniform(55.0, 90.0)
+        q = (xx - lip[0]) * dirn[0] + (zz - lip[1]) * dirn[1]            # hacia fuera del valle
+        p = -(xx - lip[0]) * dirn[1] + (zz - lip[1]) * dirn[0]
+        p = p - 0.12 * q * np.sin(q / 260.0 + rng.uniform(0, 6.3))         # algo sinuoso
+        largo_v = rng.uniform(650.0, 1000.0)
+        largo_v = min(largo_v, meseta_w + 0.6 * enlace_w)       # no baja por la ladera exterior
+        perfil_l = np.clip(1.0 - q / largo_v, 0, 1) ** 0.6 * (q > -wall_w)
+        seccion = np.clip(1.0 - (np.abs(p) / ancho) ** 2, 0, 1) ** 0.5
+        alto = alto - prof_lab * perfil_l * seccion
+        cascadas.append({'x': float(lip[0]), 'z': float(lip[1]), 'dir': (float(dirn[0]), float(dirn[1])),
+                         'y_borde': float(floor + wall_h - prof_lab), 'y_pie': floor, 'k': kk})
+    # ---------------------------------------------- perfil transversal
+    fondo_eje = np.where(sk <= s_casc,
+                         floor + lip_h + max(e_in - floor - lip_h, 0.0) * np.clip(1 - sk / max(s_casc, 1e-3), 0, 1),
+                         floor)
+    ww = wall_w * (1.0 + 0.3 * ruido2)
+    t = dr / ww
+    pared = _sstep(t)
     perfil = fondo_eje + (alto - fondo_eje) * pared
-    enlace = np.clip((2.4 - u) / 0.8, 0, 1)                         # hacia el terreno exterior
-    nuevo = np.where(u <= 1.0, perfil, np.maximum(h, h + (alto - h) * enlace))
-    # aguas abajo de la garganta la meseta no debe tapar la salida al desierto
-    nuevo = np.where((sk > 0.97) & (u > 1.0), h, nuevo)
-    # roca aborregada alargada en el sentido del hielo, centrada en el punto de los Jardines
+    enlace = _sstep(1.0 - (dr - ww - meseta_w) / enlace_w)
+    # la ladera exterior del macizo no llega a la aldea oeste (es otra zona: colinas del oeste)
+    ox, oz = poi_blocks('aldea_fantasma_oeste')
+    enlace = enlace * _sstep((np.hypot(xx - ox, zz - oz) - 350.0) / 350.0)
+    nuevo = np.where(dr <= ww + meseta_w, perfil, np.maximum(h, h + (alto - h) * enlace))
+    # roca aborregada alargada en el sentido del hielo (sobre ella van los Jardines colgantes)
     kc = int(tree.query([jx, jz])[1])
-    tdir = ax[min(kc + 5, ax.shape[0] - 1)] - ax[max(kc - 5, 0)]
-    tdir /= np.linalg.norm(tdir) + 1e-9
+    tdir = tg[kc]
     rx = (xx - jx) * tdir[0] + (zz - jz) * tdir[1]
     rz = -(xx - jx) * tdir[1] + (zz - jz) * tdir[0]
     domo = 15.0 * np.clip(1 - (rx / 260.0) ** 2 - (rz / 150.0) ** 2 + 0.25 * ruido, 0, 1) ** 0.7
-    nuevo = np.where(u < 0.9, nuevo + domo, nuevo)
-    zona = u < 2.4
+    nuevo = np.where(dr < -0.1 * semi[k], nuevo + domo, nuevo)
+    # extremos del eje: la plantilla se desvanece (la salida al desierto y la entrada desde la
+    # montaña quedan libres, sin un muro transversal)
+    f_ext = np.clip(1.0 - np.maximum(a_fin, 0) / 450.0, 0, 1) * np.clip(1.0 - np.maximum(a_ini, 0) / 300.0, 0, 1)
+    f_ext = np.where((sk > 0.97) | (sk < 0.03), f_ext, 1.0)
+    f_ext = np.clip(ndi.gaussian_filter(f_ext, 90.0 / dx), 0, 1)      # sin escalones
+    nuevo = h + (nuevo - h) * f_ext
+    zona = (dr < ww + meseta_w + enlace_w) & (f_ext > 0)
     h = np.where(zona, nuevo, h)
     # ---------------------------------------------- cadena de lagos a lo largo del río
     lagos = np.zeros((n, n), bool)
     j = int(np.searchsorted(s, s_casc + 0.04))
     while j < ax.shape[0] - 10:
-        largo = int(rng.integers(12, 30))
-        seg = ax[j:min(ax.shape[0] - 8, j + largo)]
+        lg = int(rng.integers(12, 30))
+        seg = ax[j:min(ax.shape[0] - 8, j + lg)]
         if seg.shape[0] < 3:
             break
         t2 = cKDTree(seg)
         dl, _ = t2.query(np.c_[xx.ravel(), zz.ravel()], distance_upper_bound=200.0)
         dl = np.where(np.isfinite(dl), dl, 1e9).reshape(n, n)
-        ancho = rng.uniform(45, 115) * (1.0 + 0.3 * ruido)
-        lagos |= (dl < ancho) & (u < 0.70)
-        j += largo + int(rng.integers(8, 18))
+        ancho_l = rng.uniform(45, 115) * (1.0 + 0.3 * ruido)
+        lagos |= (dl < ancho_l) & (dr < -40.0)
+        j += lg + int(rng.integers(8, 18))
+    lagos &= sk < 0.9
     prof = lake_depth * np.clip(ndi.distance_transform_edt(lagos) * dx / 40.0, 0, 1)
     h = np.where(lagos, floor - 1.0 - prof, h)
     # garganta: umbral 1 m bajo el fondo
-    garg = (sk > 0.90) & (u < 0.75)
+    garg = (sk > 0.90) & (dr < 0) & (f_ext > 0.5)
     h = np.where(garg, np.minimum(h, floor - 1.0), h)
     # roca: meseta y paredes son granito; el fondo tiene 3 m de aluvión
-    b = np.where(zona & (u > 0.72), h, np.minimum(b, h - 3.0 * (u <= 0.72)))
-    return h, b, lagos
+    granito = zona & (dr > 0)
+    b = np.where(granito, h, np.where(zona, np.minimum(b, h - 3.0), b))
+    info = {'cascadas': cascadas, 'domo': (float(dcx), float(dcz), domo_r), 'piso': floor,
+            'pared': granito & (dr < ww + meseta_w)}
+    return h, b, lagos, info

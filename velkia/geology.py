@@ -181,49 +181,10 @@ class Geology:
                      np.log(1.6) * z['dunas'] + np.log(2.0) * z['salar'])
         # variabilidad lateral de dureza (fracturación)
         kz *= np.exp(0.25 * spectral_noise((n, n), 2.0, seed + 30))
-        # peñones / inselbergs: plutones graníticos duros dispersos en el desierto
-        self.knobs = np.zeros((n, n), np.float32)
-        des = z['desierto'] + z['dunas'] + 0.5 * z['este'] + 0.4 * z['oeste']
-        nk = 70
-        cand = rng.uniform(0, n, (nk * 6, 2))
-        placed = 0
-        for cy, cx in cand:
-            iy, ix = int(cy), int(cx)
-            if des[iy, ix] < 0.6 or not lay.land[iy, ix] or lay.dist_coast[iy, ix] < 300:
-                continue
-            r = rng.uniform(25, 110) / dx
-            d2 = ((zz / dx - cy) ** 2 + (xx / dx - cx) ** 2) / (r * r)
-            self.knobs = np.maximum(self.knobs, np.exp(-d2 ** 2))
-            placed += 1
-            if placed >= nk:
-                break
-        kz *= np.exp(np.log(0.25) * self.knobs)
-        # buttes: restos de capas horizontales con cornisa dura dispersos en el desierto
-        from .layout import RESERVADOS, px2b, jardines_r, poi_blocks
-        self.buttes = np.zeros((n, n), np.float32)
-        cand = rng.uniform(0, n, (400, 2))
-        placed = 0
-        for cy, cx in cand:
-            iy, ix = int(cy), int(cx)
-            if (z['desierto'][iy, ix] < 0.7 or not lay.land[iy, ix] or lay.dist_coast[iy, ix] < 400):
-                continue
-            r = rng.uniform(50, 140) / dx
-            d2 = ((zz / dx - cy) ** 2 + (xx / dx - cx) ** 2) / (r * r)
-            self.buttes = np.maximum(self.buttes, np.exp(-d2 ** 3))
-            placed += 1
-            if placed >= 28:
-                break
-        # no poner peñones ni buttes encima de construcciones ni de sitios reservados
-        libre = np.ones((n, n), np.float32)
-        evitar = [(poi_blocks(k), 650.0) for k in ('gran_piramide', 'thza', 'esfinge')]
-        evitar += [(poi_blocks(k), 350.0) for k in ('aldea_fantasma_sur', 'aldea_fantasma_oeste', 'jardines_de_velkia')]
-        evitar += [(px2b(*v[0]), v[1] + 150.0) for v in RESERVADOS.values()]
-        for (bx, bz), rad in evitar:
-            libre *= 1.0 - np.exp(-(((xx - bx) ** 2 + (zz - bz) ** 2) / rad ** 2) ** 2)
-        self.knobs *= libre
-        self.buttes *= libre
-        kz *= np.exp(np.log(0.30) * self.buttes)
-        self.prov[self.buttes > 0.5] = ESTRATOS
+        # mesas, buttes y domos: en vez de plutones cilíndricos (que la erosión dejaba como
+        # agujas), sus grupos y su forma se modelan al final (modelado.py): cornisa dura
+        # horizontal -> cima plana, escarpe y talud; granito -> domos redondeados
+        from .layout import RESERVADOS, px2b, poi_blocks, jardines_r
         # paredes de granito duro de los Jardines y domo central (roche moutonnée)
         rj = jardines_r(xx, zz)
         pared = np.exp(-((rj - 1.0) / 0.16) ** 2)

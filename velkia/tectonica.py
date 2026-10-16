@@ -39,6 +39,10 @@ class Forcing:
         # promontorios costeros (no se atenúan cerca de la costa: son cerros junto al mar)
         tx, tz = poi_blocks('torre_llama_eterna')
         U1 += 0.26e-3 * np.exp(-(((xx - tx) ** 2 + (zz - tz) ** 2) / 300.0 ** 2) ** 1.5) * (lay.dist_coast > -60)
+        # umbral entre el salar y la costa sur: cierra la cuenca.  Sin él, el desagüe del salar
+        # se encajaba con el mar bajo de las glaciaciones y quedaba un entrante recto ahogado.
+        umbral = np.exp(-((zz - 7350.0) / 220.0) ** 2) * np.exp(-((xx - 3500.0) / 800.0) ** 4)
+        U1 += 0.035e-3 * umbral * (1.0 + 0.3 * nz) * (lay.dist_coast > -60)
         # sitios reservados con relieve propio
         for nombre, (pxy, rad, tipo) in RESERVADOS.items():
             bx, bz = px2b(*pxy)
