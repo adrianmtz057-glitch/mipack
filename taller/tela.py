@@ -53,11 +53,14 @@ class Capsula:
 
 
 class Tela:
-    def __init__(self, centro, radio, paso):
+    def __init__(self, centro, radio, paso, forma=None):
+        """Una cobija plana a la altura del centro: un disco de radio 'radio' o, con forma(u, v) -> mascara (u en x,
+        v en z, en px desde el centro, dentro de un cuadro de +-radio), la figura que se quiera (ej. un rectangulo con
+        las orillas en picos)."""
         self.paso = float(paso)
         n = int(math.ceil(radio / paso))
         ii, jj = np.meshgrid(np.arange(-n, n + 1), np.arange(-n, n + 1), indexing="ij")
-        dentro = np.hypot(ii, jj) * paso <= radio
+        dentro = np.hypot(ii, jj) * paso <= radio if forma is None else forma(ii * paso, jj * paso)
         self.lado = 2 * n + 1
         self.idx = -np.ones(ii.shape, dtype=int)
         self.idx[dentro] = np.arange(int(dentro.sum()))
@@ -142,6 +145,16 @@ class Tela:
                         self.antes[choco] = self.antes[choco] + (self.P[choco] - self.antes[choco]) * friccion
         return self
 
+    def a_la_orilla(self):
+        """Por punto, que tan lejos (px, en la cobija) esta de la orilla mas cercana (de afuera o de un hoyo)."""
+        from scipy.ndimage import distance_transform_edt
+        m = np.zeros((self.lado, self.lado), bool)
+        vivos = self.ij[self.vivo] + self.lado // 2
+        m[vivos[:, 0], vivos[:, 1]] = True
+        d = distance_transform_edt(np.pad(m, 1))[1:-1, 1:-1] * self.paso
+        k = self.ij + self.lado // 2
+        return d[k[:, 0], k[:, 1]]
+
     def cuadros(self):
         """Cuadritos de 4 puntos vivos (a, b, c, d) antihorarios vistos desde el lado de ARRIBA de la cobija (el que
         queda por fuera al caer)."""
@@ -154,6 +167,24 @@ class Tela:
                     continue
                 out.append((a, b, c, d))
         return out
+
+    def pegados(self):
+        """Los puntos vivos que estan pegados al pedazo mas grande de tela (por cuadritos); los demas son sueltos."""
+        from scipy.ndimage import label
+        m = np.zeros((self.lado - 1, self.lado - 1), bool)
+        for a, b, c, d in self.cuadros():
+            i, j = self.ij[a] + self.lado // 2
+            m[i, j] = True
+        etiq, n = label(m)
+        if n <= 1:
+            return self.vivo.copy()
+        mayor = np.argmax(np.bincount(etiq.ravel())[1:]) + 1
+        ok = np.zeros(len(self.P), bool)
+        I = self.idx
+        for i, j in np.argwhere(etiq == mayor):
+            for di, dj in ((0, 0), (0, 1), (1, 0), (1, 1)):
+                ok[I[i + di, j + dj]] = True
+        return ok & self.vivo
 
     def normales(self, cuadros):
         n = np.zeros_like(self.P)
