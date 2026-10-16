@@ -20,7 +20,7 @@ import numpy as np
 
 from . import anvil, nbt
 from .geology import ZMIN, ZRES, PERIODICA
-from .layout import N
+from .layout import N, SEA
 from .materials import MaterialTables
 
 MIN_Y = anvil.MIN_Y
@@ -49,6 +49,9 @@ class Fuente:
 
 
 _CACHE = {}
+# ids de entidad de bloque que en 1.20.1 se llaman distinto que el bloque
+BE_ID = {'minecraft:suspicious_sand': 'minecraft:brushable_block',
+         'minecraft:suspicious_gravel': 'minecraft:brushable_block'}
 
 
 def _schem(path):
@@ -79,7 +82,7 @@ def _columnas(f, mt, pal, cx, cz, geo):
     prov, zref, thick = geo
     ys = (np.arange(H) + MIN_Y)[:, None, None]
     # roca por estrato
-    zeta = (ys - zref[None]) / thick[None]
+    zeta = (ys - SEA - zref[None]) / thick[None]          # la geología usa cotas sobre el mar
     k = ((zeta - ZMIN) / ZRES).astype(np.int64)
     nt = mt.rock.shape[1]
     per = PERIODICA[prov][None].repeat(H, 0)
@@ -151,7 +154,7 @@ def _pegar(blocks, pal, cx, cz, est, bes):
             X, Yb, Z = ox + bx, oy + by, oz + bz
             if x0 <= X < x0 + 16 and z0 <= Z < z0 + 16 and MIN_Y <= Yb < MIN_Y + H:
                 t = {k: v for k, v in be.items() if k not in ('Pos', 'Id')}
-                t['id'] = be.get('Id', 'minecraft:chest')
+                t['id'] = BE_ID.get(str(be.get('Id', 'minecraft:chest')), str(be.get('Id', 'minecraft:chest')))
                 t['x'] = nbt.TInt(X)
                 t['y'] = nbt.TInt(Yb)
                 t['z'] = nbt.TInt(Z)

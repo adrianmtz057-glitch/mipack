@@ -47,7 +47,7 @@ PROV_BLOQUES = {
 SUP = {
     'roca': 0, 'pasto': 1, 'arena': 2, 'arena_roja': 3, 'grava': 4, 'nieve': 5, 'hielo': 6,
     'tierra_gruesa': 7, 'podzol': 8, 'barro': 9, 'sal': 10, 'arena_negra': 11, 'ceniza': 12,
-    'musgo': 13, 'arcilla': 14, 'corrompido': 15, 'terracota': 16, 'pradera': 17,
+    'musgo': 13, 'arcilla': 14, 'corrompido': 15, 'terracota': 16, 'pradera': 17, 'sendero': 18,
 }
 SUP_BLOQUES = {
     1: (['minecraft:grass_block[snowy=false]'], ['minecraft:dirt'], 3),
@@ -67,6 +67,7 @@ SUP_BLOQUES = {
     14: (['minecraft:clay'], ['minecraft:clay'], 2),
     15: (['minecraft:blackstone'], ['minecraft:deepslate'], 2),
     16: (['minecraft:terracotta'], ['minecraft:terracotta'], 2),
+    18: (['minecraft:dirt_path'], ['minecraft:coarse_dirt'], 2),
 }
 
 

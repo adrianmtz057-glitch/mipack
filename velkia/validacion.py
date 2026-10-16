@@ -115,7 +115,7 @@ def _envolver(d, txt, f, ancho):
     return lineas + [actual]
 
 
-def generar(Y, ocean, out_dir, prefijo='v1', W=960, H=540, tipo=None, WL=None, extra=None):
+def generar(Y, ocean, out_dir, prefijo='v1', W=960, H=540, tipo=None, WL=None, extra=None, tex=None):
     """tipo/WL (agua.superficie): río, lagos, cascadas, arroyos y lava se pintan en la textura y
     la superficie del agua hace de suelo.  extra: vistas adicionales (mismo formato que VISTAS)."""
     os.makedirs(out_dir, exist_ok=True)
@@ -123,7 +123,8 @@ def generar(Y, ocean, out_dir, prefijo='v1', W=960, H=540, tipo=None, WL=None, e
     dx = N / n
     if WL is not None:
         Y = np.where(np.isfinite(WL), np.maximum(Y, WL), Y)
-    tex = np.asarray(relief_image(Y, dx, water=ocean)).astype(np.float32)
+    if tex is None:
+        tex = np.asarray(relief_image(Y, dx, water=ocean)).astype(np.float32)
     if tipo is not None:
         from .agua import pintar
         tex = pintar(tex, tipo)
