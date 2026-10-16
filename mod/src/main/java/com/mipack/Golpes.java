@@ -28,7 +28,7 @@ import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 public final class Golpes {
     /** Un golpe fisico de jefe: atraviesa la armadura y el escudo (Proteccion si cuenta). */
     public static final ResourceKey<DamageType> JEFE = tipo("golpe_jefe");
-    /** Lo que quita forcejear mal en la mano de Khaset: la mitad exacta de la vida (nada lo reduce). */
+    /** Lo que quita forcejear mal en la mano de Khaset: parte de la vida segun la dificultad (nada lo reduce). */
     public static final ResourceKey<DamageType> FORCEJEO = tipo("forcejeo");
     /** Las esquirlas de amatista de Crackatos: sangran poco a poco (nada lo reduce). */
     public static final ResourceKey<DamageType> ESQUIRLAS = tipo("esquirlas");
@@ -45,10 +45,10 @@ public final class Golpes {
         return quien == null ? new DamageSource(h) : new DamageSource(h, quien);
     }
 
-    /** Un golpe de jefe: tira el escudo de quien se cubra y pega aunque se cubra. */
+    /** Un golpe de jefe: tira el escudo de quien se cubra y pega aunque se cubra (con el dano de su dificultad). */
     public static boolean pegar(LivingEntity victima, Entity jefe, float dano, int sinEscudo) {
         tirarEscudo(victima, sinEscudo);
-        return victima.hurt(fuente(victima, JEFE, jefe), dano);
+        return victima.hurt(fuente(victima, JEFE, jefe), dano * Dificultad.dano(jefe));
     }
 
     /** Si se esta cubriendo con escudo, se le cae (como con un hacha: 5 s sin poder subirlo) y si 'ticks' es mas, mas. */

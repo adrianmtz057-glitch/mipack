@@ -1,6 +1,7 @@
 package com.mipack.khaset;
 
 import com.mipack.Amenaza;
+import com.mipack.Dificultad;
 import com.mipack.Golpes;
 import com.mipack.Mipack;
 import com.mipack.SonidosMipack;
@@ -126,6 +127,37 @@ public class KhasetEntity extends Monster implements GeoEntity {
     private static final float RESCATE = 0.05f;
     // calor: cuanto tarda en llenarse (ticks) y cuanto sube cada sacrificio
     private static final float LLENADO_CALOR = 16800f, CALOR_SACRIFICIO = 0.05f;
+    /**
+     * Lo que cambia con la dificultad (/khaset difficult; la vida y el dano los multiplica Dificultad.Nivel): cuanto
+     * espera desde que agarra hasta empezar el sacrificio (ticks; el sacrificio tarda 2.2 s mas), cuanto se ensancha la
+     * zona dorada de la barra y se alenta el cursor, que parte de la vida quita fallar, cuanto hay que bajarle para que
+     * suelte, que tan lento se llena el calor y hasta donde llega el frenesi. Hardcore es la pelea original.
+     */
+    private record Ajustes(int esperaSacrificio, float anchoBarra, int periodoBarra, float fallo, float rescate,
+                           float calorLento, float furiaMax) {
+    }
+
+    private static final Ajustes EASY = new Ajustes(220, 0.09f, 6, 0.25f, 0.03f, 1.5f, 1.5f);
+    private static final Ajustes NORMAL = new Ajustes(140, 0.05f, 3, 1f / 3f, 0.04f, 1.25f, 1.7f);
+    private static final Ajustes HARDCORE = new Ajustes(60, 0f, 0, 0.5f, RESCATE, 1f, 1.85f);
+
+    private Dificultad.Nivel nivel() {
+        return Dificultad.de(this.level(), Dificultad.Jefe.KHASET);
+    }
+
+    private Ajustes ajustes() {
+        return switch (nivel()) {
+            case EASY -> EASY;
+            case NORMAL -> NORMAL;
+            case HARDCORE -> HARDCORE;
+        };
+    }
+
+    /** Todavia no le toca sacrificar: los agarrados no han tenido su tiempo para zafarse. */
+    private boolean faltaParaSacrificar() {
+        return this.level().getGameTime() - this.agarroEn < ajustes().esperaSacrificio();
+    }
+
     // las flechas y demas proyectiles le hacen menos (para que no se le gane nomas de lejos)
     private static final float A_DISTANCIA = 0.6f;
     // giros (grados por tick)
@@ -299,6 +331,11 @@ public class KhasetEntity extends Monster implements GeoEntity {
         return this.zafados;
     }
 
+    /** Para las pruebas: cuanto lleva agarrada la ultima presa (ticks). */
+    public long agarradoHace() {
+        return this.level().getGameTime() - this.agarroEn;
+    }
+
     public int perseguidos() {
         return this.objetivos.size();
     }
@@ -323,7 +360,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
     /** El frenesi: entre menos vida, mas rapido (1 con la vida llena, 1.75 casi muerto; un poco mas en el Quinto Sol). */
     public float furia() {
         float f = 1f + 0.75f * (1f - this.getHealth() / this.getMaxHealth()) + (this.fase >= 3 ? 0.1f : 0f);
-        return Mth.clamp(f, 1f, 1.85f);
+        return Mth.clamp(f, 1f, ajustes().furiaMax());
     }
 
     private float ritmoPara(Estado e) {
@@ -512,16 +549,15 @@ public class KhasetEntity extends Monster implements GeoEntity {
         }
     }
 
-    /** Quien entra a la pelea suma vida (nunca baja): 2000 mas 1200 por jugador. */
+    /** Quien entra a la pelea suma vida (nunca baja): 2000 mas 1200 por jugador, por lo que diga la dificultad. */
     private void participantes() {
         int n = 0;
         for (Player p : this.level().players())
             if (valido(p) && p.distanceToSqr(this) < RADIO_PELEA * RADIO_PELEA)
                 n++;
-        if (n > this.maxJugadores) {
-            float antes = this.getMaxHealth();
-            this.maxJugadores = n;
-            float ahora = VIDA_BASE + VIDA_POR_JUGADOR * n;
+        this.maxJugadores = Math.max(this.maxJugadores, n);
+        float antes = this.getMaxHealth(), ahora = (VIDA_BASE + VIDA_POR_JUGADOR * this.maxJugadores) * nivel().vida;
+        if (Math.abs(ahora - antes) > 0.5f) {                   // entro alguien o cambio la dificultad: la misma parte de vida
             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(ahora);
             this.setHealth(this.getHealth() * ahora / antes);
         }
@@ -803,7 +839,8 @@ public class KhasetEntity extends Monster implements GeoEntity {
         }
         if (termino()) {
             if (alAltar) {
-                cambiar(presas().isEmpty() ? Estado.CAMINAR : Estado.SACRIFICIO);
+                cambiar(presas().isEmpty() ? Estado.CAMINAR : !faltaParaSacrificar() ? Estado.SACRIFICIO
+                        : presas().size() > 1 ? Estado.CARGAR_DOS : Estado.CARGAR);
             } else if (this.fase >= 2 && this.saltosSeguidos == 0 && this.random.nextInt(2) == 0) {
                 this.saltosSeguidos++;                            // furioso: otro salto sobre otro grupo
                 escoger(true);
@@ -974,7 +1011,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
         if (this.ticksEnEstado % 20 == 10)
             for (LivingEntity p : presas())
                 Golpes.pegar(p, this, DANO_APRETAR, 0);
-        if (this.danoEnCarga >= this.getMaxHealth() * RESCATE) {
+        if (this.danoEnCarga >= this.getMaxHealth() * ajustes().rescate()) {
             cambiar(Estado.SOLTAR);
             return;
         }
@@ -991,7 +1028,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
         this.entityData.set(CRISTAL, cristal == null ? -1 : cristal.getId());
         if (cristal == null) {
             quedarse(null, 0f);
-            if (this.ticksEnEstado >= (this.fase >= 3 ? 40 : 60))
+            if (this.ticksEnEstado >= (this.fase >= 3 ? 40 : 60) && !faltaParaSacrificar())
                 cambiar(Estado.SACRIFICIO);                      // sin cristal (o en el Quinto Sol): ahi mismo
             return;
         }
@@ -1000,7 +1037,10 @@ public class KhasetEntity extends Monster implements GeoEntity {
         double dh = donde.subtract(this.position()).horizontalDistance();
         if (dh < 1.2) {
             mirarA(cristal.position());
-            cambiar(Estado.SACRIFICIO);
+            if (faltaParaSacrificar())
+                quedarse(null, 0f);                              // en el altar, con la presa en alto: todavia se pueden zafar
+            else
+                cambiar(Estado.SACRIFICIO);
         } else if (dh < 16 && donde.y - this.getY() > 1.5) {
             cambiar(Estado.SALTO_ALTAR);
         } else if (this.ticksEnEstado > 300) {
@@ -1061,7 +1101,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
                 erupcion(e.position(), Math.round(10 + 8 / ritmo()));
         if (this.ticksEnEstado == 1)
             this.playSound(SonidosMipack.SACRIFICIO.get(), 4.0f, 1.0f);
-        if (t() < s[1] && this.danoEnCarga >= this.getMaxHealth() * RESCATE) {
+        if (t() < s[1] && this.danoEnCarga >= this.getMaxHealth() * ajustes().rescate()) {
             cambiar(Estado.SOLTAR);
             return;
         }
@@ -1086,7 +1126,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
                     muertos++;
             if (muertos == 0)
                 muertos = this.sacrificados > 0 ? 1 : 0;
-            ponerCalor(calor() + CALOR_SACRIFICIO * muertos);
+            ponerCalor(calor() + CALOR_SACRIFICIO / ajustes().calorLento() * muertos);
             this.heal(this.getMaxHealth() * 0.03f * muertos);
             if (cristal != null)
                 cristal.sacrificio();
@@ -1240,8 +1280,9 @@ public class KhasetEntity extends Monster implements GeoEntity {
 
     private void iniciarForcejeo(ServerPlayer p) {
         Forcejeo f = new Forcejeo();
-        f.ancho = this.fase == 1 ? 0.24f : this.fase == 2 ? 0.2f : 0.17f;
-        f.periodo = this.fase == 1 ? 16 : this.fase == 2 ? 14 : 12;     // rapido: caben varios intentos
+        Ajustes a = ajustes();
+        f.ancho = (this.fase == 1 ? 0.24f : this.fase == 2 ? 0.2f : 0.17f) + a.anchoBarra();
+        f.periodo = (this.fase == 1 ? 16 : this.fase == 2 ? 14 : 12) + a.periodoBarra();   // rapido: caben varios intentos
         f.zona = 0.15f + this.random.nextFloat() * 0.7f;
         f.inicio = this.level().getGameTime();
         this.forcejeos.put(p.getUUID(), f);
@@ -1257,7 +1298,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
         RedKhaset.barra(p, new RedKhaset.Barra(true, f.aciertos, f.zona, f.ancho, f.periodo, f.inicio, fallo));
     }
 
-    /** El agarrado hizo clic: si el cursor estaba en lo dorado cuenta; si no, pierde la mitad de su vida. */
+    /** El agarrado hizo clic: si el cursor estaba en lo dorado cuenta; si no, pierde parte de su vida (hardcore: la mitad). */
     public void clic(ServerPlayer p, float cursorCliente) {
         Forcejeo f = this.forcejeos.get(p.getUUID());
         if (f == null || p.getVehicle() != this)
@@ -1282,7 +1323,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
             }
         } else {
             p.invulnerableTime = 0;
-            p.hurt(Golpes.fuente(p, Golpes.FORCEJEO, null), p.getHealth() / 2f);
+            p.hurt(Golpes.fuente(p, Golpes.FORCEJEO, null), p.getHealth() * ajustes().fallo());
             p.level().playSound(null, p.blockPosition(), SoundEvents.PLAYER_HURT_SWEET_BERRY_BUSH, net.minecraft.sounds.SoundSource.PLAYERS, 1f, 0.6f);
             f.inicio = ahora;
         }
@@ -1486,7 +1527,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
     private void calorYHuellas() {
         boolean pelea = getEstado() != Estado.QUIETO && !enemigos(RADIO_PELEA).isEmpty();
         if (pelea)
-            ponerCalor(calor() + (this.fase >= 3 ? 2f : 1f) / LLENADO_CALOR);
+            ponerCalor(calor() + (this.fase >= 3 ? 2f : 1f) / (LLENADO_CALOR * ajustes().calorLento()));
         float c = calor();
         this.barraCalor.setProgress(c);
         this.barraCalor.setColor(c >= 0.75f ? BossEvent.BossBarColor.RED : BossEvent.BossBarColor.YELLOW);

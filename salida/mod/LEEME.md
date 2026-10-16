@@ -40,6 +40,32 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 
 **Vida:** 1500, más 900 por cada jugador que entra a la pelea. Armadura 14. Al morir suelta mucha experiencia, se le caen las esquirlas a todos y se deshacen sus ácaros.
 
+## Dificultad de los jefes (solo operadores)
+Cada jefe tiene su nivel: **easy**, **normal** o **hardcore**. Empieza en **normal** y se guarda con el mundo.
+- `/khaset difficult <easy|normal|hardcore>` y `/crackatos difficult <easy|normal|hardcore>` lo cambian.
+- `/khaset difficult` y `/crackatos difficult`, sin nivel, te dicen cuál tiene.
+- Solo los operadores pueden usarlos. La respuesta solo te llega a ti y en el juego no se ve en ningún lado: nadie más sabe en qué nivel está.
+- Si lo cambias a media pelea, la vida se ajusta y conserva el mismo porcentaje.
+
+**Hardcore** es la pelea como estaba (la de "semana 2"). Los números de las secciones de cada jefe son los de hardcore.
+
+| | easy | normal | hardcore |
+|---|---|---|---|
+| Vida de los dos jefes | 60 % | 80 % | 100 % |
+| Daño de sus golpes (también serpientes, púas y ola) | 65 % | 80 % | 100 % |
+| **Khaset:** tiempo agarrado antes de empezar el sacrificio (más 2.2 s del sacrificio) | 11 s | 7 s | 3 s |
+| Khaset: barra para zafarse | zona más ancha, cursor más lento | un poco más fácil | como estaba |
+| Khaset: lo que quita cada fallo de la barra | ¼ de tu vida | ⅓ | la mitad |
+| Khaset: lo que hay que bajarle para que suelte | 3 % | 4 % | 5 % |
+| Khaset: el calor se llena en | 21 min | 17.5 min | 14 min |
+| Khaset: frenesí (qué tan rápido se pone) | hasta 1.5× | hasta 1.7× | hasta 1.85× |
+| **Crackatos:** aviso de la estampida (rascando) | 3.3 s | 2.5 s | 1.5 s |
+| Crackatos: con el camino ya fijo, antes de arrancar | 2 s | 1.3 s | 0.5 s |
+| Crackatos: lentitud en el camino marcado | I | II | II |
+| Crackatos: tiempo atorado en la pared | +1.5 s | +0.5 s | como estaba |
+
+Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con la presa en alto** hasta que se cumple ese tiempo. Mientras, te puedes zafar con la barra o tus amigos te pueden rescatar. Si alguien se le acerca, sigue pisando.
+
 ## Khaset, el dios del fuego corrompido (jefe de raid)
 **Cómo sale:**
 - **Con el huevo:** en la pestaña **Mipack** está el "Huevo de Khaset".
@@ -69,7 +95,7 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 - Agarra **hasta a dos desde el principio** (derribados o con desangrado II) y los lleva al cristal.
 - **Con las manos llenas sigue peleando:** si te acercas, **pisa** y sale una onda de fuego. Mientras sacrifica, **revientan erupciones de fuego** bajo los que estén cerca (círculo rojo: sal de ahí).
 - Mientras carga recibe **doble daño**. Si el grupo le baja **el 5 % de su vida**, suelta.
-- **Zafarte tú solo (barra nueva):** cuando te agarra sale una barra abajo de la pantalla con un cursor que va y viene. **Haz clic (el botón de pegar) cuando el cursor esté en lo dorado.** Con 3 aciertos te suelta. **Cada fallo te quita la mitad de la vida que tengas** (si tienes 10 corazones pierdes 5, si tienes 4 pierdes 2).
+- **Zafarte tú solo (barra nueva):** cuando te agarra sale una barra abajo de la pantalla con un cursor que va y viene. **Haz clic (el botón de pegar) cuando el cursor esté en lo dorado.** Con 3 aciertos te suelta. **Cada fallo te quita la mitad de la vida que tengas** (si tienes 10 corazones pierdes 5, si tienes 4 pierdes 2; en normal ⅓ y en easy ¼).
 - **El tótem funciona:** si te sacrifica y tienes tótem, te salva y te suelta.
 - Cada sacrificio sube el calor **un 5 %** y él se cura un poco.
 

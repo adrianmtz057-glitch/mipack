@@ -1,5 +1,6 @@
 package com.mipack.prueba;
 
+import com.mipack.Dificultad;
 import com.mipack.Mipack;
 import com.mipack.entidad.AcaroAmatista;
 import com.mipack.entidad.CrackatosEntity;
@@ -50,6 +51,7 @@ public class PruebasCrackatos {
 
     @GameTest(template = "arena", timeoutTicks = 12000)
     public static void pelea(GameTestHelper h) {
+        Dificultad.poner(h.getLevel().getServer(), Dificultad.Jefe.CRACKATOS, Dificultad.Nivel.NORMAL);
         CrackatosEntity jefe = h.spawn(Mipack.CRACKATOS.get(), new BlockPos(24, PISO, 24));
         Pelea p = new Pelea();
         AABB arena = new AABB(h.absolutePos(new BlockPos(1, PISO, 1)), h.absolutePos(new BlockPos(48, PISO + 9, 48)));

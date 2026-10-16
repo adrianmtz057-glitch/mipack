@@ -1,5 +1,6 @@
 package com.mipack.prueba;
 
+import com.mipack.Dificultad;
 import com.mipack.Mipack;
 import com.mipack.khaset.CristalSacrificio;
 import com.mipack.khaset.DardoAtlatl;
@@ -43,10 +44,17 @@ public class PruebasKhaset {
         Estado antes = Estado.QUIETO;
         boolean mitad, golpes, totems;
         int dardos, serpientes;
+        long esperaMinima = Long.MAX_VALUE;                       // lo menos que tardo en empezar a sacrificar desde que agarro
     }
 
     @GameTest(template = "arena", timeoutTicks = 30000)
     public static void pelea(GameTestHelper h) {
+        var server = h.getLevel().getServer();                    // el comando: lo cambia y se guarda
+        for (String nivel : new String[]{"hardcore", "easy", "normal"}) {
+            server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withSuppressedOutput(), "khaset difficult " + nivel);
+            if (!Dificultad.de(h.getLevel(), Dificultad.Jefe.KHASET).nombre().equals(nivel))
+                throw new GameTestAssertException("/khaset difficult " + nivel + " no cambio la dificultad");
+        }
         KhasetEntity k = h.spawn(Mipack.KHASET.get(), new BlockPos(30, PISO, 24));
         CristalSacrificio cristal = h.spawn(Mipack.CRISTAL.get(), new BlockPos(8, PISO, 24));
         Pelea p = new Pelea();
@@ -66,6 +74,8 @@ public class PruebasKhaset {
                 p.husks.add(x);
             }
             Estado ahora = k.getEstado();
+            if (ahora == Estado.SACRIFICIO && p.antes != Estado.SACRIFICIO)
+                p.esperaMinima = Math.min(p.esperaMinima, k.agarradoHace());
             if (ahora != p.antes)
                 Mipack.LOGGER.info("[PruebaK] {} -> {} (vida {}, calor {}, sacrificados {})", p.antes, ahora, (int) k.getHealth(),
                         String.format("%.2f", k.calor()), k.sacrificados());
@@ -82,8 +92,10 @@ public class PruebasKhaset {
                     if (!faltan.isEmpty() || !barrio || !piso || k.sacrificados() < 1 || p.dardos < 3 || k.perseguidos() < 2)
                         throw new GameTestAssertException("faltan " + faltan + (barrio ? "" : " BARRIDO") + (piso ? "" : " PISOTON")
                                 + " sacrificados " + k.sacrificados() + " dardos " + p.dardos + " perseguidos " + k.perseguidos());
-                    if (k.calor() < 0.045f)
+                    if (k.calor() < 0.035f)                       // en normal cada sacrificio sube 4 %
                         throw new GameTestAssertException("el sacrificio no subio el calor: " + k.calor());
+                    if (p.esperaMinima < 140)                     // normal: 7 s agarrado antes de empezar a sacrificar
+                        throw new GameTestAssertException("sacrifico muy pronto: " + p.esperaMinima + " ticks");
                 })
                 .thenExecute(() -> {
                     Mipack.LOGGER.info("[PruebaK] fase 1 completa: calor {}, sacrificados {}, persiguio a {}", k.calor(),

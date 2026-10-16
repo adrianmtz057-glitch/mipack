@@ -1,6 +1,7 @@
 package com.mipack.entidad;
 
 import com.mipack.Amenaza;
+import com.mipack.Dificultad;
 import com.mipack.Golpes;
 import com.mipack.Mipack;
 import net.minecraft.core.BlockPos;
@@ -85,6 +86,31 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     private static final int T_AZOTE = 31, T_MUERTE = 50;
     // vida: base mas lo que suma cada jugador que entra a la pelea
     private static final float VIDA_BASE = 1500f, VIDA_POR_JUGADOR = 900f;
+
+    /**
+     * Lo que cambia con la dificultad (/crackatos difficult; la vida y el dano los multiplica Dificultad.Nivel): hasta
+     * cuando apunta y cuando arranca la estampida (ticks desde que empieza a rascar: lo que queda entre los dos es el
+     * aviso con el camino ya fijo), cuanto mas se queda atorado y que tan fuerte alenta a los del camino.
+     * Hardcore es la pelea original.
+     */
+    private record Ajustes(int fija, int rascar, int atoradoExtra, int lentitud) {
+    }
+
+    private static final Ajustes EASY = new Ajustes(26, 66, 30, 0);
+    private static final Ajustes NORMAL = new Ajustes(24, 50, 10, 1);
+    private static final Ajustes HARDCORE = new Ajustes(T_FIJA, T_RASCAR, 0, 1);
+
+    private Dificultad.Nivel nivel() {
+        return Dificultad.de(this.level(), Dificultad.Jefe.CRACKATOS);
+    }
+
+    private Ajustes ajustes() {
+        return switch (nivel()) {
+            case EASY -> EASY;
+            case NORMAL -> NORMAL;
+            case HARDCORE -> HARDCORE;
+        };
+    }
     private static final double RADIO_PELEA = 64.0, VISTA = 96.0;
     // dano (atraviesa la armadura): la embestida crece con lo que lleva corriendo, hasta el triple
     private static final float DANO_EMBESTIDA = 16f, DANO_PISOTON = 12f, DANO_AZOTE = 18f, DANO_CORNADA = 16f;
@@ -291,7 +317,7 @@ public class CrackatosEntity extends Monster implements GeoEntity {
                 quedarse();
                 if (ticksEnEstado % 20 == 10)
                     this.playSound(SoundEvents.RAVAGER_STUNNED, 2.5f, 0.7f);
-                if (ticksEnEstado >= (fase2() ? T_ATORADO - 20 : T_ATORADO))
+                if (ticksEnEstado >= (fase2() ? T_ATORADO - 20 : T_ATORADO) + ajustes().atoradoExtra())
                     cambiar(Estado.ZAFARSE);
             }
             case ZAFARSE -> {
@@ -352,16 +378,15 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         this.barra.setProgress(this.getHealth() / this.getMaxHealth());
     }
 
-    /** Quien entra a la pelea suma vida (nunca baja): 1500 mas 900 por jugador. */
+    /** Quien entra a la pelea suma vida (nunca baja): 1500 mas 900 por jugador, por lo que diga la dificultad. */
     private void participantes() {
         int n = 0;
         for (Player p : this.level().players())
             if (valido(p) && p.distanceToSqr(this) < RADIO_PELEA * RADIO_PELEA)
                 n++;
-        if (n > this.maxJugadores) {
-            float antes = this.getMaxHealth();
-            this.maxJugadores = n;
-            float ahora = VIDA_BASE + VIDA_POR_JUGADOR * n;
+        this.maxJugadores = Math.max(this.maxJugadores, n);
+        float antes = this.getMaxHealth(), ahora = (VIDA_BASE + VIDA_POR_JUGADOR * this.maxJugadores) * nivel().vida;
+        if (Math.abs(ahora - antes) > 0.5f) {                   // entro alguien o cambio la dificultad: la misma parte de vida
             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(ahora);
             this.setHealth(this.getHealth() * ahora / antes);
         }
@@ -409,19 +434,20 @@ public class CrackatosEntity extends Monster implements GeoEntity {
 
     /** Rasca el piso apuntando; marca el camino y alenta a todos los que esten en el. */
     private void rascar(LivingEntity objetivo) {
-        if (ticksEnEstado < T_FIJA && objetivo != null)
+        Ajustes a = ajustes();
+        if (ticksEnEstado < a.fija() && objetivo != null)
             girarHacia(objetivo.position(), GIRO_APUNTAR);
         else
             quedarse();
         this.direccion = adelante();
         if (ticksEnEstado == 1 || ticksEnEstado % 4 == 0)
             this.largoCamino = largoHastaPared();
-        marcarCamino(ticksEnEstado % 3 == 0);
+        marcarCamino(ticksEnEstado % 3 == 0, a.lentitud());
         if (ticksEnEstado % 12 == 6) {
             this.playSound(SoundEvents.RAVAGER_STEP, 2.5f, 0.6f);
             polvo(this.position().add(this.direccion.scale(4.0 * K)), 12);
         }
-        if (ticksEnEstado >= T_RASCAR) {
+        if (ticksEnEstado >= a.rascar()) {
             golpeados.clear();
             sinEmbestir = 0;
             recorrido = 0;
@@ -443,14 +469,14 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     }
 
     /** Lo que va a recorrer: una franja del ancho de su cuerpo. Quien este dentro se alenta (y la ve en el piso). */
-    private void marcarCamino(boolean dibujar) {
+    private void marcarCamino(boolean dibujar, int lentitud) {
         double medio = this.getBbWidth() * 0.5 + 1.0;
         Vec3 lado = new Vec3(-this.direccion.z, 0, this.direccion.x);
         for (LivingEntity e : enemigos(this.largoCamino + 4)) {
             Vec3 d = e.position().subtract(this.position());
             double a = d.dot(this.direccion), l = Math.abs(d.dot(lado));
             if (a > 0 && a < this.largoCamino + 2 && l < medio && Math.abs(d.y) < 4 * K)
-                e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 12, 1, false, false, true));
+                e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 12, lentitud, false, false, true));
         }
         if (!dibujar || !(this.level() instanceof ServerLevel sl))
             return;
@@ -490,7 +516,7 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         double avance = this.position().subtract(antes).dot(this.direccion);     // si roza una pared se resbala
         this.recorrido += Math.max(0, avance);
         if (ticksEnEstado < 10)
-            marcarCamino(false);                  // al arrancar todavia alenta a los que siguen en el camino
+            marcarCamino(false, ajustes().lentitud());   // al arrancar todavia alenta a los que siguen en el camino
         if (ticksEnEstado % 4 == 0) {
             this.playSound(SoundEvents.RAVAGER_STEP, 3.0f, 0.5f);
             pisoton();
