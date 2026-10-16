@@ -38,6 +38,11 @@ public final class BarraZafarse implements IGuiOverlay {
         barra = b;
     }
 
+    /** La barra de ahora (para las fotos de prueba). */
+    static RedKhaset.Barra estado() {
+        return barra;
+    }
+
     private static boolean agarrado(LocalPlayer p) {
         return p != null && barra.activa() && p.getVehicle() instanceof KhasetEntity;
     }

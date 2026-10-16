@@ -193,7 +193,9 @@ public final class PosesJugador {
             p.yHeadRotO = eje;
             Vec3 f = Vec3.directionFromRotation(0, eje);
             Vec3 derecha = new Vec3(-f.z, 0, f.x);
-            ps.translate(f.x * 0.9, 0.35, f.z * 0.9);
+            // al acostarlo la cabeza queda hacia +f desde los pies: los pies van 0.9 hacia -f y asi el cuerpo queda
+            // centrado en la piedra
+            ps.translate(-f.x * 0.9, 0.35, -f.z * 0.9);
             ps.mulPose(new Quaternionf().rotationAxis((float) Math.toRadians(-90), (float) derecha.x, 0f, (float) derecha.z));
         } else if (pose == Pose.AGARRADO) {
             ps.mulPose(Axis.ZP.rotationDegrees(6f * Mth.sin((p.tickCount + evento.getPartialTick()) * 0.3f)));

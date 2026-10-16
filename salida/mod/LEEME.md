@@ -17,79 +17,71 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 - Para que te ataque tienes que estar en **supervivencia o aventura**; en creativo te ignora.
 - Si quieres verlo atacar a otros mobs, pon `-Dmipack.prueba=true` en los argumentos de Java.
 
-## Cómo pelea
-**Tamaño:** unos 10 bloques de alto y 21 de largo (con la cola).
+## Cómo pelea (versión 2: para muchos jugadores)
+**Tamaño:** unos 16 bloques de alto y 32 de largo (con la cola). Necesita una arena grande: de **80×80 o más**, con paredes de **6 bloques o más** (tiene que poder chocar con ellas).
 
-**Arena:** una arena cerrada de unos 50×50 o más, con paredes de 6 bloques o más.
+**Reparte el foco:** ya no se clava con uno. Después de cada ataque escoge a otro: le gusta el que más le pega (también al que dispara de lejos) y el que lleva más rato sin que lo persiga. Te ve hasta 96 bloques.
 
-**Al verte:** ruge y luego te acecha caminando hacia ti.
+**Estampida:**
+- Primero rasca el piso. Mientras tanto **marca en el piso una línea morada** con el camino que va a recorrer, y **a todos los que estén en ese camino los alenta**. Sal del camino a tiempo.
+- Luego corre **acelerando** y **no se detiene hasta topar con pared** (o después de 180 bloques). A todo lo que se lleva en el camino le pega, **más fuerte mientras más lleva corriendo** (hasta el triple), y lo avienta de lado.
+- Contra la pared se le atoran los cuernos unos 4 segundos (3 en la fase 2). Ahí recibe **el doble de daño**.
 
-**Embestida:**
-- Primero rasca el piso con la cabeza baja (ese es el aviso) y luego fija la dirección y corre en línea recta.
-- **Si la esquivas** y se estrella con la pared, se le atoran los cuernos unos 4 segundos. Ahí recibe **el doble de daño**.
-- **Si te pega**, te avienta lejos: mucho daño, más el de la caída.
-- Al caminar y al correr **pisa**: si estás bajo sus patas, te hace daño.
+**Cornada:** si te quedas pegado a él, levanta los cuernos y te avienta para arriba. **Pisa:** bajo sus patas te hace daño.
 
-**Cornada:** si te quedas pegado a él, levanta los cuernos y te avienta para arriba. Si llevas mucho rato cerca, también te embiste de cerca.
+**Sacudida (cada 2 o 3 estampidas):** salen púas volando del lomo y caen **muchísimas** del cielo por toda la arena, con su círculo morado (2.5 bloques de radio). Caen en tandas durante unos 3 segundos.
+- **Esquirlas de amatista (efecto nuevo):** cada púa que te pega te deja una esquirla clavada. Te quitan vida poco a poco, más rápido por cada nivel (hasta V). **No se quitan con leche ni con el tiempo: solo cuando Crackatos muere.**
 
-**Sacudida (cada 2 o 3 embestidas):**
-- Se queda quieto, se sacude y le salen púas volando del lomo.
-- Luego aparecen **círculos morados** de 2 bloques de radio en el piso, sobre ti y alrededor. Se van llenando, y cuando se llenan cae una púa del cielo y explota. **Sal del círculo.**
+**Alzarse y azotar:** se para en dos patas y azota. Sale una **ola** que recorre toda la arena. **Brinca justo cuando te llegue.** Si hay 3 o más juntos cerca de él, lo hace más seguido.
 
-**Alzarse y azotar:**
-- Se para en dos patas y azota el piso.
-- Sale una **ola** que recorre toda la arena levantando los bloques del piso. Los bloques son solo efecto: el piso no se rompe. Las paredes y los pilares la frenan.
-- Si la ola te agarra parado en el piso, te avienta. **Brinca justo cuando te llegue.**
+**Fase 2 (mitad de vida):** ruge, **sus cristales empiezan a brillar y latir** y **se rodea de bruma morada**. De la bruma salen **ácaros de amatista** (como endermites, pero más grandes, rápidos y de mordida fuerte; a veces dejan esquirla), mientras corre va soltando púas y caen púas sueltas sobre los que estén lejos.
 
-**Segunda fase (menos de la mitad de vida):** corre más rápido, caen más púas y después de cada sacudida se alza y azota.
+**Golpes:** atraviesan la armadura (los encantamientos de Protección sí cuentan, así que la netherita con Protección IV aguanta pero ya no es inmortal) y **te tiran el escudo** como un hacha. Las flechas le hacen 75 %.
 
-**Datos:** 600 de vida (300 corazones) y armadura 10. Al morir hace su animación y suelta mucha experiencia.
+**Vida:** 1500, más 900 por cada jugador que entra a la pelea. Armadura 14. Al morir suelta mucha experiencia, se le caen las esquirlas a todos y se deshacen sus ácaros.
 
 ## Khaset, el dios del fuego corrompido (jefe de raid)
 **Cómo sale:**
 - **Con el huevo:** en la pestaña **Mipack** está el "Huevo de Khaset".
 - **Con comando:** `/summon mipack:khaset`.
-- **El cristal del sacrificio:** también en la pestaña Mipack. Úsalo sobre un bloque y se pone mirando hacia ti. Es a donde Khaset lleva a sus presas. Solo se quita pegándole en creativo.
-- Como Crackatos, te ignora en creativo.
+- **El cristal del sacrificio:** también en la pestaña Mipack. Es una **caja de piedra tallada azteca** (guerreros en relieve, la serpiente ondulada arriba) con el cristal de obsidiana flotando. Úsalo sobre un bloque: queda con el lado largo hacia ti. Ahí acuesta Khaset a sus presas. Solo se quita pegándole en creativo.
+- Te ignora en creativo.
 
-**Tamaño:** unos 11 bloques de alto. Con el brazo estirado barre unos 5 a 6 bloques alrededor.
+**Tamaño:** unos 11 bloques de alto.
 
-**Vida:** 300, más 150 por cada jugador que entra a la pelea (en 48 bloques).
+**Vida:** 2000, más 1200 por cada jugador que entra a la pelea (en 48 bloques). Con 10 jugadores son 14,000.
 
-**Su estilo es de guerrero jaguar:** no busca matarte, sino herirte, tirarte y capturarte para el sacrificio.
+**Frenesí:** entre menos vida le queda, **más rápido ataca** (hasta casi el doble) y menos descansa entre ataques. La fase 2 es como la 1, pero más frenética. **Avanza mientras tira tajos y barridos**, y reparte el foco igual que Crackatos.
 
-**Heridas (efectos nuevos; la leche no los quita):**
-- **Desangrado I a III:** te quita vida cada tanto, te alenta y la pantalla late en rojo. En el III te caes.
-- **Derribado:** de rodillas, sin poder moverte ni pegar. En ese estado te puede capturar.
-- **Aturdido:** te tapas los oídos, sin moverte ni pegar.
-- **Desorientado:** la cámara se mece y se tuerce.
+**Heridas (la leche no las quita):** desangrado I a III (en el III te caes), derribado, aturdido y desorientado.
 
 **Ataques:**
-- **Tajos:** combo de 3 golpes. Cada uno te desangra y te prende fuego.
-- **Corte de piernas:** se agacha, echa el brazo atrás y barre el piso. Te tira de rodillas y te desangra 2 niveles. Brincando alto se esquiva.
-- **Salto del jaguar:** se agacha, sale un círculo naranja donde va a caer y cae sobre el grupo. Si te cae cerca, te tira.
-- **Dardos de átlatl:** se arranca una pluma del penacho y te la avienta. Donde pega deja una nube de veneno corto (2.5 s por cada vez que te toca).
-- **Guardia del jaguar:** si le pegan mucho de frente, cruza los brazos. Si le pegas de frente mientras está así, te regresa un contraataque. Mejor pégale por la espalda.
-- **Silbato de la muerte:** echa la cabeza atrás y grita. Aturde y desorienta a todos los que lo vean. **Escóndete detrás de una columna.**
+- **Tajos:** combo de 3 golpes que te desangran y te prenden fuego. Si sigues cerca, remata con el corte de piernas.
+- **Corte de piernas:** barre el piso avanzando. Te tira de rodillas. Brincando alto se esquiva.
+- **Salto del jaguar:** hasta **26 bloques**. Sale un círculo naranja de 7 bloques donde va a caer. Al caer sale **una onda de fuego por el piso**: **brínca** cuando te llegue. En la fase 2 a veces salta dos veces seguidas.
+- **Dardos de átlatl:** en abanico (3, luego 5, luego 7) y en la fase 2 también uno a cada quien que esté lejos. Las nubes de veneno corto son grandes (4.5 bloques).
+- **Guardia del jaguar:** si le pegan mucho de frente, cruza los brazos. Para golpes **y flechas**, y si le pegas de frente te regresa un contraataque. Pégale por la espalda.
+- **Silbato de la muerte:** grita (**ya tiene su sonido**). Aturde y desorienta a todos en 32 bloques que lo vean. **Escóndete detrás de una columna.** Lo usa mucho más seguido y más si te estás alejando.
+- **Xiuhcóatl:** invoca **de 2 a 6 serpientes de fuego** (más con más jugadores), más rápidas que tú corriendo. A sus serpientes ya no les hace daño su propio veneno.
+- **Para que no se le gane de lejos:** las flechas le hacen 60 %, y si te alejas salta sobre ti o te avienta dardos.
 
 **Captura y sacrificio:**
-- Agarra a un jugador **derribado o con desangrado II**, lo levanta y lo aprieta, y camina al cristal. Si el cristal está arriba (en la pirámide), salta.
-- **Mientras carga a alguien recibe doble daño.** Si el grupo le baja suficiente vida, lo suelta. El que está atrapado también puede pegarle, pero cuenta poco.
-- En el cristal lo acuesta en la piedra, le saca el corazón y lo ofrece al cristal. Cada sacrificio sube el calor un 15 % y él se cura un poco.
+- Agarra **hasta a dos desde el principio** (derribados o con desangrado II) y los lleva al cristal.
+- **Con las manos llenas sigue peleando:** si te acercas, **pisa** y sale una onda de fuego. Mientras sacrifica, **revientan erupciones de fuego** bajo los que estén cerca (círculo rojo: sal de ahí).
+- Mientras carga recibe **doble daño**. Si el grupo le baja **el 5 % de su vida**, suelta.
+- **Zafarte tú solo (barra nueva):** cuando te agarra sale una barra abajo de la pantalla con un cursor que va y viene. **Haz clic (el botón de pegar) cuando el cursor esté en lo dorado.** Con 3 aciertos te suelta. **Cada fallo te quita la mitad de la vida que tengas** (si tienes 10 corazones pierdes 5, si tienes 4 pierdes 2).
+- **El tótem funciona:** si te sacrifica y tienes tótem, te salva y te suelta.
+- Cada sacrificio sube el calor **un 5 %** y él se cura un poco.
 
-**El calor (la segunda barra):** sube solo y se llena en unos 10 minutos. Las pociones de resistencia al fuego no lo quitan.
-- **25 %:** el agua se evapora cerca de él.
-- **50 %:** donde pisa queda ceniza ardiendo y da más hambre.
-- **75 %:** te quemas cada tanto.
-- **100 %:** todos se queman sin parar, cada vez más fuerte.
+**El calor:** sube solo y se llena en unos 14 minutos. 25 %: el agua se evapora. 50 %: deja ceniza ardiendo donde pisa y da más hambre. 75 %: te quemas cada tanto. 100 %: todos se queman sin parar.
 
 **Fases:**
-- **Fase 2, la corona rota (50 %):** se le rompen el yelmo y el penacho (salen volando las plumas quemándose). Las brasas arden más, puede capturar a dos a la vez, avienta tres astillas de obsidiana en vez de un dardo e invoca a la **Xiuhcóatl**, la serpiente de fuego. La serpiente te persigue unos 9 segundos, muerde, quema y deja fuego (40 de vida, se le puede matar).
-- **Fase 3, el Quinto Sol (20 %):** el calor sube 3 veces más rápido y sacrifica ahí mismo donde captura, así que el rescate dura muy poco.
+- **Fase 2, la corona rota (50 %):** se le rompen el yelmo y el penacho y sigue igual pero más rápido; los dardos son astillas de obsidiana que queman.
+- **Fase 3, el Quinto Sol (20 %):** el calor sube al doble, sacrifica ahí mismo donde captura y **salen del piso guerreros calavera** con penacho y **macuahuitl** de obsidiana (cortan y desangran). Salen más cada 20 segundos. Se deshacen cuando Khaset muere. A veces sueltan su macuahuitl.
 
-**Arena recomendada:** una plaza de unos 60×60 con columnas (para el silbato) y el cristal del sacrificio de un lado o arriba de una pirámide.
+**Golpes:** atraviesan la armadura (Protección sí cuenta) y tiran el escudo.
 
-**Sonidos:** por ahora usa sonidos de Minecraft; los suyos van después.
+**Arena recomendada:** una plaza de 60×60 o más con columnas (para el silbato) y el altar de un lado o arriba de una pirámide.
 
 ## Los titanes (en construcción)
 Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, comen, descansan y se quedan mirando a quien se acerca) y se mueven solos por el mapa con el **motor de rutas**. Por ahora está **Candil, el ajolote del lodo** (pantano, unos 27 bloques de largo). Los demás van saliendo de más fácil a más difícil.
@@ -123,7 +115,7 @@ Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, come
 El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).
 
 ## Fotos
-En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks (los `khaset_*` son de Khaset).
+En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera).
 
 ## Si algo sale mal
 - **"Missing mod geckolib":** te falta GeckoLib, o es de otra versión de Minecraft o de otro cargador (tiene que ser Forge 1.20.1).

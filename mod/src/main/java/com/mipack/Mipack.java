@@ -56,7 +56,7 @@ public class Mipack {
     /** Crackatos: el modelo se dibuja 4.5 veces mas grande (mas que el Ender Dragon); la caja de golpes es la del cuerpo. */
     public static final RegistryObject<EntityType<CrackatosEntity>> CRACKATOS = ENTIDADES.register("crackatos",
             () -> EntityType.Builder.of(CrackatosEntity::new, MobCategory.MONSTER)
-                    .sized(3.0f * CrackatosEntity.ESCALA, 2.75f * CrackatosEntity.ESCALA).fireImmune().clientTrackingRange(16).updateInterval(1)
+                    .sized(3.5f * CrackatosEntity.ESCALA, 2.75f * CrackatosEntity.ESCALA).fireImmune().clientTrackingRange(16).updateInterval(1)
                     .build(MODID + ":crackatos"));
 
     /** Los acaros de amatista que salen de la bruma de Crackatos en su fase 2 (el modelo del endermite, mas grande). */

@@ -454,11 +454,17 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         }
         if (!dibujar || !(this.level() instanceof ServerLevel sl))
             return;
-        DustParticleOptions polvo = new DustParticleOptions(new Vector3f(0.7f, 0.35f, 1.0f), 2.5f);
-        for (double a = this.getBbWidth() * 0.5; a < Math.min(this.largoCamino, 70); a += 2.0)
+        // la linea se manda a todos los que esten en la pelea aunque esten lejos (las particulas normales solo llegan a 32)
+        DustParticleOptions polvo = new DustParticleOptions(new Vector3f(0.75f, 0.35f, 1.0f), 3.0f);
+        List<ServerPlayer> ven = new ArrayList<>();
+        for (ServerPlayer sp : sl.players())
+            if (sp.distanceToSqr(this) < 96 * 96)
+                ven.add(sp);
+        for (double a = this.getBbWidth() * 0.5; a < Math.min(this.largoCamino, 90); a += 2.5)
             for (int s = -1; s <= 1; s += 2) {
                 Vec3 p = this.position().add(this.direccion.scale(a)).add(lado.scale(s * medio));
-                sl.sendParticles(polvo, p.x, this.getY() + 0.2, p.z, 1, 0.1, 0.0, 0.1, 0.0);
+                for (ServerPlayer sp : ven)
+                    sl.sendParticles(sp, polvo, true, p.x, this.getY() + 0.25, p.z, 2, 0.15, 0.05, 0.15, 0.0);
             }
     }
 
@@ -748,11 +754,13 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     public void tick() {
         super.tick();
         if (this.level().isClientSide && fase2() && getEstado() != Estado.MUERTE) {
-            DustParticleOptions bruma = new DustParticleOptions(new Vector3f(0.6f, 0.3f, 0.95f), 3.5f);
-            for (int i = 0; i < 6; i++) {
-                double a = this.random.nextDouble() * Math.PI * 2, r = this.getBbWidth() * (0.5 + this.random.nextDouble() * 0.7);
-                this.level().addParticle(bruma, this.getX() + Math.cos(a) * r, this.getY() + this.random.nextDouble() * 2.5 * K,
-                        this.getZ() + Math.sin(a) * r, 0, 0.02, 0);
+            DustParticleOptions bruma = new DustParticleOptions(new Vector3f(0.6f, 0.3f, 0.95f), 4.0f);
+            DustParticleOptions clara = new DustParticleOptions(new Vector3f(0.85f, 0.6f, 1.0f), 3.0f);
+            for (int i = 0; i < 16; i++) {                         // la bruma: un anillo espeso al ras del piso
+                double a = this.random.nextDouble() * Math.PI * 2, r = this.getBbWidth() * (0.45 + this.random.nextDouble() * 0.9);
+                this.level().addParticle(i % 4 == 0 ? clara : bruma, this.getX() + Math.cos(a) * r,
+                        this.getY() + this.random.nextDouble() * (i % 3 == 0 ? 3.0 * K : 1.2 * K), this.getZ() + Math.sin(a) * r,
+                        0, 0.02, 0);
             }
             if (this.random.nextInt(3) == 0)
                 this.level().addParticle(ParticleTypes.PORTAL, this.getX() + (this.random.nextDouble() - 0.5) * this.getBbWidth(),

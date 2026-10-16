@@ -37,9 +37,9 @@ import java.util.List;
 @Mod.EventBusSubscriber(modid = Mipack.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public final class Captura {
     private static final boolean ACTIVA = Boolean.getBoolean("mipack.captura");
-    private static final int INICIO = 60, VISTAS_CADA = 25, PELEA_CADA = 10, FOTOS_PELEA = 12;
+    private static final int INICIO = 60, VISTAS_CADA = 25, PELEA_CADA = 10, FOTOS_PELEA = 36, FASE2 = 14;
     // las vistas del jefe quieto: angulo alrededor (0 = de frente), distancia y altura de la camara
-    private static final float[][] VISTAS = {{35, 25, 6}, {90, 25, 4.5f}, {0, 22, 4.5f}, {150, 27, 7.5f}, {-60, 18, 2.2f}, {-25, 11, 1.6f}, {20, 9, 1.6f}};
+    private static final float[][] VISTAS = {{35, 38, 9}, {90, 38, 7}, {0, 33, 7}, {150, 40, 11}, {-60, 27, 3.3f}, {-25, 17, 2.4f}, {20, 14, 2.4f}};
 
     private static boolean creando;
     private static int ticks;
@@ -96,7 +96,7 @@ public final class Captura {
                 return;
             float[] v = VISTAS[vista];
             double a = Math.toRadians(v[0] + jefe.getYRot());
-            Vec3 objetivo = jefe.position().add(0, 3.9, 0);
+            Vec3 objetivo = jefe.position().add(0, 5.8, 0);
             Vec3 cam = jefe.position().add(-Math.sin(a) * v[1], v[2], Math.cos(a) * v[1]);
             mirar(mc, cam, objetivo);
             if (t % VISTAS_CADA == VISTAS_CADA - 1)
@@ -106,13 +106,19 @@ public final class Captura {
         int p = t - VISTAS.length * VISTAS_CADA;
         if (p == 0) {
             int x = centro.getX(), y = centro.getY(), z = centro.getZ();
-            comando(server, String.format("summon minecraft:husk %d %d %d {PersistenceRequired:1b,Health:400f,"
-                    + "Attributes:[{Name:\"generic.max_health\",Base:400d}]}", x + 18, y, z - 18));
+            for (int i = 0; i < 2; i++)                     // dos: que se vea que reparte el foco
+                comando(server, String.format("summon minecraft:husk %d %d %d {PersistenceRequired:1b,Health:900f,"
+                        + "Attributes:[{Name:\"generic.max_health\",Base:900d}]}", x + (i == 0 ? 20 : -22), y, z + (i == 0 ? -20 : 18)));
+        }
+        if (p == FASE2 * PELEA_CADA && jefe != null) {      // a la mitad de la vida: la fase 2
+            var e = server.overworld().getEntity(jefe.getUUID());
+            if (e instanceof CrackatosEntity c)
+                server.execute(() -> c.setHealth(c.getMaxHealth() * 0.45f));
         }
         if (jefe != null) {                       // la camara le da vueltas despacio, cerca
             double a = Math.toRadians(40 + p * 0.5);
-            Vec3 objetivo = jefe.position().add(0, 3.0, 0);
-            Vec3 cam = jefe.position().add(-Math.sin(a) * 22, 11, Math.cos(a) * 22);
+            Vec3 objetivo = jefe.position().add(0, 4.5, 0);
+            Vec3 cam = jefe.position().add(-Math.sin(a) * 34, 17, Math.cos(a) * 34);
             mirar(mc, cam, objetivo);
         }
         if (p > 0 && p % PELEA_CADA == 0) {
@@ -147,7 +153,7 @@ public final class Captura {
             try (NativeImage img = Screenshot.takeScreenshot(mc.getMainRenderTarget())) {
                 img.writeToFile(Path.of("capturas", nombre + ".png"));
             }
-            String estado = jefe == null ? "?" : jefe.getEstado() + " " + (int) jefe.getHealth();
+            String estado = jefe == null ? "?" : jefe.getEstado() + " " + (int) jefe.getHealth() + (jefe.fase2() ? " fase2" : "");
             notas.add(nombre + " " + estado);
             Mipack.LOGGER.info("[Captura] {} {}", nombre, estado);
         } catch (IOException e) {
