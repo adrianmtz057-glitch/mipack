@@ -33,9 +33,10 @@ public final class Titanes {
     public static final TipoTitan CANDIL = tipo(new TipoTitan("candil", 4.0f, 8.0f, 4.0f,
             new Rutas.Perfil(Rutas.Modo.TIERRA, 1, 4, 30, 0, Map.of(Terreno.Bioma.PANTANO, 0.5, Terreno.Bioma.RIO, 0.8,
                     Terreno.Bioma.OCEANO, 0.0, Terreno.Bioma.DESIERTO, 0.0, Terreno.Bioma.MONTANA, 0.0, Terreno.Bioma.NIEVE, 0.0)),
-            0.06, 2.0f, -1.0, 1.6, Titanes::agendaCandil));
+            0.06, 2.0f, -1.0, 1.6, 0, 0.0, Titanes::agendaCandil));
 
-    private static TipoTitan.Actividad agendaCandil(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long hora, RandomSource azar) {
+    private static TipoTitan.Actividad agendaCandil(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long tiempo, RandomSource azar) {
+        long hora = tiempo % 24000;
         boolean noche = hora > 13000 && hora < 23000;
         int r = azar.nextInt(100);
         if (noche || r < 45)
@@ -55,9 +56,10 @@ public final class Titanes {
      */
     public static final TipoTitan SOMBRA_ALTA = tipo(new TipoTitan("sombra_alta", 8.0f, 30.0f, 5.0f,
             new Rutas.Perfil(Rutas.Modo.AIRE, 0, 999, 999, 0, Map.of(Terreno.Bioma.LLANURA, 0.7)),
-            0.32, 1.2f, 38.0, 0.0, Titanes::agendaSombra));
+            0.32, 1.2f, 38.0, 0.0, 0, 0.0, Titanes::agendaSombra));
 
-    private static TipoTitan.Actividad agendaSombra(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long hora, RandomSource azar) {
+    private static TipoTitan.Actividad agendaSombra(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long tiempo, RandomSource azar) {
+        long hora = tiempo % 24000;
         boolean noche = hora > 13000 && hora < 23000;
         if (noche) {
             Vec3 claro = lugarAlAzar(t, tipo, donde, 30, azar, l -> l.claro(1));
@@ -81,9 +83,10 @@ public final class Titanes {
             new Rutas.Perfil(Rutas.Modo.TIERRA, 2, 6, 8, 0, Map.of(Terreno.Bioma.NIEVE, 0.5, Terreno.Bioma.MONTANA, 0.8,
                     Terreno.Bioma.OCEANO, 0.0, Terreno.Bioma.DESIERTO, 0.0, Terreno.Bioma.JUNGLA, 0.0, Terreno.Bioma.PANTANO, 0.0,
                     Terreno.Bioma.CANON, 0.0)),
-            0.1, 1.5f, 0.0, 2.0, Titanes::agendaEscarcha));
+            0.1, 1.5f, 0.0, 2.0, 0, 0.0, Titanes::agendaEscarcha));
 
-    private static TipoTitan.Actividad agendaEscarcha(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long hora, RandomSource azar) {
+    private static TipoTitan.Actividad agendaEscarcha(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long tiempo, RandomSource azar) {
+        long hora = tiempo % 24000;
         boolean noche = hora > 13000 && hora < 23000;
         if (noche)
             return new TipoTitan.Actividad(null, TipoTitan.Hacer.DESCANSAR, 2400 + azar.nextInt(2400));

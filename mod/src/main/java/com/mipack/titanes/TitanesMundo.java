@@ -179,7 +179,7 @@ public final class TitanesMundo extends SavedData {
         if (this.planesEsteTick >= 1)
             return;                                               // un plan por tick para no trabar el servidor
         this.planesEsteTick++;
-        r.act = tipo.agenda().siguiente(terreno, tipo, r.pos, r.casa, nivel.getDayTime() % 24000, nivel.random);
+        r.act = tipo.agenda().siguiente(terreno, tipo, r.pos, r.casa, nivel.getDayTime(), nivel.random);
         if (r.act == null || r.act.lugar() == null) {
             r.espera = r.act == null ? 200 : r.act.ticks();
             return;

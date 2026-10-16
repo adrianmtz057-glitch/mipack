@@ -56,10 +56,21 @@ public class Titan extends Mob implements GeoEntity {
     private int sinAvanzar, revisar, enfriarMirar;
     private Player mirando;
     private final RawAnimation[] anims = new RawAnimation[Estado.values().length];
+    /** En el cliente: hacia donde miraba la cabeza en los ultimos bloques que avanzo, una muestra cada MUESTRA bloques
+     * (los tramos del cuerpo siguen el camino de la cabeza: si se para, el cuerpo se queda como iba). */
+    private static final double MUESTRA = 0.25;
+    private final float[] giros;
+    private final int porTramo;
+    private boolean girosListos;
+    private double recorrido;
+    /** Que tanto siguen el camino los tramos (1 = todo; baja a 0 cuando se enrosca o se echa, y el camino se olvida). */
+    private float seguir = 1f, seguirAntes = 1f;
 
     public Titan(EntityType<? extends Titan> tipoEntidad, Level nivel, TipoTitan tipo) {
         super(tipoEntidad, nivel);
         this.tipo = tipo;
+        this.porTramo = Math.max(1, (int) Math.round(tipo.largoTramo() / MUESTRA));
+        this.giros = new float[tipo.tramos() > 0 ? tipo.tramos() * this.porTramo + 1 : 1];
         this.noPhysics = true;
         this.setNoGravity(true);
         this.setPersistenceRequired();
@@ -143,8 +154,36 @@ public class Titan extends Mob implements GeoEntity {
     public void tick() {
         super.tick();
         this.setDeltaMovement(Vec3.ZERO);
-        if (!this.level().isClientSide)
+        if (!this.level().isClientSide) {
             cerebro();
+        } else if (this.tipo.tramos() > 0) {
+            seguirCamino();
+        }
+    }
+
+    private void seguirCamino() {
+        Estado e = getEstado();
+        boolean echado = e == Estado.ASENTARSE || e == Estado.DESCANSAR;
+        this.seguirAntes = this.seguir;
+        this.seguir = Mth.clamp(this.seguir + (echado ? -0.05f : 0.05f), 0f, 1f);
+        if (!this.girosListos || this.seguir == 0f) {                     // derecho otra vez: el camino de antes ya no cuenta
+            java.util.Arrays.fill(this.giros, this.getYRot());
+            this.girosListos = true;
+            this.recorrido = 0;
+            return;
+        }
+        this.recorrido += Math.sqrt((this.getX() - this.xo) * (this.getX() - this.xo) + (this.getZ() - this.zo) * (this.getZ() - this.zo));
+        while (this.recorrido >= MUESTRA) {
+            this.recorrido -= MUESTRA;
+            System.arraycopy(this.giros, 0, this.giros, 1, this.giros.length - 1);
+        }
+        this.giros[0] = this.getYRot();
+    }
+
+    /** Cuanto gira el tramo 'i' (1 = el pegado a la cabeza) respecto al anterior, en grados, para seguir el camino. */
+    public float giroDeTramo(int i, float parcial) {
+        int a = Math.min(this.giros.length - 1, (i - 1) * this.porTramo), b = Math.min(this.giros.length - 1, i * this.porTramo);
+        return Mth.wrapDegrees(this.giros[a] - this.giros[b]) * Mth.lerp(parcial, this.seguirAntes, this.seguir);
     }
 
     private void cerebro() {
@@ -209,7 +248,7 @@ public class Titan extends Mob implements GeoEntity {
             return;
         if (this.actividad == null)
             this.actividad = this.tipo.agenda().siguiente(Terreno.de(sl), this.tipo, this.position(), this.casa,
-                    sl.getDayTime() % 24000, this.random);
+                    sl.getDayTime(), this.random);
         if (this.actividad == null)
             return;
         if (this.actividad.lugar() == null || this.actividad.lugar().distanceToSqr(this.getX(), this.actividad.lugar().y, this.getZ()) < 16) {

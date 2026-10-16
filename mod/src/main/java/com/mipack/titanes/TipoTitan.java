@@ -18,10 +18,13 @@ import net.minecraft.world.phys.Vec3;
  * @param altitud    para los que vuelan: que tan arriba de las copas; para los demas, cuanto se hunde (negativo)
  * @param paso       bloques que avanza el cuerpo por segundo de la animacion de moverse a velocidad 1 (para que los
  *                   pies no patinen); 0 = la animacion va siempre a velocidad 1
+ * @param tramos     cuantos huesos encadenados tiene el cuerpo (s1, s2... como una serpiente): cada uno sigue el camino
+ *                   que hizo la cabeza (0 = ninguno)
+ * @param largoTramo cuantos bloques mide cada tramo (ya escalado): a esa distancia por detras sigue al anterior
  * @param agenda     que hace despues
  */
 public record TipoTitan(String id, float escala, float ancho, float alto, Rutas.Perfil perfil, double velocidad, float giro,
-                        double altitud, double paso, Agenda agenda) {
+                        double altitud, double paso, int tramos, double largoTramo, Agenda agenda) {
 
     /** Lo que va a hacer: ir a un lugar (o quedarse) y ahi hacer algo un rato. */
     public record Actividad(Vec3 lugar, Hacer hacer, int ticks) {
@@ -31,7 +34,8 @@ public record TipoTitan(String id, float escala, float ancho, float alto, Rutas.
 
     @FunctionalInterface
     public interface Agenda {
-        /** Lo siguiente (hora: 0 a 24000, la del mundo). 'lugar' null = ahi mismo. */
-        Actividad siguiente(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long hora, RandomSource azar);
+        /** Lo siguiente ('tiempo': el del mundo, getDayTime; la hora es tiempo % 24000 y el dia tiempo / 24000).
+         * 'lugar' null = ahi mismo. */
+        Actividad siguiente(Terreno t, TipoTitan tipo, Vec3 donde, Vec3 casa, long tiempo, RandomSource azar);
     }
 }
