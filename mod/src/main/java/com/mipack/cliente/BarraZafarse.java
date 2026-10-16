@@ -54,7 +54,7 @@ public final class BarraZafarse implements IGuiOverlay {
         if (!agarrado(p) || mc.options.hideGui)
             return;
         double t = p.level().getGameTime() + parcial;
-        int w = 200, h = 12, x0 = (ancho - w) / 2, y0 = alto - 72;
+        int w = 200, h = 12, x0 = (ancho - w) / 2, y0 = alto - 100;   // arriba del aviso de la accion
         boolean rojo = t - falloEn < 8, verde = t - aciertoEn < 6;
         g.fill(x0 - 3, y0 - 3, x0 + w + 3, y0 + h + 3, rojo ? 0xE0B01818 : verde ? 0xE018A040 : 0xE0181014);
         g.fill(x0, y0, x0 + w, y0 + h, 0xFF3A2A22);

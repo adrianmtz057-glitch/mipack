@@ -327,8 +327,9 @@ public class KhasetEntity extends Monster implements GeoEntity {
     }
 
     private float ritmoPara(Estado e) {
-        if (e.bucle || e == Estado.CORONA || e == Estado.MUERTE || e == Estado.SALTO_ALTAR || e == Estado.SOLTAR)
-            return 1f;
+        if (e.bucle || e == Estado.CORONA || e == Estado.MUERTE || e == Estado.SALTO_ALTAR || e == Estado.SOLTAR
+                || e == Estado.SACRIFICIO)
+            return 1f;                                            // el sacrificio no se apura: es la ventana del rescate
         if (e == Estado.SALTO)
             return Math.min(1.4f, furia() * 1.15f);               // el salto del jaguar: rapido, pero se ve venir
         return furia();
@@ -764,7 +765,17 @@ public class KhasetEntity extends Monster implements GeoEntity {
                 Vec3 centro = objetivo != null ? centroDelGrupo(objetivo) : this.position().add(adelante().scale(10));
                 Vec3 d = centro.subtract(this.position());
                 double largo = Math.min(ALCANCE_SALTO, d.horizontalDistance());
-                this.destino = suelo(this.position().add(new Vec3(d.x, 0, d.z).normalize().scale(Math.max(2.0, largo - 1.5))));
+                Vec3 dir = new Vec3(d.x, 0, d.z).normalize();
+                Vec3 meta = this.position().add(dir.scale(Math.max(2.0, largo - 1.5)));
+                // no se brinca las paredes de la arena: si hay una en medio, cae antes de ella
+                Vec3 ojo = this.position().add(0, 1.5, 0);
+                HitResult pared = this.level().clip(new ClipContext(ojo, meta.add(0, 1.5, 0), ClipContext.Block.COLLIDER,
+                        ClipContext.Fluid.NONE, this));
+                if (pared.getType() == HitResult.Type.BLOCK) {
+                    double hasta = Math.max(0.0, pared.getLocation().subtract(ojo).horizontalDistance() - this.getBbWidth() / 2 - 1.5);
+                    meta = this.position().add(dir.scale(hasta));
+                }
+                this.destino = suelo(meta);
             }
             // en el aire va lo que dura esa parte de la animacion (al ritmo): mas lejos, mas rapido
             this.vuelo = Math.max(6, Math.round(0.5f * 20f / ritmo()));
@@ -1229,8 +1240,8 @@ public class KhasetEntity extends Monster implements GeoEntity {
 
     private void iniciarForcejeo(ServerPlayer p) {
         Forcejeo f = new Forcejeo();
-        f.ancho = this.fase == 1 ? 0.22f : this.fase == 2 ? 0.18f : 0.15f;
-        f.periodo = this.fase == 1 ? 22 : this.fase == 2 ? 18 : 15;
+        f.ancho = this.fase == 1 ? 0.24f : this.fase == 2 ? 0.2f : 0.17f;
+        f.periodo = this.fase == 1 ? 16 : this.fase == 2 ? 14 : 12;     // rapido: caben varios intentos
         f.zona = 0.15f + this.random.nextFloat() * 0.7f;
         f.inicio = this.level().getGameTime();
         this.forcejeos.put(p.getUUID(), f);
