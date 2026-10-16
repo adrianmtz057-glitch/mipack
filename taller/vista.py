@@ -43,7 +43,7 @@ def _caras_mundo(modelo, uvs):
     return out
 
 
-def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro):
+def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro, fondo=None):
     import numpy as np
     cy, sy = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
     cp, sp = math.cos(math.radians(pitch)), math.sin(math.radians(pitch))
@@ -53,6 +53,9 @@ def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro):
     V = Rp @ Ry
     img = np.zeros((alto, ancho, 3), dtype=float)
     img[:] = (0.13, 0.13, 0.15)
+    if fondo is not None:                    # (arriba, abajo): un degradado de fondo (para fotos de presentacion)
+        k = np.linspace(0.0, 1.0, alto)[:, None, None]
+        img[:] = np.array(fondo[0], dtype=float) * (1 - k) + np.array(fondo[1], dtype=float) * k
     zbuf = np.full((alto, ancho), np.inf)
     th, tw = tex.shape[:2]
     for P, UV in caras:
@@ -101,7 +104,8 @@ def _render(caras, tex, yaw, pitch, escala, ancho, alto, centro):
     return img
 
 
-def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio=None, vistas=VISTAS, caras=None):
+def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio=None, vistas=VISTAS, caras=None,
+                  fondo=None, ancho_px=None):
     """Vistas del modelo en un PNG. Con centro/radio (en px del modelo) hace zoom a esa zona (ej. la cara).
     caras: las caras ya armadas (como las da _caras_mundo), por ejemplo un modelo posado o reconstruido."""
     try:
@@ -117,8 +121,8 @@ def guardar_vista(modelo, lienzo, uvs, ruta_png, alto_px=520, centro=None, radio
     centro = (lo + hi) / 2 if centro is None else np.array(centro, dtype=float)
     radio = float(np.linalg.norm(hi - lo)) / 2 if radio is None else float(radio)
     escala = (alto_px * 0.9) / (2 * radio)
-    ancho = alto_px if zoom else int(alto_px * 0.62)
-    paneles = [_render(caras, tex, yaw, pitch, escala, ancho, alto_px, centro) for _, yaw, pitch in vistas]
+    ancho = ancho_px or (alto_px if zoom else int(alto_px * 0.62))
+    paneles = [_render(caras, tex, yaw, pitch, escala, ancho, alto_px, centro, fondo) for _, yaw, pitch in vistas]
     img = np.concatenate(paneles, axis=1)
     Image.fromarray((np.clip(img, 0, 1) * 255).astype(np.uint8)).save(ruta_png)
     return ruta_png
