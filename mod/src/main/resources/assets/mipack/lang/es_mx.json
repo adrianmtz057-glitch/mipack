@@ -37,5 +37,12 @@
   "death.attack.mipack.esquirlas.player": "%1$s quedó lleno de las esquirlas de %2$s",
   "subtitles.mipack.khaset.silbato": "Grita el silbato de la muerte",
   "subtitles.mipack.khaset.rugido": "Khaset ruge",
-  "subtitles.mipack.khaset.sacrificio": "Late el sacrificio"
+  "subtitles.mipack.khaset.sacrificio": "Late el sacrificio",
+  "entity.mipack.bruma": "La Bruma",
+  "item.mipack.bruma_spawn_egg": "Huevo de La Bruma",
+  "entity.mipack.alma_en_pena": "Alma en pena",
+  "death.attack.mipack.drenar": "A %1$s le drenaron el alma",
+  "death.attack.mipack.drenar.player": "%2$s le drenó el alma a %1$s",
+  "bruma.mipack.fase2": "La bruma crece... las luces no van a durar",
+  "bruma.mipack.luz": "¡La luz obliga a La Bruma a tomar cuerpo!"
 }

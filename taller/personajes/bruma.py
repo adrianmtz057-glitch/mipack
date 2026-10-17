@@ -81,13 +81,13 @@ TIRAS = (
     ("t15", "torso", (-2.05, 7.5, 0.2), 262, 2.1, (5.5, 5.0), 12, 3, 8, (6,), 0.15, False),
     ("t16", "torso", (-2.05, 5.0, -0.4), 280, 1.1, (6.0, 6.0, 5.0), 8, -5, -10, (5, 9), 0.10, True),
     ("t17", "torso", (-2.05, 2.5, 0.5), 238, 2.4, (5.5, 5.5, 4.5), 26, -10, 6, (14, 16), 0.18, False),
-    ("t18", "torso", (-2.05, 0.8, -0.3), 270, 1.6, (5.0,), 10, 8, -6, (), 0.12, True),
+    ("t18", "torso", (-1.9, 6.4, -1.05), -38, 2.2, (5.0, 4.5), 5, 8, -6, (-3,), 0.12, True),
     # de abajo del torso: acaban bajo el cuerpo (no hay pies)
     ("t19", "torso", (0.1, 0.05, -0.2), -20, 2.0, (6.5, 6.0, 4.5), 2, 3, 20, (2, -3), 0.15, False),
     ("t20", "torso", (0.7, 0.05, 0.5), 160, 2.0, (5.5, 5.5), 16, 4, -14, (8,), 0.20, True),
     ("t21", "torso", (-1.5, 0.05, 0.6), 215, 1.3, (5.5, 5.0, 3.5), 12, -6, 8, (6, 10), 0.12, True),
     # hombros
-    ("h01", "brazo_d", (0.0, -0.6, 0.55), 120, 2.4, (5.0, 4.5), 10, 2, 6, (5,), 0.18, False),
+    ("h01", "brazo_d", (0.0, -3.0, 0.55), 100, 2.4, (5.0, 4.5), 6, 2, 6, (5,), 0.18, False),
     ("h02", "brazo_i", (0.0, -0.8, -0.55), 300, 2.0, (6.5,), 6, -3, -8, (), 0.15, True),
     # mangas: jirones que cuelgan de los antebrazos
     ("m01", "antebrazo_d", (0.0, 5.2, 0.55), 70, 2.2, (5.5, 4.5), 6, 0, 0, (4,), 0.15, True),
@@ -274,8 +274,9 @@ def esqueleto(m, atlas):
     m.pivotes[torso] = (0.0, BASE, 0.0)
     m.giros[torso] = GIRO_TORSO
 
-    def fibras(t):
-        return C4 if random.Random(int(t.i * 7 + 3) + hash(t.cara) % 5).random() < 0.25 else C3
+    def fibras(t):                                         # casi negro: se lee como la sombra adentro del manto
+        k = t.i * 7 + 3 + 31 * ("north", "south", "east", "west").index(t.cara)
+        return C3 if random.Random(k).random() < 0.3 else C4
     _solido(m, atlas, torso, "torso", (-2.0, BASE, -1.0), (2.0, BASE + 8.0, 1.0),
             {k: fibras for k in ("north", "south", "east", "west")})
     cabeza = f"{torso}/cabeza"
@@ -295,12 +296,12 @@ def esqueleto(m, atlas):
             m.pivotes[g] = (x, y, 0.0)
             m.giros[g] = giro
         _solido(m, atlas, g1, f"brazo_{lado}", (x - 0.5, codo, -0.5), (x + 0.5, hombro, 0.5),
-                {"north": C3, "south": C3, "east": C4, "west": C4})
+                {"north": C4, "south": C4, "east": C4, "west": C4})
 
         def antebrazo(t, muneca=muneca):                   # la muneca ya es hueso
             if t.y < muneca + 1.2:
                 return HUESO_CLARO if t.cara == "north" else HUESO_OSCURO
-            return C3 if t.cara in ("north", "south") else C4
+            return C4
         _solido(m, atlas, g2, f"antebrazo_{lado}", (x - 0.5, muneca, -0.5), (x + 0.5, codo, 0.5),
                 {k: antebrazo for k in ("north", "south", "east", "west")})
         mano(m, atlas, g3, lado, x, muneca)
@@ -377,15 +378,18 @@ def capucha(m, atlas):
         desde, hasta, origen = ((p[0], p[1], p[2] + za) for p in (desde, hasta, origen))
         W, H = _px(hasta[ea] - desde[ea]), _px(hasta[eb] - desde[eb])
         if nombre == "capucha_techo":                     # filas de atras (0) a la orilla de enfrente
-            img = _imagen_tela(W, H, 700 + k, tonos=(1, 2), deshilacha=(2, 3), mordidas=False)
+            img = _imagen_tela(W, H, 700 + k, tonos=(1, 2), deshilacha=(2, 3), mordidas=False,
+                               recorte=_esquinas(W, H, 0.45, (True, True, False, False)))
         else:
-            cortar = None
+            redondo = _esquinas(W, H, 0.42, (False, True, False, False) if recorte == "frente" else
+                                (True, True, False, False))           # lados: la nuca redonda; atras: los hombros
+            cortar = redondo
             if recorte == "frente":                       # la boca de la capucha: diagonal mordida abajo adelante
                 rr = random.Random(900 + k)
                 ruido = [rr.randint(0, 1) for _ in range(H)]
 
-                def cortar(c, r, H=H, ruido=ruido):
-                    return r > H * 0.5 and c < (r - H * 0.5) * 0.9 + ruido[r]
+                def cortar(c, r, H=H, ruido=ruido, redondo=redondo):
+                    return (r > H * 0.5 and c < (r - H * 0.5) * 0.9 + ruido[r]) or redondo(c, r)
             img = _imagen_tela(W, H, 700 + k, tonos=(1, 3), deshilacha=(3, 5), agujeros=(k == 3), recorte=cortar)
         cantos = {"north": NEGRO}                          # nada de borde claro en la boca de la capucha
         quitar = {"capucha_techo": (), "capucha_atras": ("down",)}.get(nombre, ("down",))
@@ -397,10 +401,29 @@ def capucha(m, atlas):
             atlas.pedir(c, cara, (nombre, cara), _px(w), _px(h))
 
 
+def _esquinas(W, H, k, cuales):
+    """Recorte que redondea esquinas de una placa (sin geometria: con la transparencia). cuales: (arriba-izq,
+    arriba-der, abajo-izq, abajo-der) con la columna 0 a la izquierda y la fila 0 arriba; k: radio / lado menor."""
+    R = max(1.0, k * min(W, H))
+
+    def fuera(c, r):
+        for n, (cx, cy) in enumerate(((R - 0.5, R - 0.5), (W - R - 0.5, R - 0.5), (R - 0.5, H - R - 0.5),
+                                      (W - R - 0.5, H - R - 0.5))):
+            if not cuales[n]:
+                continue
+            dx = c - cx if (n % 2) else cx - c
+            dy = cy - r if n < 2 else r - cy
+            if dx > 0 and dy > 0 and dx * dx + dy * dy > R * R:
+                return True
+        return False
+    return fuera
+
+
 def tiras(m, atlas):
     """Cada tira: un grupo con el pivote en su ancla (orilla de arriba) y uno mas por tramo, hijo del anterior, con
-    el pivote en la orilla de arriba de ese tramo. En reposo cuelgan derechas hacia -Y con la cara a -Z; el giro del
-    primer grupo las pone en el mundo (con la gravedad, aunque el padre este inclinado) y los demas las doblan."""
+    el pivote en la orilla de arriba de ese tramo. En reposo cuelgan derechas hacia -Y con la cara a -Z; el grupo
+    <tira>_eje las orienta en el mundo (con la gravedad, aunque el padre este inclinado), el de la tira la abre y la
+    ladea, y los de los tramos la doblan."""
     for k, (nombre, padre, ancla, hacia, ancho, tramos, abre, ladea, tuerce, dobleces, grueso, agujeros) in \
             enumerate(TIRAS):
         if padre == "torso":
@@ -412,21 +435,25 @@ def tiras(m, atlas):
             gp = f"raiz/torso/brazo_{lado}" + (f"/antebrazo_{lado}" if padre.startswith("ante") else "")
             y_ref = HOMBRO_Y if padre.startswith("brazo") else HOMBRO_Y - 12.0
             a = (s * HOMBRO_X + ancla[0] * s, y_ref + ancla[1], ancla[2])
-        # el giro en el mundo: tuerce sobre su largo, ladea, abre hacia su cara y mira hacia 'hacia'
-        Rw = _mul(_mul(rot_matriz(0.0, -hacia, 0.0), rot_matriz(abre, 0.0, 0.0)),
-                  _mul(rot_matriz(0.0, 0.0, ladea), rot_matriz(0.0, tuerce, 0.0)))
+        # en el mundo: mira hacia 'hacia' (el grupo fijo <tira>_eje, que compensa el giro del padre para que cuelgue
+        # con la gravedad) y luego, ya en su marco, abre hacia su cara, ladea y tuerce (el grupo de la tira: giros
+        # chicos, asi se anima sin el bloqueo de cardan de las que miran de lado)
         Rp, _ = m.a_mundo(gp)
+        eje = f"{gp}/{nombre}_eje"
+        m.pivotes[eje] = a
+        m.giros[eje] = _euler(_mul(_tras(Rp), rot_matriz(0.0, -hacia, 0.0)))
+        giro_tira = _euler(_mul(rot_matriz(abre, 0.0, 0.0), _mul(rot_matriz(0.0, 0.0, ladea),
+                                                                  rot_matriz(0.0, tuerce, 0.0))))
         rr = random.Random(5000 + 31 * k)
         W = _px(ancho)
         largos = [_px(L) for L in tramos]
         img = _imagen_tela(W, sum(largos), 1000 + 37 * k, agujeros=agujeros)
-        grupo, y, fila0 = f"{gp}/{nombre}", a[1], 0
+        grupo, y, fila0 = f"{eje}/{nombre}", a[1], 0
         for f, L in enumerate(tramos):
             if f:
                 grupo = f"{grupo}/{nombre}{'abc'[f]}"
             m.pivotes[grupo] = (a[0], y, a[2])
-            m.giros[grupo] = _euler(_mul(_tras(Rp), Rw)) if f == 0 else \
-                (float(dobleces[f - 1]), 0.0, round(rr.uniform(-3.0, 3.0), 2))
+            m.giros[grupo] = giro_tira if f == 0 else (float(dobleces[f - 1]), 0.0, round(rr.uniform(-3.0, 3.0), 2))
             desde, hasta = (a[0] - ancho / 2, y - L, a[2] - grueso / 2), (a[0] + ancho / 2, y, a[2] + grueso / 2)
             c = m.cubo(grupo, f"{nombre}{'abc'[f] if f else ''}_tela", desde, hasta,
                        _pintor_lamina(img, fila0, desde, hasta, 0, 1, ("north", "south")),

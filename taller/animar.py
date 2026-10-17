@@ -54,6 +54,9 @@ class Rig:
         huesos = geo["minecraft:geometry"][0]["bones"]
         self.padre = {b["name"]: b.get("parent") for b in huesos}
         self.pivote = {b["name"]: (-b["pivot"][0], b["pivot"][1], b["pivot"][2]) for b in huesos}
+        # el giro de reposo de cada hueso (en el kit); la animacion se le SUMA, como en GeckoLib
+        self.base = {b["name"]: (-b["rotation"][0], -b["rotation"][1], b["rotation"][2]) for b in huesos
+                     if "rotation" in b}
         self.geo = geo
 
     def transformaciones(self, pose):
@@ -64,7 +67,8 @@ class Rig:
             if n in cache:
                 return cache[n]
             rot, tras = pose.get(n, ((0, 0, 0), (0, 0, 0)))
-            T = geckolib._giro_en(self.pivote[n], tuple(math.radians(a) for a in rot), tuple(tras))
+            b = self.base.get(n, (0, 0, 0))
+            T = geckolib._giro_en(self.pivote[n], tuple(math.radians(a + c) for a, c in zip(rot, b)), tuple(tras))
             if self.padre[n]:
                 T = de(self.padre[n]).despues(T)
             cache[n] = T
@@ -182,11 +186,12 @@ def ik_libre(rig, pose, cadena, objetivo, semilla=None, peso=0.001, codo=(-60.0,
     return math.dist(muneca(x), objetivo)
 
 
-def hornear(rig, nombre, largo, pose_en, bucle=True):
-    """La animacion horneada: {hueso: {'rotation': {t: [..]}, 'position': {t: [..]}}} a un cuadro por tick, mas
-    los cuadros mismos (para revisar y renderizar)."""
-    n = int(round(largo / PASO))
-    cuadros = [(round(i * PASO, 4), pose_en(i * PASO)) for i in range(n + 1)]
+def hornear(rig, nombre, largo, pose_en, bucle=True, paso=PASO):
+    """La animacion horneada: {hueso: {'rotation': {t: [..]}, 'position': {t: [..]}}} a un cuadro por tick (o cada
+    'paso' segundos: GeckoLib interpola en linea recta entre cuadros), mas los cuadros mismos (para revisar y
+    renderizar)."""
+    n = int(round(largo / paso))
+    cuadros = [(round(i * paso, 4), pose_en(i * paso)) for i in range(n + 1)]
     huesos = {}
     for t, pose in cuadros:
         for h, ((rx, ry, rz), (px, py, pz)) in rig.a_archivo(pose).items():

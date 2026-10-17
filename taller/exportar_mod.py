@@ -5,6 +5,7 @@ Genera los recursos del mod de Forge (mod/src/main/resources/assets/mipack/) des
     animations/entity/crackatos.animation.json (todas las de personajes/crackatos_anim.py).
   - La pua que sale del lomo y cae del cielo: geo/entity/pua.geo.json y textures/entity/pua.png.
   - El circulo morado de aviso: textures/entity/circulo.png y circulo_lleno.png.
+  - La Bruma: geo/entity/bruma.geo.json, textures/entity/bruma.png (128x128 con alpha) y su .animation.json.
   - Los nombres (lang) y el modelo del huevo.
 Uso: python -m taller.exportar_mod
 """
@@ -411,6 +412,29 @@ def titan_assets(modulo):
     return {"cubos": len(p.m.cubos), "mallas": len(p.m.mallas), "textura": img.size, "animaciones": list(horneadas)}
 
 
+def bruma_assets():
+    """La Bruma (personajes/bruma.py, solo cubos): geo, textura de 128x128 con alpha (en el juego va con cutout) y sus
+    animaciones (personajes/bruma_anim.py)."""
+    from .personajes import bruma, bruma_anim
+    m = bruma.construir()
+    lienzo, uvs = m.pintar()
+    geo = geckolib.exportar_geo(m, uvs, lienzo, "bruma")
+    peor, sin_pareja = geckolib.comprobar(m, uvs, geo)
+    if peor > 1e-3 or sin_pareja:
+        raise RuntimeError(f"la bruma no cuadra con GeckoLib: {peor} px, {sin_pareja} esquinas sin pareja")
+    _escribir_json(os.path.join(RAIZ, "geo", "entity", "bruma.geo.json"), geo)
+    img = _imagen(lienzo)
+    img.save(os.path.join(RAIZ, "textures", "entity", "bruma.png"))
+    rig = animar.Rig(geo)
+    horneadas = bruma_anim.hornear_todas(rig)
+    for nombre, (_d, cuadros, bucle) in horneadas.items():
+        if bucle is True and animar.revisar(rig, cuadros, True, piso=-99, cada=10)["brinco_del_bucle"] > 1e-3:
+            raise RuntimeError(f"bruma.{nombre} no cierra el bucle")
+    _escribir_json(os.path.join(RAIZ, "animations", "entity", "bruma.animation.json"),
+                   animar.exportar({n: d for n, (d, _c, _b) in horneadas.items()}, "bruma"))
+    return {"cubos": len(m.cubos), "mallas": len(m.mallas), "textura": img.size, "animaciones": list(horneadas)}
+
+
 def textos():
     en = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Amethyst Spike",
           "item.mipack.crackatos_spawn_egg": "Crackatos Spawn Egg", "itemGroup.mipack": "Mipack",
@@ -435,7 +459,13 @@ def textos():
           "death.attack.mipack.esquirlas": "%1$s was pierced by amethyst shards",
           "death.attack.mipack.esquirlas.player": "%1$s was pierced by the shards of %2$s",
           "subtitles.mipack.khaset.silbato": "Death whistle screams", "subtitles.mipack.khaset.rugido": "Khaset roars",
-          "subtitles.mipack.khaset.sacrificio": "Sacrificial heartbeat"}
+          "subtitles.mipack.khaset.sacrificio": "Sacrificial heartbeat",
+          "entity.mipack.bruma": "La Bruma", "item.mipack.bruma_spawn_egg": "La Bruma Spawn Egg",
+          "entity.mipack.alma_en_pena": "Lost Soul",
+          "death.attack.mipack.drenar": "%1$s had their soul drained",
+          "death.attack.mipack.drenar.player": "%1$s had their soul drained by %2$s",
+          "bruma.mipack.fase2": "The mist grows... the lights won't last",
+          "bruma.mipack.luz": "The light forces La Bruma to take shape!"}
     es = {"entity.mipack.crackatos": "Crackatos", "entity.mipack.pua": "Púa de amatista",
           "item.mipack.crackatos_spawn_egg": "Huevo de Crackatos", "itemGroup.mipack": "Mipack",
           "entity.mipack.khaset": "Khaset", "entity.mipack.cristal_sacrificio": "Cristal del sacrificio",
@@ -459,10 +489,16 @@ def textos():
           "death.attack.mipack.esquirlas": "%1$s quedó lleno de esquirlas de amatista",
           "death.attack.mipack.esquirlas.player": "%1$s quedó lleno de las esquirlas de %2$s",
           "subtitles.mipack.khaset.silbato": "Grita el silbato de la muerte", "subtitles.mipack.khaset.rugido": "Khaset ruge",
-          "subtitles.mipack.khaset.sacrificio": "Late el sacrificio"}
+          "subtitles.mipack.khaset.sacrificio": "Late el sacrificio",
+          "entity.mipack.bruma": "La Bruma", "item.mipack.bruma_spawn_egg": "Huevo de La Bruma",
+          "entity.mipack.alma_en_pena": "Alma en pena",
+          "death.attack.mipack.drenar": "A %1$s le drenaron el alma",
+          "death.attack.mipack.drenar.player": "%2$s le drenó el alma a %1$s",
+          "bruma.mipack.fase2": "La bruma crece... las luces no van a durar",
+          "bruma.mipack.luz": "¡La luz obliga a La Bruma a tomar cuerpo!"}
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
-    for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg"):
+    for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg", "bruma_spawn_egg"):
         _escribir_json(os.path.join(RAIZ, "models", "item", f"{huevo}.json"),
                        {"parent": "minecraft:item/template_spawn_egg"}, compacto=False)
     _escribir_json(os.path.join(RAIZ, "models", "item", "cristal_sacrificio.json"),
@@ -548,11 +584,18 @@ def arena(lado=49, alto=10):
     return os.path.normpath(ruta)
 
 
-def main():
+def main(partes=None):
+    """Sin partes, todo; con partes (ej. python -m taller.exportar_mod bruma textos), solo esas."""
+    if partes:
+        for parte in partes:
+            print(parte + ":", {"bruma": bruma_assets, "textos": textos, "crackatos": crackatos_assets,
+                                "khaset": khaset_assets, "extras": extras_assets}[parte]())
+        return
     print("crackatos:", crackatos_assets())
     print("crackatos fase 2:", crackatos_extras())
     print("khaset:", khaset_assets())
     print("extras:", extras_assets())
+    print("bruma:", bruma_assets())
     for t in TITANES:
         print(t.__name__.split(".")[-1] + ":", titan_assets(t))
     print("pua:", pua_assets())
@@ -563,4 +606,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    main(sys.argv[1:])

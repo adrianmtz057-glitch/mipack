@@ -37,5 +37,12 @@
   "death.attack.mipack.esquirlas.player": "%1$s was pierced by the shards of %2$s",
   "subtitles.mipack.khaset.silbato": "Death whistle screams",
   "subtitles.mipack.khaset.rugido": "Khaset roars",
-  "subtitles.mipack.khaset.sacrificio": "Sacrificial heartbeat"
+  "subtitles.mipack.khaset.sacrificio": "Sacrificial heartbeat",
+  "entity.mipack.bruma": "La Bruma",
+  "item.mipack.bruma_spawn_egg": "La Bruma Spawn Egg",
+  "entity.mipack.alma_en_pena": "Lost Soul",
+  "death.attack.mipack.drenar": "%1$s had their soul drained",
+  "death.attack.mipack.drenar.player": "%1$s had their soul drained by %2$s",
+  "bruma.mipack.fase2": "The mist grows... the lights won't last",
+  "bruma.mipack.luz": "The light forces La Bruma to take shape!"
 }
