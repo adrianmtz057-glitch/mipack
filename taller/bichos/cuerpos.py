@@ -152,7 +152,10 @@ def cuadrupedo(ident, piel, cuerpo=(8, 8, 14), pata=(2.5, 8), cabeza=(5, 5, 5), 
     if hocico:
         sw, sh, sl = hocico
         a.caja(ruta_cab, "hocico", (-sw / 2, cy - hh / 2, cz - hl / 2 - sl), (sw / 2, cy - hh / 2 + sh, cz - hl / 2 + 0.01))
-    a.ojos(cab, cy + hh / 2 - ojo[1], cz - hl / 2 + ojo[0], ojo[2])
+    if piel.ojos_al_frente:                                # al frente: ojo[0] es la separacion en x
+        a.ojos(cab, cy + hh / 2 - ojo[1], ojo[0], ojo[2])
+    else:
+        a.ojos(cab, cy + hh / 2 - ojo[1], cz - hl / 2 + ojo[0], ojo[2])
     if collar:
         a.caja(ruta_cab, "collar", (-hw / 2 - 0.3, cy - hh / 2 - 0.2, cz + hl / 2 - 1.2), (hw / 2 + 0.3, cy - hh / 2 + 0.8, cz + hl / 2 + 0.3))
     # orejas
@@ -520,4 +523,79 @@ def murcielago(ident, piel, cuerpo=(3, 3.5, 3), cabeza=(3, 3, 2.5), envergadura=
     for s in (1, -1):
         ruta = a.hueso(f"raiz/pata_{'d' if s > 0 else 'i'}", (s * 0.8, base, 0.3))
         a.caja(ruta, f"pata_{'d' if s > 0 else 'i'}", (s * 0.8 - 0.3, 0.2, 0.0), (s * 0.8 + 0.3, base + 0.2, 0.6), parte="pata")
+    return a
+
+
+# ====================================================================== canino (lobos, chacales, zorros: grandes y robustos)
+
+def canino(ident, piel, k=1.0, flaco=0.0, orejas=1.0, cola=1.0, hocico=1.0, cresta=True, escala=1.0, boca_abierta=12.0):
+    """Lobo robusto (como los lobos de los paquetes de mobs): pecho hondo y ancho, melena de pelo alrededor del cuello,
+    cachetes peludos, frente marcada, hocico largo con la mandibula entreabierta y colmillos, patas gruesas en dos
+    tramos con la pata (mano) grande, cadera fuerte, cola esponjosa en tres tramos y mechones en el lomo.
+    k: tamano (1 = lobo de ~1.6 bloques a la cruz); flaco: 0 a 1 (adelgaza cintura y patas); orejas, cola, hocico:
+    cuanto crecen esas partes."""
+    a = Armado(ident, piel, escala)
+    f = 1.0 - 0.25 * flaco
+    base = 10.0 * k
+    a.hueso("raiz/cuerpo", (0, base + 5 * k, 0))
+    R = "raiz/cuerpo"
+    a.caja(R, "pecho", (-6.2 * k, base - 1.5 * k, -12 * k), (6.2 * k, base + 10.5 * k, -3 * k), parte="pecho")
+    a.caja(R, "cuerpo", (-4.2 * k * f, base + 1 * k, -4 * k), (4.2 * k * f, base + 8.6 * k, 5 * k))
+    a.caja(R, "cuerpo_cadera", (-4.8 * k, base + 0.5 * k, 4 * k), (4.8 * k, base + 9 * k, 10 * k), parte="cuerpo")
+    a.caja(R, "cuello_melena", (-7.6 * k, base + 2.5 * k, -14.5 * k), (7.6 * k, base + 14 * k, -8 * k), parte="cuello")
+    for s in (1, -1):                                         # mechones del pecho y los hombros
+        a.caja(R, f"cuerpo_mechon_{s}", (s * 5.4 * k - 0.8 * k, base + 1 * k, -11 * k), (s * 5.4 * k + 0.8 * k, base + 7 * k, -6 * k),
+               rot=(0.0, 0.0, s * 10.0), origen=(s * 5.4 * k, base + 7 * k, -8.5 * k), parte="cuerpo")
+    if cresta:                                                # mechones a lo largo del lomo
+        for n, z in enumerate((-9.5, -5.5, -1.5, 2.5, 6.5)):
+            a.caja(R, f"cresta{n}", (-1.2 * k, base + 8.4 * k + (2.6 * k if n == 0 else 0), z * k), (1.2 * k, base + 10.2 * k + (2.6 * k if n == 0 else 0), (z + 3) * k),
+                   rot=(-22.0, 0.0, 0.0), origen=(0, base + 9 * k, z * k), parte="cresta")
+    # cabeza
+    cy, cz = base + 13.5 * k, -16.5 * k
+    ruta_cab = a.hueso(R + "/cabeza", (0, base + 10 * k, -12 * k))
+    craneo = a.caja(ruta_cab, "cabeza", (-4.3 * k, cy - 3.6 * k, cz - 3 * k), (4.3 * k, cy + 3.6 * k, cz + 3 * k))
+    a.caja(ruta_cab, "cabeza_frente", (-4.0 * k, cy + 2.6 * k, cz - 3.5 * k), (4.0 * k, cy + 4.0 * k, cz - 1.2 * k), parte="cabeza")
+    for s in (1, -1):                                         # cachetes peludos
+        a.caja(ruta_cab, f"cuello_cachete_{s}", (min(s * 4.0 * k, s * 6.2 * k), cy - 3.8 * k, cz - 1.8 * k),
+               (max(s * 4.0 * k, s * 6.2 * k), cy + 0.8 * k, cz + 2.8 * k), parte="cuello")
+    hl = 5 * k * hocico
+    z0 = cz - 3 * k
+    a.caja(ruta_cab, "hocico", (-2.5 * k, cy - 1.6 * k, z0 - hl), (2.5 * k, cy + 1.2 * k, z0 + 0.01))
+    ruta_m = a.hueso(ruta_cab + "/mandibula", (0, cy - 1.4 * k, z0))
+    rot_m = (-boca_abierta, 0.0, 0.0) if boca_abierta else None
+    a.caja(ruta_m, "mandibula", (-2.1 * k, cy - 3.0 * k, z0 - hl + 0.8 * k), (2.1 * k, cy - 1.5 * k, z0 + 0.2 * k),
+           rot=rot_m, origen=(0, cy - 1.4 * k, z0) if rot_m else None)
+    a.caja(ruta_m, "boca", (-1.4 * k, cy - 2.3 * k, z0 - hl + 1.0 * k), (1.4 * k, cy - 1.3 * k, z0 - 0.1 * k),
+           rot=rot_m, origen=(0, cy - 1.4 * k, z0) if rot_m else None)
+    for s in (1, -1):                                         # colmillos
+        a.caja(ruta_cab, f"colmillo_{s}", (s * 1.35 * k - 0.35 * k, cy - 2.2 * k, z0 - hl + 0.3 * k),
+               (s * 1.35 * k + 0.35 * k, cy - 1.35 * k, z0 - hl + 1.0 * k), parte="colmillo")
+    a.ojos(craneo, cy + 0.9 * k, cz - 3 * k + 1.3 * k, 0.6 * k)
+    for s in (1, -1):
+        b0 = (s * 2.3 * k, cy + 2.9 * k, cz + 1.2 * k)
+        d = _unit((s * 0.35, 1.0, 0.12))
+        lo = 4.0 * k * orejas
+        ancho = 2.6 * k * min(orejas, 1.4)
+        lado = 'd' if s > 0 else 'i'                          # oreja en punta: base ancha y punta angosta
+        a.segmento(ruta_cab, f"oreja_{lado}", b0, _mas(b0, d, lo * 0.55), ancho, 1.1 * k, parte="oreja")
+        a.segmento(ruta_cab, f"oreja_{lado}_punta", _mas(b0, d, lo * 0.5), _mas(b0, d, lo), ancho * 0.5, 0.9 * k, parte="oreja")
+    # patas: delanteras (brazo, antebrazo, mano) y traseras (muslo, canilla, pie)
+    for s, lado in ((1, "d"), (-1, "i")):
+        x = s * 4.4 * k
+        ruta = a.hueso(f"raiz/pata_d{lado}", (x, base + 6 * k, -8.5 * k))
+        a.caja(ruta, f"pata_d{lado}_brazo", (x - 2.2 * k, base - 2.5 * k, -11 * k), (x + 2.2 * k, base + 7 * k, -6 * k), parte="pata")
+        a.caja(ruta, f"pata_d{lado}", (x - 1.8 * k * f, 1.5 * k, -10 * k), (x + 1.8 * k * f, base - 2 * k, -6.8 * k), parte="pata")
+        a.caja(ruta, f"pie_d{lado}", (x - 2.2 * k, 0, -11.8 * k), (x + 2.2 * k, 2.0 * k, -6.4 * k), parte="pie")
+        ruta = a.hueso(f"raiz/pata_t{lado}", (x, base + 5 * k, 7.5 * k))
+        a.caja(ruta, f"pata_t{lado}_muslo", (x - 2.4 * k, base - 3 * k, 4 * k), (x + 2.4 * k, base + 6.5 * k, 10.5 * k), parte="pata")
+        a.caja(ruta, f"pata_t{lado}", (x - 1.7 * k * f, 1.5 * k, 7.8 * k), (x + 1.7 * k * f, base - 2.5 * k, 10.8 * k), parte="pata")
+        a.caja(ruta, f"pie_t{lado}", (x - 2.2 * k, 0, 6.2 * k), (x + 2.2 * k, 2.0 * k, 11.4 * k), parte="pie")
+    # cola esponjosa
+    ruta_c = a.hueso(R + "/cola", (0, base + 8 * k, 10 * k))
+    c = cola
+    p0, p1, p2, p3 = (0, base + 8 * k, 9.5 * k), (0, base + 6 * k, 9.5 * k + 5 * k * c), (0, base + 2.5 * k, 9.5 * k + 9 * k * c), \
+        (0, base + 0.2 * k, 9.5 * k + 11.5 * k * c)
+    a.segmento(ruta_c, "cola1", p0, p1, 3.2 * k)
+    a.segmento(ruta_c, "cola2", p1, p2, 4.8 * k)
+    a.segmento(ruta_c, "cola_punta", p2, p3, 3.0 * k, parte="cola")
     return a

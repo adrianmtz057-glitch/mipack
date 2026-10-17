@@ -9,6 +9,7 @@ Los 'animales manchados' (zona de mura) no son un bicho aparte: cualquier bicho 
 """
 
 from . import cuerpos as C
+from ..textura import hex_a_rgba
 from .piel import Piel
 
 
@@ -22,9 +23,62 @@ BIOMAS = ("Jardines", "Desierto", "Cañón", "Montañas de terracota", "Volcán"
 CATALOGO = {}
 
 
+# los ojos de cada uno (juzgados uno por uno): tipo, color del ojo, iris, anillo, ceja, tamano (veces el del cuerpo)
+#   tipos: punto, grande (oscuro y lustroso), redondo (iris y pupila), rasgado (pupila vertical), cabra (pupila
+#   horizontal), insecto (compuesto)
+OJOS = {
+    "cervatillo_musgo": ("grande", "#24160F", None, None, False, 1.25),
+    "pato_estanque": ("grande", "#141010", None, None, False, 1.2),
+    "liebre_dorada": ("grande", "#3A2410", None, None, False, 1.3),
+    "toro_arena": ("grande", "#1E1410", None, None, True, 1.2),
+    "escarabajo_sagrado": ("insecto", "#121A1C", None, None, False, 1.6),
+    "fenec": ("grande", "#1E140E", None, None, False, 1.35),
+    "chacal_ceniza": ("redondo", "#1A1210", "#E0A040", None, True, 1.4),
+    "dromedario": ("grande", "#1E140E", None, None, True, 1.3),
+    "gato_thza": ("rasgado", "#14100C", "#7CC24A", None, False, 1.5),
+    "escorpion_luz": ("insecto", "#FFD97A", None, None, False, 1.2),
+    "buitre": ("redondo", "#140C08", "#5A3018", None, True, 1.4),
+    "ballenato_duna": ("redondo", "#120E0A", "#4A3A28", None, False, 1.2),
+    "cangrejo": ("insecto", "#141010", None, None, False, 1.4),
+    "babuino": ("redondo", "#140E0A", "#C98A2E", None, True, 1.4),
+    "ibis": ("redondo", "#140E0A", "#7A2A22", "#5A5250", False, 1.6),
+    "hipopotamo": ("grande", "#1A1012", None, None, True, 1.2),
+    "cocodrilo_luz": ("rasgado", "#14120A", "#F2E06A", None, True, 1.4),
+    "serpiente_rio_seco": ("rasgado", "#14100A", "#C9A040", None, False, 1.6),
+    "cria_varkhum": ("rasgado", "#14120A", "#E2C64A", None, True, 1.3),
+    "cria_moruvahn": ("grande", "#1A1016", None, "#C9A040", False, 1.6),
+    "ramita": ("insecto", "#24140C", None, None, False, 1.5),
+    "bufalo_terracota": ("grande", "#1A100C", None, None, True, 1.2),
+    "lagarto_roca": ("rasgado", "#140E08", "#D9822B", None, False, 1.6),
+    "halcon_cobre": ("grande", "#120A08", None, "#E2B33A", True, 1.5),
+    "salamandra_ceniza": ("rasgado", "#1A0E06", "#FFB040", None, False, 1.6),
+    "escarabajo_brasa": ("insecto", "#FF9A40", None, None, False, 1.4),
+    "lobo_fuego": ("redondo", "#1A0E06", "#FFD24A", None, True, 1.4),
+    "cuervo_negro": ("redondo", "#120E16", "#D9B8FF", None, False, 1.4),
+    "murcielago_mura": ("grande", "#FF6AF0", None, None, False, 1.4),
+    "flamenco": ("redondo", "#140E0A", "#E8C84A", None, False, 1.6),
+    "lagartija_blanca": ("rasgado", "#2A2420", "#8A8478", None, False, 1.8),
+    "garrapata_sal": ("insecto", "#1A1012", None, None, False, 1.6),
+    "cria_iskarum": ("grande", "#1A2028", None, None, True, 1.2),
+    "cabra_escarcha": ("cabra", "#141210", "#D9B23A", None, False, 1.35),
+    "marmota": ("grande", "#140E0A", None, None, False, 1.4),
+    "aguila_gris": ("redondo", "#140E0A", "#D99A2A", None, True, 1.4),
+}
+
+
 def bicho(ident, nombre, bioma, base, mecanica, suelta):
     def registrar(f):
-        CATALOGO[ident] = Bicho(ident, nombre, bioma, base, mecanica, suelta, f)
+        def crear():
+            a = f()
+            o = OJOS.get(ident)
+            if o:
+                tipo, ojo, iris, anillo, ceja, tam = o
+                p = a.piel
+                p.ojo_tipo, p.ojo, p.ojo_tam, p.ceja = tipo, hex_a_rgba(ojo), tam, ceja
+                p.iris = hex_a_rgba(iris) if iris else None
+                p.anillo = hex_a_rgba(anillo) if anillo else None
+            return a
+        CATALOGO[ident] = Bicho(ident, nombre, bioma, base, mecanica, suelta, crear)
         return f
     return registrar
 
@@ -89,20 +143,20 @@ def _():
 
 @bicho("fenec", "Fénec", "Desierto", "Zorro pequeño", "Roba objetos del suelo y huye.", "Piel")
 def _():
-    p = Piel("#E3C79A", vientre="#F6EDDD", patas="#D9B987", oreja="#E9A9A0", hocico="#F1E3C8", punta_cola="#3A2E26",
-             cola="#E0C08E", patron=("pelaje", None, 1, 0.4), mascara=None, sem=23)
-    return C.cuadrupedo("fenec", p, cuerpo=(4, 4, 7.5), pata=(1.1, 4), cabeza=(3.4, 3.0, 3.2), hocico=(1.6, 1.4, 2.0),
-                        orejas=("larga", 2.2, 4.8), cola=("esponjosa", 2.0, 5.5), ojo=(1.0, 1.1, 0.6))
+    p = Piel("#E3C79A", vientre="#F6EDDD", patas="#D9B987", pezuna="#B8946A", oreja="#E9A9A0", hocico="#F1E3C8",
+             punta_cola="#3A2E26", cola="#E0C08E", cuerno="#F4F0E6", cresta="#D2B283",
+             patron=[("pelaje", None, 1, 0.4)], sem=23)
+    return C.canino("fenec", p, k=0.5, orejas=2.0, cola=1.1, hocico=0.9, cresta=False, boca_abierta=0.0)
 
 
 @bicho("chacal_ceniza", "Chacal de ceniza", "Desierto", "Lobo flaco",
        "Jauría nocturna cerca de la Esfinge. Si matas al líder, los demás huyen.", "Colmillo")
 def _():
-    p = Piel("#6F6A66", vientre="#B9B2A8", patas="#5B5652", hocico="#8E8780", oreja="#4A4643", cola="#5E5955",
-             punta_cola="#2E2B29", patron=("rayas", "#4A4643", 2.6, 0.15), donde=("cuerpo",), ojo="#E0A040",
+    p = Piel("#6F6A66", vientre="#B9B2A8", patas="#5B5652", pezuna="#3E3A38", hocico="#8E8780", oreja="#4A4643",
+             cola="#5E5955", punta_cola="#2E2B29", cuerno="#EFE9DC", cresta="#4A4643", ojo="#E0A040",
+             patron=[("pelaje", None, 1, 0.5), ("rayas", "#4A4643", 2.6, 0.12, ("cuerpo",), "lomo")],
              brilla=("ojos",), sem=24)
-    return C.cuadrupedo("chacal_ceniza", p, cuerpo=(4.5, 5, 11), pata=(1.4, 7), cabeza=(3.5, 3.5, 3.5),
-                        hocico=(2.0, 1.8, 3.0), orejas=("punta", 1.4, 3.2), cola=("esponjosa", 1.6, 6), ojo=(1.1, 1.2, 0.55))
+    return C.canino("chacal_ceniza", p, k=0.85, flaco=0.6, orejas=1.3, cola=1.0, hocico=1.15)
 
 
 @bicho("dromedario", "Dromedario", "Desierto", "Llama o camello", "Montura. Va rápido en la arena.", "—")
@@ -121,7 +175,7 @@ def _():
              extras={"collar": "#E2B13C"}, ojo="#7CC24A", ojo_brillo="#E9FFD0", ojos_al_frente=True,
              brilla=("ojos",), sem=26)
     return C.cuadrupedo("gato_thza", p, cuerpo=(3.5, 4, 8.5), pata=(1.1, 4), cabeza=(3.4, 3, 3), hocico=(1.6, 1.2, 1.0),
-                        orejas=("punta", 1.3, 2.0), cola=("alzada", 0.9, 7), collar=True, ojo=(0.6, 1.2, 0.55))
+                        orejas=("punta", 1.3, 2.0), cola=("alzada", 0.9, 7), collar=True, ojo=(0.85, 1.1, 0.55))
 
 
 @bicho("escorpion_luz", "Escorpión de luz", "Desierto", "Araña con cola", "Ralentiza al picar. Brilla de noche.", "Aguijón")
@@ -169,7 +223,7 @@ def _():
              ojo="#C98A2E", sem=31)
     return C.cuadrupedo("babuino", p, cuerpo=(5.5, 6, 9), pata=(1.6, 7), patas_atras=(1.8, 5), cabeza=(3.8, 3.6, 3.4),
                         hocico=(2.4, 2.2, 3.0), orejas=("redonda", 1.0, 1.2), cola=("alzada", 1.0, 6),
-                        melena=(6.5, 1.4, 4), ojo=(0.8, 1.2, 0.55))
+                        melena=(6.5, 1.4, 4), ojo=(0.95, 1.1, 0.5))
 
 
 @bicho("ibis", "Ibis", "Cañón", "Garza", "Alza el vuelo cuando se acerca algo hostil.", "Plumas")
@@ -288,11 +342,11 @@ def _():
 @bicho("lobo_fuego", "Lobo de fuego (cría de Ezzor)", "Volcán", "Lobo",
        "Solo aparece después del evento de Crakatos. Caza en manada.", "Brasa")
 def _():
-    p = Piel("#3A3533", vientre="#4A4240", patas="#2E2A28", hocico="#4A4442", oreja="#FF7A2A", cola="#3A3533",
-             punta_cola="#FFB347", patron=("grietas", "#FF7A2A", 2.2, 0.25), donde=("cuerpo", "cabeza", "pata", "cola"),
-             brilla=("patron", "ojos", "punta_cola"), ojo="#FFD24A", sem=53)
-    return C.cuadrupedo("lobo_fuego", p, cuerpo=(6, 6, 12), pata=(2, 7), cabeza=(5, 4.5, 4.5), hocico=(2.6, 2.2, 3.0),
-                        orejas=("punta", 1.6, 2.6), cola=("esponjosa", 2.0, 7), ojo=(1.2, 1.4, 0.6))
+    p = Piel("#3A3533", vientre="#4A4240", patas="#2E2A28", pezuna="#1E1A19", hocico="#4A4442", oreja="#2E2A28",
+             cola="#3A3533", punta_cola="#FFB347", cuerno="#FFF1D0", cresta="#FF7A2A", ojo="#FFD24A",
+             patron=[("pelaje", None, 1, 0.5), ("grietas", "#FF7A2A", 4.0, 0.0, ("cuerpo", "pecho", "cabeza", "pata", "cola", "cuello"))],
+             brilla=("patron", "ojos", "punta_cola", "cresta"), sem=53)
+    return C.canino("lobo_fuego", p, k=1.0, escala=1.25)
 
 
 # ====================================================================== Zona de mura

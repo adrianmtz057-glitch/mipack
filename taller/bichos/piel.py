@@ -86,6 +86,7 @@ class Piel:
         self.cresta = _c(cresta)
         self.ojo = _c(ojo)
         self.ojo_brillo = _c(ojo_brillo)
+        self.ojo_tipo, self.iris, self.anillo, self.ceja, self.ojo_tam = "punto", None, None, False, 1.0
         self.ojos_al_frente = ojos_al_frente
         # uno o varios patrones: (nombre, color, tamano, cantidad[, partes[, zona]]); zona: todo, lomo (arriba),
         # costados o abajo. Se aplican en orden (los de tono suman, los de color tapan).
@@ -214,6 +215,10 @@ class Piel:
             c = self.patas
             if self.pezuna is not None and t.y - f[1] < min(1.5, alto * 0.3) and parte.startswith(("pata", "canilla", "pie", "brazo")):
                 return self._sombrear(self.pezuna, t), "pezuna" in self.brilla
+        elif parte.startswith("boca"):
+            return paso(_c("#4A2224"), -1 if t.cara != "up" else 0), False
+        elif parte.startswith("mandibula"):
+            return self._sombrear(self.hocico, t), brilla
         elif parte.startswith("hocico") or parte.startswith("morro"):
             c = self.hocico
             if self.nariz is not None and t.cara == "north" and rel_y > 0.55:
@@ -271,14 +276,51 @@ class Piel:
         ojo = self.ojos.get((tuple(f), tuple(h)))
         if ojo is not None:
             oy, oz, r = ojo
+            r *= self.ojo_tam
             if self.ojos_al_frente:
-                if t.cara == "north" and abs(abs(t.x) - oz) < r and abs(t.y - oy) < r:
-                    hi = t.x * (1 if t.x > 0 else -1) > oz and t.y > oy
-                    return (self.ojo_brillo if hi else self.ojo), "ojos" in self.brilla
-            elif t.cara in ("east", "west") and abs(t.z - oz) < r and abs(t.y - oy) < r:
-                hi = t.z < oz and t.y > oy
-                return (self.ojo_brillo if hi and r >= 0.7 else self.ojo), "ojos" in self.brilla
+                if t.cara == "north":
+                    hit = self._ojo((abs(t.x) - oz) / r, (t.y - oy) / r, r, c)
+                    if hit is not None:
+                        return hit
+            elif t.cara in ("east", "west"):
+                hit = self._ojo((oz - t.z) / r, (t.y - oy) / r, r, c)
+                if hit is not None:
+                    return hit
         return c, brilla or brilla_patron
+
+    def _ojo(self, u, v, r, piel):
+        """Un ojo en coordenadas del ojo (u hacia el frente o hacia afuera, v hacia arriba, de -1 a 1).
+        Tipos: punto (todo oscuro con su brillo), grande (oscuro y lustroso), redondo (iris con pupila redonda),
+        rasgado (pupila vertical: gatos, reptiles), cabra (pupila horizontal), insecto (ojo compuesto lustroso).
+        anillo: el borde de color (rapaces, ajolote); ceja: una raya oscura encima."""
+        brilla = "ojos" in self.brilla
+        t = self.ojo_tipo
+        if self.ceja and abs(u) < 1.25 and 1.0 <= v < 1.0 + 1.1 / r:
+            return paso(piel, -2), False
+        if abs(u) >= 1.0 or abs(v) >= 1.0:
+            return None
+        if r >= 0.9 and abs(u) > 0.62 and abs(v) > 0.62 and t not in ("insecto",):
+            return None                                        # las esquinas: que se vea redondito
+        alto = r >= 0.6
+        if alto and u > 0.3 and v > 0.3:
+            return self.ojo_brillo, brilla                     # el brillito arriba adelante
+        if self.anillo is not None and (abs(u) > 0.62 or abs(v) > 0.62):
+            return self.anillo, brilla
+        iris = self.iris or self.ojo
+        pupila = self.ojo if self.iris else paso(self.ojo, -2)
+        if t in ("punto", "grande"):
+            if t == "grande" and v < -0.35 and u < 0.0:
+                return paso(self.ojo, 1), brilla               # reflejo de abajo: se ve hondo y lustroso
+            return self.ojo, brilla
+        if t == "insecto":
+            if (u + v) > 0.4 and alto:
+                return paso(self.ojo, 2), brilla
+            return (paso(self.ojo, 1) if (round(u * 4) + round(v * 4)) % 2 else self.ojo), brilla
+        if t == "rasgado":
+            return (pupila if abs(u) < 0.3 else iris), brilla
+        if t == "cabra":
+            return (pupila if abs(v) < 0.3 and abs(u) < 0.8 else iris), brilla
+        return (pupila if abs(u) < 0.55 and abs(v) < 0.55 else iris), brilla      # redondo
 
 
 def manchar_de_mura(img, sem=7):
