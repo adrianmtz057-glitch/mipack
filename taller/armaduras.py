@@ -541,10 +541,58 @@ def pelaje_set(m):
     m.par(BOT, "suela", (-0.65, 0.0, -2.95), (4.65, 0.6, 2.75), liso(CUERO_OSC), dens=D)
 
 
+HIELO, HIELO_CLARO, HIELO_OSC, ESCARCHA = "#9FD8EE", "#E8FAFF", "#4E8FB5", "#CFEFFA"
+NEGRO_T, NEGRO_T2, ACERO_T, MURA_T = "#1C1A20", "#2E2B34", "#4A4752", "#6B2E8C"
+
+
+def hielo_set(m):
+    """Hielo (Kemira, contra Khaset): yelmo de hielo con corona de picos de cristal y visera abierta; peto de placas
+    de hielo con escarcha y un cristal grande al centro; hombreras con picos de hielo que salen hacia arriba;
+    faldar de laminas; grebas de hielo con picos en la rodilla."""
+    placa = quitina(HIELO, HIELO_CLARO, HIELO_OSC)
+    hueco = lambda t: t.cara == "north" and abs(t.x) < 2.9 and 25.4 < t.y < 29.6      # noqa: E731
+    m.cubo(CAB, "yelmo", (-4.6, 24.6, -4.6), (4.6, 32.5, 4.6), ventana(placa, hueco), dens=D)
+    for k, (x, alto) in enumerate(((-3.2, 2.4), (-1.2, 3.6), (0.8, 3.6), (2.8, 2.4))):
+        m.cubo(CAB, f"pico{k}", (x - 0.45, 32.3, -3.2), (x + 0.45, 32.3 + alto, -2.3), liso(HIELO_CLARO), dens=D)
+    m.cubo(CAB, "nasal", (-0.45, 26.2, -4.95), (0.45, 29.6, -4.5), liso(HIELO_OSC), dens=D)
+    m.cubo(CUE, "peto", (-4.7, 12.4, -2.85), (4.7, 24.3, 2.85), placas(HIELO, HIELO_OSC, 2, 4), dens=D)
+    m.cubo(CUE, "cristal", (-1.3, 17.5, -3.4), (1.3, 21.5, -2.8), liso(HIELO_CLARO), dens=D)
+    m.cubo(CUE, "escarcha", (-4.8, 12.0, -2.95), (4.8, 13.2, 2.95), liso(ESCARCHA), dens=D)
+    m.par(BRA, "hombrera", (3.6, 21.4, -2.9), (8.8, 24.8, 2.9), placa, dens=D)
+    m.par(BRA, "pico_hombro", (6.0, 24.6, -0.6), (7.2, 27.6, 0.6), liso(HIELO_CLARO), rot=(0.0, 0.0, -18.0),
+          origen=(6.6, 24.6, 0.0), dens=D)
+    m.par(BRA, "brazal", (3.5, 12.2, -2.55), (8.5, 16.4, 2.55), placas(HIELO, HIELO_OSC, 1, 2), dens=D)
+    m.par(PIE, "faldar", (-0.2, 7.6, -2.65), (4.6, 12.6, 2.65), rayas(HIELO, HIELO_OSC, 0.75, vertical=True), dens=D)
+    m.par(BOT, "greba", (-0.4, 0.0, -2.75), (4.4, 6.2, 2.6), placa, dens=D)
+    m.par(BOT, "pico_rodilla", (1.4, 5.0, -3.4), (2.6, 7.4, -2.6), liso(HIELO_CLARO), dens=D)
+
+
+def tanque_set(m):
+    """Tanque (el que aguanta el centro): todo pesado y negro. Yelmo cerrado con rendija morada y cresta; peto
+    grueso de placas con remaches de oro; hombreras enormes de tres laminas; guanteletes; quijotes y grebas
+    gruesas con rodilleras; botas de placas anchas."""
+    placa = placas(NEGRO_T, "#0E0D11", 2, 3)
+    rendija = lambda t: t.cara == "north" and abs(t.x) < 3.2 and 27.6 < t.y < 28.6      # noqa: E731
+    m.cubo(CAB, "yelmo", (-4.9, 24.2, -4.9), (4.9, 33.0, 4.9), ventana(quitina(NEGRO_T, ACERO_T, "#0E0D11"), rendija), dens=D)
+    m.cubo(CAB, "rendija", (-3.2, 27.6, -4.7), (3.2, 28.6, -4.5), liso(MURA_T), dens=D)
+    m.cubo(CAB, "cresta", (-0.6, 32.8, -4.0), (0.6, 34.6, 4.4), liso(MURA_T), dens=D)
+    m.cubo(CUE, "peto", (-5.0, 11.6, -3.2), (5.0, 24.6, 3.2), placa, dens=D)
+    for k, (x, y) in enumerate(((-3.6, 22.8), (3.0, 22.8), (-3.6, 13.0), (3.0, 13.0))):
+        m.cubo(CUE, f"remache{k}", (x, y, -3.6), (x + 0.6, y + 0.6, -3.1), oro(), dens=D)
+    for k in range(3):
+        m.par(BRA, f"hombrera{k}", (3.4 + 0.2 * k, 23.0 - 1.6 * k, -3.3 + 0.2 * k), (9.4 - 0.2 * k, 25.4 - 1.6 * k, 3.3 - 0.2 * k),
+              quitina(NEGRO_T2, ACERO_T, "#0E0D11"), dens=D)
+    m.par(BRA, "guantelete", (3.3, 11.8, -2.8), (8.7, 16.6, 2.8), placa, dens=D)
+    m.par(PIE, "quijote", (-0.4, 5.8, -2.9), (4.7, 12.6, 2.9), placa, dens=D)
+    m.par(PIE, "rodillera", (0.6, 4.8, -3.4), (3.8, 7.2, -2.8), oro("#9A7A2A"), dens=D)
+    m.par(BOT, "bota", (-0.6, 0.0, -3.4), (4.6, 5.4, 2.9), placa, dens=D)
+
+
 ARMADURAS = {"desierto": desierto, "plumas": plumas_set, "quitina": quitina_set, "tortuga": tortuga_set,
-             "pelaje": pelaje_set}
+             "pelaje": pelaje_set, "hielo": hielo_set, "tanque": tanque_set}
 NOMBRES = {"desierto": "Armadura del desierto", "plumas": "Armadura de plumas", "quitina": "Armadura de quitina",
-           "tortuga": "Armadura de tortuga", "pelaje": "Armadura de pelaje"}
+           "tortuga": "Armadura de tortuga", "pelaje": "Armadura de pelaje", "hielo": "Armadura de hielo",
+           "tanque": "Armadura de tanque"}
 
 
 def armar(ident, con_maniqui=False):

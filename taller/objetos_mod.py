@@ -20,10 +20,10 @@ DATA = os.path.join(RAIZ, "data")
 MATERIALES = ["colmillo", "aguijon", "escamas", "cuerno_piedra", "caparazon", "cola_lagarto", "branquia", "ceniza", "brasa",
               "pluma_negra", "mura", "sal", "semilla_musgo", "grasa", "pelaje_grueso", "quitina", "glandula_salamandra"]
 PLANOS = MATERIALES + ["flecha_aguijon", "carne_salada", "pulpa_cactus", "fertilizante_musgo", "runa_pibble", "bomba_brasa",
-                       "senuelo_pluma", "cantimplora", "cantimplora_reforzada"]
-EN_MANO = ["daga_colmillo", "martillo_cuerno", "varita_revolthir", "varita_correctar"]
+                       "senuelo_pluma", "cantimplora", "cantimplora_reforzada", "totem_anj"]
+EN_MANO = ["daga_colmillo", "martillo_cuerno", "varita_revolthir", "varita_correctar", "espada_vitae", "espada_hielo"]
 PIEZAS = ("casco", "pechera", "pantalon", "botas")
-ARMADURAS = [f"{m}_{p}" for m in ("desierto", "plumas", "quitina", "tortuga", "pelaje") for p in PIEZAS
+ARMADURAS = [f"{m}_{p}" for m in ("desierto", "plumas", "quitina", "tortuga", "pelaje", "hielo", "tanque") for p in PIEZAS
              if not (m == "tortuga" and p == "casco")]
 ESCUDOS = ["escudo_escamas", "escudo_caparazon"]
 
@@ -45,9 +45,12 @@ NOMBRES = {  # id: (es, en)
     "escudo_caparazon": ("Escudo de caparazón", "Shell shield"), "cantimplora": ("Cantimplora", "Canteen"),
     "cantimplora_reforzada": ("Cantimplora reforzada", "Reinforced canteen"),
     "antorcha_grasa": ("Antorcha de grasa", "Blubber torch"), "pedazo_piramide": ("Pedazo de pirámide", "Pyramid shard"),
+    "espada_vitae": ("Espada de vitae", "Vitae sword"), "espada_hielo": ("Espada de hielo de Kemira", "Kemira's ice sword"),
+    "martillo_negro": ("Martillo negro", "Black hammer"), "totem_anj": ("Tótem de Anj", "Totem of Anj"),
 }
 MAT_NOMBRE = {"desierto": ("del desierto", "Desert"), "plumas": ("de plumas", "Feather"), "quitina": ("de quitina", "Chitin"),
-              "tortuga": ("de tortuga", "Turtle"), "pelaje": ("de pelaje", "Fur")}
+              "tortuga": ("de tortuga", "Turtle"), "pelaje": ("de pelaje", "Fur"), "hielo": ("de hielo", "Ice"),
+              "tanque": ("de tanque", "Tank")}
 PIEZA_NOMBRE = {"casco": ("Casco", "Helmet"), "pechera": ("Pechera", "Chestplate"), "pantalon": ("Pantalón", "Leggings"),
                 "botas": ("Botas", "Boots")}
 for _a in ARMADURAS:
@@ -55,6 +58,10 @@ for _a in ARMADURAS:
     NOMBRES[_a] = (f"{PIEZA_NOMBRE[_p][0]} {MAT_NOMBRE[_m][0]}", f"{MAT_NOMBRE[_m][1]} {PIEZA_NOMBRE[_p][1]}")
 
 AYUDA = {  # id.ayuda: (es, en)
+    "espada_vitae": ("De Baru. Pégale al doble de un poseído para regresarlo", "Baru's. Hit a possessed player's double to bring them back"),
+    "espada_hielo": ("De Kemira. Contra Khaset pega muchísimo", "Kemira's. Deals massive damage to Khaset"),
+    "martillo_negro": ("Del tanque: enorme, lento y avienta lejos", "The tank's: huge, slow, knocks far back"),
+    "totem_anj": ("Como un tótem, más 2 s sin daño y Velocidad II", "Like a totem, plus 2 s of invulnerability and Speed II"),
     "daga_colmillo": ("Rápida; a veces desangra", "Fast; sometimes causes bleeding"),
     "martillo_cuerno": ("Lento y pesado: avienta lejos", "Slow and heavy: knocks far back"),
     "carne_salada": ("Llena mucho y quita el hambre; da un poco de sed", "Very filling and cures Hunger; makes you a bit thirsty"),
@@ -82,6 +89,10 @@ TEXTOS = {  # (es, en)
     "item.minecraft.splash_potion.effect.branquias": ("Poción arrojadiza de branquias", "Splash Potion of Gills"),
     "item.minecraft.lingering_potion.effect.branquias": ("Poción persistente de branquias", "Lingering Potion of Gills"),
     "item.minecraft.tipped_arrow.effect.branquias": ("Flecha de branquias", "Arrow of Gills"),
+    "armadura.mipack.hielo": ("De Kemira: aguanta los golpes y el fuego de Khaset (cada pieza suma)",
+                              "Kemira's: withstands Khaset's blows and fire (each piece adds up)"),
+    "armadura.mipack.tanque": ("Pesada: más lento, pero aguantas mucho; completa, aguantas el centro de la arena",
+                               "Heavy: slower but very tough; the full set can hold the arena center"),
     "armadura.mipack.desierto": ("Abierta: no sofoca en el desierto", "Open: doesn't smother you in the desert"),
     "armadura.mipack.plumas": ("Ligereza y caída de pluma (cada pieza suma)", "Lightness and feather fall (each piece adds up)"),
     "armadura.mipack.quitina": ("Ligereza leve (cada pieza suma)", "Slight lightness (each piece adds up)"),
@@ -208,6 +219,12 @@ def _modelos():
         _json(os.path.join(m, "item", f"{i}.json"), {"parent": "minecraft:item/generated", "textures": {"layer0": f"mipack:item/{i}"}})
     for i in EN_MANO:
         _json(os.path.join(m, "item", f"{i}.json"), {"parent": "minecraft:item/handheld", "textures": {"layer0": f"mipack:item/{i}"}})
+    # el martillo negro: el de mano, pero enorme
+    _json(os.path.join(m, "item", "martillo_negro.json"), {"parent": "minecraft:item/handheld", "textures": {"layer0": "mipack:item/martillo_negro"},
+          "display": {"thirdperson_righthand": {"rotation": [0, -90, 55], "translation": [0, 6, 0.5], "scale": [1.7, 1.7, 0.85]},
+                      "thirdperson_lefthand": {"rotation": [0, 90, -55], "translation": [0, 6, 0.5], "scale": [1.7, 1.7, 0.85]},
+                      "firstperson_righthand": {"rotation": [0, -90, 25], "translation": [1.13, 4.2, 1.13], "scale": [1.2, 1.2, 0.68]},
+                      "firstperson_lefthand": {"rotation": [0, 90, -25], "translation": [1.13, 4.2, 1.13], "scale": [1.2, 1.2, 0.68]}}})
     base = os.path.join(os.path.dirname(__file__), "..", "mod", "src", "main", "resources")
     escudo = json.load(open(os.path.join(os.path.dirname(__file__), "plantillas", "shield.json")))
     bloqueo = json.load(open(os.path.join(os.path.dirname(__file__), "plantillas", "shield_blocking.json")))
@@ -284,7 +301,8 @@ def _recetas():
     patrones = {"casco": ["XXX", "X X"], "pechera": ["X X", "XXX", "XXX"], "pantalon": ["XXX", "X X", "X X"], "botas": ["X X", "X X"]}
     for a in ARMADURAS:
         m, p = a.split("_")
-        forma(a, patrones[p], {"X": materiales[m]})
+        if m in materiales:                              # las de hielo y tanque son de rol: sin receta
+            forma(a, patrones[p], {"X": materiales[m]})
 
 
 def _etiquetas_y_botin():

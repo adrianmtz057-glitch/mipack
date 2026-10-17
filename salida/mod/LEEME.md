@@ -43,7 +43,7 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 ## La arena de los jefes (bloque "Centro de la arena")
 Pon el bloque **Centro de la arena** (pestaña Mipack) en medio de tu arena. El jefe que salga a menos de 72 bloques la toma.
 - **No sale de la arena** (radio de 48 bloques). Si no queda nadie vivo adentro por **3 minutos**, se cura entero y regresa al centro.
-- **Ataques de centro:** Crackatos solo hace la lluvia de púas (ahora el doble) y el azote con la ola parado en el bloque. Khaset solo toca el silbato ahí. Los de La Bruma (ejército y clones) vienen en la siguiente versión.
+- **Ataques de centro:** Crackatos solo hace la lluvia de púas (ahora el doble) y el azote con la ola parado en el bloque. Khaset solo toca el silbato ahí. La Bruma hace ahí su ejército y sus clones.
 - **Tapar el centro:** si alguien está parado en el bloque cuando el jefe llega, **el ataque no sale**. Crackatos además se aturde (recibe el doble). Pero al que tapa le pega **muy fuerte** (12 corazones), salvo que traiga la **armadura de tanque completa** (2 corazones; la armadura viene después).
 - **Reglas adentro mientras hay jefe:**
   - sin PvP;
@@ -131,6 +131,43 @@ Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con
 **Golpes:** atraviesan la armadura (Protección sí cuenta) y tiran el escudo.
 
 **Arena recomendada:** una plaza de 60×60 o más con columnas (para el silbato) y el altar de un lado o arriba de una pirámide.
+
+## La Bruma: ejército, clones, oscuridad y cordura (nuevo)
+- **Ejército (de centro, al bajar al 70 %):**
+  - Va al centro, sube y mueve las manos como titiritera, con hilos morados hacia los suyos. Mientras tanto es **intocable**.
+  - Del piso salen **20 soldados** (espada y escudo; de frente paran la mitad de los golpes), **6 arqueros** (flechas que alentan) y **el soldado grande**, que espera junto al centro.
+  - **El escudo del grande solo se rompe pegándole con el pedazo de pirámide en la mano** (Kemira). Mientras lo tenga, no le entra nada.
+  - Cuando muere el grande, ella **grita, pierde 12 % de vida y se arrodilla 6 s**, recibiendo 50 % más de daño.
+  - Sale una sola vez por pelea, y los soldados se deshacen cuando ella muere.
+- **Clones (de centro, en la fase 2):** ella se queda arriba, intocable, y salen de 5 a 12 clones débiles. **Cada clon que matan le quita 3 % de vida.** Cuando caen todos, ella baja y se arrodilla 6 s. Si nadie los mata en 1 minuto, se deshacen.
+- **Arena oscura:** en su pelea todo está a oscuras.
+  - A 10 bloques de quien traiga el **pedazo de pirámide** hay luz fuerte: se quita la oscuridad y la cordura sube rápido. Se ve un círculo de luz alrededor de quien lo trae.
+  - A 6 bloques de un **brasero encendido** (fogata) hay luz débil: no está oscuro y la cordura no baja.
+- **Cordura:** solo cuenta en la pelea con La Bruma. Se ve como un ojo morado con su barra arriba de los corazones. Baja despacio (de llena a cero en unos 6 minutos) y fuera de la pelea se recupera sola.
+- **Poseído (cordura en cero):**
+  - El jugador se queda quieto e invisible, sin que le peguen, y lo ve todo en tercera persona.
+  - Sale **su doble**: su misma piel pero oscura, con ojos de mura y con su espada y armadura. Pelea contra los demás.
+  - **Solo la espada de vitae le hace algo:** un golpe y el jugador regresa ahí mismo con la cordura llena. No muere, no pierde nada y no gasta tótem.
+  - Si nadie lo cura, regresa solo a los 2 minutos o cuando ella muere.
+
+## Objetos de rol (solo con `/give`, sin receta)
+- **Espada de vitae** (`mipack:espada_vitae`, de Baru): cura a los poseídos.
+- **Espada de hielo de Kemira** (`mipack:espada_hielo`): contra Khaset pega **6 veces más**. Contra lo demás, como de hierro.
+- **Armadura de hielo** (`mipack:hielo_casco`, `_pechera`, `_pantalon`, `_botas`): completa aguanta 60 % de los golpes, serpientes, guerreros y fuego de Khaset. Cada pieza suma.
+- **Armadura de tanque** (`mipack:tanque_...`): pesada (15 % más lento) y negra. Completa recibe **45 % menos daño de todo**, y con ella puesta **el centro de la arena casi no duele**.
+- **Martillo negro** (`mipack:martillo_negro`): el del tanque. Enorme y lento, avienta lejos.
+- **Tótem de Anj** (`mipack:totem_anj`): hace lo del tótem normal, más **2 s sin recibir daño** y **Velocidad II**.
+
+## Tabla de MVP y botín personal
+Al morir cualquier jefe sale en el chat la **tabla de MVP**:
+- más daño;
+- más daño aguantado;
+- más rescates (que Khaset suelte a alguien);
+- más bichos matados;
+- más tiempo en el centro;
+- más poseídos curados.
+
+Cada ganador recibe **3 diamantes** y el de más daño, un **Tótem de Anj**. **El botín es personal:** a cada quien que peleó le cae su propia copia en el inventario.
 
 ## La Bruma negra (jefe)
 Un espectro enorme y flaco, hecho de jirones de tela negra, que flota encorvado dentro de su propia bruma, con una garra de hueso estirada.
@@ -267,7 +304,7 @@ Cada una tiene **forma propia** (no son recolores) y se hace con la forma de sie
 - Todo se ajusta en `config/mipack-common.toml`: si hay sed, los minutos de cada caso, el mínimo, cuánto dura el desmayo, la gracia de los nuevos y si hay frío.
 
 ## Para probar todo (creativo, pestaña Mipack)
-- **Huevos de todo:** Crackatos, Khaset, La Bruma, ácaro de amatista, Xiuhcóatl, guerrero calavera y el vex (los que invoca La Bruma).
+- **Huevos de todo:** Crackatos, Khaset, La Bruma, ácaro de amatista, Xiuhcóatl, guerrero calavera, el vex (los que invoca La Bruma), soldado, arquero, soldado grande y clon de La Bruma.
 - **Pociones de prueba** (20 segundos, normales, arrojadizas y persistentes): desangrado, derribado, aturdido, desorientado, esquirlas, sofocación y frío.
 
 ## El cielo y los efectos

@@ -98,6 +98,13 @@ public final class ObjetosMipack {
     public static final RegistryObject<Item> CANTIMPLORA = objeto("cantimplora", () -> new Cantimplora(new Item.Properties(), 3));
     public static final RegistryObject<Item> CANTIMPLORA_REFORZADA = objeto("cantimplora_reforzada", () -> new Cantimplora(new Item.Properties(), 5));
 
+    // ------------------------------------------------------------------ de rol (solo con /give)
+    /** La espada de vitae (de Baru, con ramas de los Jardines): cura a los poseidos de La Bruma pegandole a su doble. */
+    public static final RegistryObject<Item> ESPADA_VITAE = objeto("espada_vitae", () -> new ObjetosRol.Vitae(new Item.Properties()));
+    public static final RegistryObject<Item> ESPADA_HIELO = objeto("espada_hielo", () -> new ObjetosRol.Hielo(new Item.Properties()));
+    public static final RegistryObject<Item> MARTILLO_NEGRO = objeto("martillo_negro", () -> new ObjetosRol.MartilloNegro(new Item.Properties()));
+    public static final RegistryObject<Item> TOTEM_ANJ = objeto("totem_anj", () -> new ObjetosRol.Anj(new Item.Properties()));
+
     // ------------------------------------------------------------------ bloques
     public static final RegistryObject<Block> ANTORCHA = BLOQUES.register("antorcha_grasa",
             () -> new Antorcha.Parada(BlockBehaviour.Properties.copy(Blocks.TORCH).lightLevel(s -> 15)));

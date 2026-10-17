@@ -46,7 +46,18 @@
     "item.mipack.soldado_bruma_spawn_egg": "Huevo de soldado de la Bruma",
     "item.mipack.arquero_bruma_spawn_egg": "Huevo de arquero de la Bruma",
     "item.mipack.soldado_grande_spawn_egg": "Huevo de soldado grande",
-    "item.mipack.clon_bruma_spawn_egg": "Huevo de clon de la Bruma"
+    "item.mipack.clon_bruma_spawn_egg": "Huevo de clon de la Bruma",
+    "bruma.mipack.poseido": "La Bruma se llevó la mente de %s: ¡pégale a su doble con la espada de vitae!",
+    "effect.mipack.poseido": "Poseído",
+    "entity.mipack.poseido": "Poseído",
+    "mvp.mipack.titulo": "⚔ MVP contra %s ⚔",
+    "mvp.mipack.dano": "Más daño: %s (%s)",
+    "mvp.mipack.aguante": "Más aguante: %s (%s de daño recibido)",
+    "mvp.mipack.rescates": "Más rescates: %s (%s)",
+    "mvp.mipack.bichos": "Más bichos matados: %s (%s)",
+    "mvp.mipack.centro": "Más tiempo en el centro: %s (%s)",
+    "mvp.mipack.curados": "Más poseídos curados: %s (%s)",
+    "mvp.mipack.premios": "Cada ganador recibe 3 diamantes; el de más daño, un Tótem de Anj. El botín es personal: revisa tu inventario."
   },
   "en": {
     "item.mipack.acaro_amatista_spawn_egg": "Amethyst Mite Spawn Egg",
@@ -95,6 +106,17 @@
     "item.mipack.soldado_bruma_spawn_egg": "Mist Soldier Spawn Egg",
     "item.mipack.arquero_bruma_spawn_egg": "Mist Archer Spawn Egg",
     "item.mipack.soldado_grande_spawn_egg": "Great Mist Soldier Spawn Egg",
-    "item.mipack.clon_bruma_spawn_egg": "Mist Clone Spawn Egg"
+    "item.mipack.clon_bruma_spawn_egg": "Mist Clone Spawn Egg",
+    "bruma.mipack.poseido": "The Mist took %s's mind: hit their double with the vitae sword!",
+    "effect.mipack.poseido": "Possessed",
+    "entity.mipack.poseido": "Possessed",
+    "mvp.mipack.titulo": "⚔ MVP vs %s ⚔",
+    "mvp.mipack.dano": "Most damage: %s (%s)",
+    "mvp.mipack.aguante": "Most tanked: %s (%s damage taken)",
+    "mvp.mipack.rescates": "Most rescues: %s (%s)",
+    "mvp.mipack.bichos": "Most adds killed: %s (%s)",
+    "mvp.mipack.centro": "Most time on the center: %s (%s)",
+    "mvp.mipack.curados": "Most possessed cured: %s (%s)",
+    "mvp.mipack.premios": "Each winner gets 3 diamonds; top damage gets a Totem of Anj. Loot is personal: check your inventory."
   }
 }

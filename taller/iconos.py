@@ -601,6 +601,34 @@ _armadura("plumas", "#B8693A", _det_plumas)
 _armadura("quitina", "#7A3B22", _det_quitina)
 _armadura("tortuga", "#4E8A3A", _det_tortuga)
 _armadura("pelaje", "#C9D3D8", _det_pelaje)
+
+
+def _det_hielo(i, pieza):
+    for y in range(2, 15):
+        for x in range(2, 15):
+            if i.lleno(x, y) and (x + 2 * y) % 7 == 0:
+                i.p(x, y, "#E8FAFF", True)
+    if pieza == "casco":
+        for x in (5, 7, 9, 11):
+            i.p(x, 1, "#E8FAFF", True)
+    elif pieza == "pechera":
+        i.rect(7, 5, 9, 8, "#E8FAFF")
+
+
+def _det_tanque(i, pieza):
+    if pieza == "casco":
+        i.rect(4, 7, 12, 7, "#6B2E8C")
+        i.p(8, 1, "#6B2E8C", True)
+    elif pieza == "pechera":
+        for (x, y) in ((4, 4), (11, 4), (4, 11), (11, 11)):
+            i.p(x, y, "#E3B04B", True)
+    elif pieza == "pantalon":
+        i.p(5, 8, "#9A7A2A", True)
+        i.p(10, 8, "#9A7A2A", True)
+
+
+_armadura("hielo", "#9FD8EE", _det_hielo)
+_armadura("tanque", "#2E2B34", _det_tanque)
 del ICONOS["tortuga_casco"]                           # el casco de tortuga es el de Minecraft
 
 
@@ -632,6 +660,66 @@ def _branquias(i):
         i.linea(4, y + 2, 14, y, "#F07A92", grosor=2)
         i.p(14, y, "#FFB0C0", True)
     i.linea(4, 3, 4, 15, "#C2405A", grosor=2)
+    return i.terminar()
+
+
+# ====================================================================== objetos de rol (solo con /give)
+
+@icono("espada_vitae")
+def _vitae(i):
+    i.poli([(14, 1), (15, 2), (8, 9), (6, 7)], "#7FBF5A")                 # hoja de madera viva
+    i.linea(13, 2, 8, 7, "#C8F0A0", fijo=True)
+    for (x, y) in ((12, 5), (10, 7), (9, 4)):
+        i.p(x, y, "#3E8A3A", True)                                       # hojitas
+    i.linea(4, 6, 9, 11, "#E3B04B", grosor=2)                             # guarda dorada
+    i.linea(6, 10, 2, 14, "#6B4A2A", grosor=2)
+    i.p(2, 14, "#9BE7FF", True)
+    return i.terminar()
+
+
+@icono("espada_hielo")
+def _hielo(i):
+    i.poli([(15, 0), (15, 3), (8, 10), (5, 7)], "#A9E4F5")
+    i.linea(14, 1, 8, 7, "#F2FDFF", fijo=True)
+    i.p(11, 3, "#6FC3E0", True)
+    i.p(9, 6, "#6FC3E0", True)
+    i.linea(4, 6, 9, 11, "#7FB8D6", grosor=2)
+    i.linea(6, 10, 2, 14, "#3A4A66", grosor=2)
+    i.p(2, 14, "#DDF6FF", True)
+    return i.terminar()
+
+
+@icono("martillo_negro")
+def _martillo_negro(i):
+    i.linea(2, 15, 9, 8, "#2B2230", grosor=2)
+    i.poli([(5, 6), (10, 1), (16, 7), (11, 12)], "#1A161E")
+    i.poli([(10, 1), (11, 0), (13, 1), (12, 3)], "#3A3342")
+    i.poli([(16, 7), (16, 9), (14, 9)], "#3A3342")
+    i.linea(7, 6, 11, 2, "#6B2E8C", fijo=True)
+    i.linea(10, 10, 14, 6, "#6B2E8C", fijo=True)
+    i.p(10, 6, "#C9A23A", True)
+    return i.terminar()
+
+
+@icono("totem_anj")
+def _anj(i):
+    i.elipse(8, 4, 3.2, 3.6, "#E3B04B")
+    for y in range(i.n):                                                 # el ojo del ankh
+        for x in range(i.n):
+            if ((x - 8) / 1.3) ** 2 + ((y - 4) / 2.0) ** 2 <= 1.0:
+                i.px[y][x] = None
+    i.rect(7, 7, 9, 15, "#E3B04B")
+    i.rect(3, 8, 13, 9, "#E3B04B")
+    for (x, y) in ((8, 8), (8, 11), (8, 13)):
+        i.p(x, y, "#2F9FA8", True)
+    return i.terminar()
+
+
+@icono("poseido", "mob_effect")
+def _poseido(i):
+    i.elipse(9, 9, 7, 4, "#D9C7E8")
+    i.elipse(9, 9, 3, 3.5, "#8A3CC8")
+    i.elipse(9, 9, 1.2, 2, "#0A050E")
     return i.terminar()
 
 

@@ -41,6 +41,8 @@ public final class EfectosArmadura {
     public static final float LIGEREZA_PLUMAS = 0.18f, LIGEREZA_QUITINA = 0.06f, NADO_TORTUGA = 0.6f;
     /** Cuanto de la gravedad le quita la caida de pluma con el set completo. */
     private static final float CAIDA_PLUMAS = 0.85f;
+    /** El tanque completo: 15 % mas lento y 45 % menos dano; el hielo completo: 60 % menos dano de Khaset y lo suyo. */
+    private static final float PESO_TANQUE = 0.15f, AGUANTE_TANQUE = 0.45f, HIELO_KHASET = 0.6f;
 
     private EfectosArmadura() {
     }
@@ -57,7 +59,8 @@ public final class EfectosArmadura {
     }
 
     public static float ligereza(Player p) {
-        return LIGEREZA_PLUMAS * cuanto(p, MaterialArmadura.PLUMAS, PASO) + LIGEREZA_QUITINA * cuanto(p, MaterialArmadura.QUITINA, PASO);
+        return LIGEREZA_PLUMAS * cuanto(p, MaterialArmadura.PLUMAS, PASO) + LIGEREZA_QUITINA * cuanto(p, MaterialArmadura.QUITINA, PASO)
+                - PESO_TANQUE * cuanto(p, MaterialArmadura.TANQUE, PASO);
     }
 
     static float caida(Player p) {
@@ -101,8 +104,23 @@ public final class EfectosArmadura {
             return;
         if (antes != null)
             a.removeModifier(id);
-        if (valor > 0)
+        if (valor != 0)
             a.addTransientModifier(new AttributeModifier(id, nombre, valor, AttributeModifier.Operation.MULTIPLY_BASE));
+    }
+
+    /** El tanque aguanta todo; el hielo, lo de Khaset (sus golpes, sus serpientes, sus guerreros y el fuego). */
+    @SubscribeEvent
+    public static void dano(net.minecraftforge.event.entity.living.LivingHurtEvent e) {
+        if (!(e.getEntity() instanceof Player p))
+            return;
+        float t = cuanto(p, MaterialArmadura.TANQUE, PASO);
+        if (t > 0)
+            e.setAmount(e.getAmount() * (1f - AGUANTE_TANQUE * t));
+        float h = cuanto(p, MaterialArmadura.HIELO, PASO);
+        var quien = e.getSource().getEntity();
+        if (h > 0 && (quien instanceof com.mipack.khaset.KhasetEntity || quien instanceof com.mipack.khaset.Xiuhcoatl
+                || quien instanceof com.mipack.khaset.GuerreroCalavera || e.getSource().is(net.minecraft.tags.DamageTypeTags.IS_FIRE)))
+            e.setAmount(e.getAmount() * (1f - HIELO_KHASET * h));
     }
 
     /** Con plumas se lleva menos dano por caida, segun cuanto traiga. */

@@ -192,7 +192,8 @@ public class KhasetEntity extends Monster implements GeoEntity {
     private float avance, avanceAntes;
     private int fase = 1;
     private BlockPos casa;
-    private int yendoCentro = -1;                 // con arena: va al bloque central a tocar el silbato
+    private int yendoCentro = -1;
+    private Player rescatador;                    // el ultimo que le pego mientras cargaba (para la tabla de MVP)                 // con arena: va al bloque central a tocar el silbato
     private int maxJugadores;
     private final EnumMap<Estado, Integer> enfriar = new EnumMap<>(Estado.class);
     private final Set<UUID> golpeados = new HashSet<>();
@@ -1045,6 +1046,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
             for (LivingEntity p : presas())
                 Golpes.pegar(p, this, DANO_APRETAR, 0);
         if (this.danoEnCarga >= this.getMaxHealth() * ajustes().rescate()) {
+            com.mipack.arena.Mvp.sumar(this, this.rescatador, com.mipack.arena.Mvp.Cat.RESCATES, 1);
             cambiar(Estado.SOLTAR);
             return;
         }
@@ -1135,6 +1137,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
         if (this.ticksEnEstado == 1)
             this.playSound(SonidosMipack.SACRIFICIO.get(), 4.0f, 1.0f);
         if (t() < s[1] && this.danoEnCarga >= this.getMaxHealth() * ajustes().rescate()) {
+            com.mipack.arena.Mvp.sumar(this, this.rescatador, com.mipack.arena.Mvp.Cat.RESCATES, 1);
             cambiar(Estado.SOLTAR);
             return;
         }
@@ -1642,6 +1645,8 @@ public class KhasetEntity extends Monster implements GeoEntity {
             } else {
                 cantidad *= 2f;                                   // mientras carga a la presa: doble dano
                 this.danoEnCarga += cantidad;
+                if (quien instanceof Player rp)
+                    this.rescatador = rp;
             }
         }
         boolean pego = super.hurt(fuente, cantidad);

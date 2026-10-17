@@ -21,7 +21,10 @@ public enum MaterialArmadura implements ArmorMaterial {
     PLUMAS("plumas", 7, new int[]{1, 3, 5, 2}, 25, 1.1f, 0.0f, () -> Items.FEATHER, SoundEvents.ARMOR_EQUIP_ELYTRA),
     QUITINA("quitina", 11, new int[]{2, 4, 5, 2}, 12, 1.25f, 0.0f, () -> ObjetosMipack.QUITINA.get(), SoundEvents.ARMOR_EQUIP_TURTLE),
     TORTUGA("tortuga", 18, new int[]{2, 5, 6, 2}, 9, 1.3f, 0.0f, () -> Items.SCUTE, SoundEvents.ARMOR_EQUIP_TURTLE),
-    PELAJE("pelaje", 8, new int[]{1, 2, 3, 1}, 15, 2.2f, 1.0f, () -> ObjetosMipack.PELAJE_GRUESO.get(), SoundEvents.ARMOR_EQUIP_LEATHER);
+    PELAJE("pelaje", 8, new int[]{1, 2, 3, 1}, 15, 2.2f, 1.0f, () -> ObjetosMipack.PELAJE_GRUESO.get(), SoundEvents.ARMOR_EQUIP_LEATHER),
+    // de rol (solo con /give): hielo protege de Khaset; tanque, pesado, aguanta todo y el centro de la arena
+    HIELO("hielo", 22, new int[]{2, 5, 6, 2}, 10, 1.0f, 0.0f, () -> Items.PACKED_ICE, SoundEvents.ARMOR_EQUIP_DIAMOND),
+    TANQUE("tanque", 40, new int[]{4, 7, 9, 4}, 5, 2.5f, 0.0f, () -> Items.NETHERITE_SCRAP, SoundEvents.ARMOR_EQUIP_NETHERITE);
 
     private static final int[] BASE = {13, 15, 16, 11};
     private final String modelo;
@@ -102,6 +105,6 @@ public enum MaterialArmadura implements ArmorMaterial {
 
     @Override
     public float getKnockbackResistance() {
-        return 0.0f;
+        return this == TANQUE ? 0.2f : 0.0f;
     }
 }

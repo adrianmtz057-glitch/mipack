@@ -125,6 +125,10 @@ public class Mipack {
     public static final RegistryObject<EntityType<com.mipack.bruma.ClonBruma>> CLON_BRUMA = ENTIDADES.register("clon_bruma",
             () -> EntityType.Builder.<com.mipack.bruma.ClonBruma>of(com.mipack.bruma.ClonBruma::new, MobCategory.MONSTER)
                     .sized(0.9f, 2.9f).clientTrackingRange(10).build(MODID + ":clon_bruma"));
+    /** El doble de un jugador poseido por La Bruma (se dibuja con la piel del jugador, oscura y con ojos de mura). */
+    public static final RegistryObject<EntityType<com.mipack.bruma.Poseido>> POSEIDO = ENTIDADES.register("poseido",
+            () -> EntityType.Builder.<com.mipack.bruma.Poseido>of(com.mipack.bruma.Poseido::new, MobCategory.MONSTER)
+                    .sized(0.6f, 1.8f).clientTrackingRange(10).build(MODID + ":poseido"));
     public static final RegistryObject<Item> HUEVO_SOLDADO = OBJETOS.register("soldado_bruma_spawn_egg",
             () -> new ForgeSpawnEggItem(SOLDADO_BRUMA, 0x15121A, 0x6B2E8C, new Item.Properties()));
     public static final RegistryObject<Item> HUEVO_ARQUERO = OBJETOS.register("arquero_bruma_spawn_egg",
@@ -212,12 +216,14 @@ public class Mipack {
         event.put(ARQUERO_BRUMA.get(), com.mipack.bruma.SoldadoBruma.arquero().build());
         event.put(SOLDADO_GRANDE.get(), com.mipack.bruma.SoldadoBruma.grande().build());
         event.put(CLON_BRUMA.get(), com.mipack.bruma.ClonBruma.atributos().build());
+        event.put(POSEIDO.get(), com.mipack.bruma.Poseido.atributos().build());
         Titanes.atributos(event);
     }
 
     private void preparar(FMLCommonSetupEvent event) {
         event.enqueueWork(RedKhaset::registrar);
         event.enqueueWork(com.mipack.agua.RedAgua::registrar);
+        event.enqueueWork(com.mipack.bruma.RedBruma::registrar);
         event.enqueueWork(com.mipack.objetos.ObjetosMipack::preparar);
     }
 

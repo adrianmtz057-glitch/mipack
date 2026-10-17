@@ -24,12 +24,20 @@ public final class EfectosObjetos {
     public static final RegistryObject<MobEffect> SOFOCACION = EFECTOS.register("sofocacion", () -> new Aviso(0xE8892E));
     public static final RegistryObject<MobEffect> FRIO = EFECTOS.register("frio", () -> new Aviso(0x9ED8FF));
     public static final RegistryObject<MobEffect> BRANQUIAS = EFECTOS.register("branquias", Branquias::new);
+    /** Poseido por La Bruma (cordura en cero): quieto e invisible mientras su doble pelea; la leche no lo quita. */
+    public static final RegistryObject<MobEffect> POSEIDO = EFECTOS.register("poseido", () -> new Aviso(0x3B1450) {
+        @Override
+        public java.util.List<net.minecraft.world.item.ItemStack> getCurativeItems() {
+            return new java.util.ArrayList<>();
+        }
+    }.addAttributeModifier(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED,
+            "4f0c6b1e-2a77-4d0e-9a1c-6f3e2b9d7a11", -1.0, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.MULTIPLY_TOTAL));
 
     private EfectosObjetos() {
     }
 
     /** Un efecto que solo avisa (no hace nada por si mismo). */
-    public static final class Aviso extends MobEffect {
+    public static class Aviso extends MobEffect {
         Aviso(int color) {
             super(MobEffectCategory.HARMFUL, color);
         }

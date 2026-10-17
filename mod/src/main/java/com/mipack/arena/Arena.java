@@ -257,6 +257,10 @@ public final class Arena {
                 adentro.add(p);
         if (!adentro.isEmpty()) {
             d.putInt(VACIO, 0);
+            for (Player p : adentro)                           // el tiempo en el centro (tabla de MVP)
+                if (Math.abs(p.getX() - (c.getX() + 0.5)) < 1.0 && Math.abs(p.getZ() - (c.getZ() + 0.5)) < 1.0
+                        && p.getY() > c.getY() + 0.5 && p.getY() < c.getY() + 3.0)
+                    Mvp.sumar(jefe, p, Mvp.Cat.CENTRO, 10);
             int t = d.getInt(PELEA) + 10;
             d.putInt(PELEA, t);
             if (!d.getBoolean(FURIA) && t > ConfigArena.MINUTOS_FURIA.get() * 1200) {
