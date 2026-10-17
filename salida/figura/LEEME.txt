@@ -1,0 +1,13 @@
+AVATARES PARA MINECRAFT (mod Figura)
+
+1. Instala el mod Figura (Fabric, Forge o NeoForge) en tu Minecraft.
+2. Descomprime este ZIP.
+3. Copia las carpetas de los personajes (revolthir, correctar, pibble...) a:
+      .minecraft/figura/avatars/
+   (si la carpeta "avatars" no existe, abre Minecraft una vez con Figura y se crea sola)
+4. En el juego abre el menu de Figura (el boton de Figura en el menu de pausa), elige el personaje de la lista
+   y dale cargar.
+
+Caminar, correr, agacharse, mirar y golpear salen solos: los huesos se llaman como los del jugador.
+jefe_piedra es muy pesado: los demas jugadores tienen que subirte la confianza (Trust) en Figura para verlo
+completo. bruma todavia es un boceto sin textura.

@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "mipack:sal"
+    },
+    [
+      {
+        "item": "minecraft:cooked_beef"
+      },
+      {
+        "item": "minecraft:cooked_porkchop"
+      },
+      {
+        "item": "minecraft:cooked_mutton"
+      },
+      {
+        "item": "minecraft:cooked_chicken"
+      },
+      {
+        "item": "minecraft:cooked_rabbit"
+      }
+    ]
+  ],
+  "result": {
+    "item": "mipack:carne_salada",
+    "count": 1
+  }
+}

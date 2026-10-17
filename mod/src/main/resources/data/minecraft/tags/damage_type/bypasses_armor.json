@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "mipack:calor",
+    "mipack:desangrado",
+    "mipack:sacrificio",
+    "mipack:golpe_jefe",
+    "mipack:forcejeo",
+    "mipack:esquirlas",
+    "mipack:drenar"
+  ]
+}

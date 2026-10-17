@@ -1,0 +1,4 @@
+{
+  "replace": false,
+  "values": ["mipack:tanque_casco", "mipack:tanque_pechera", "mipack:tanque_pantalon", "mipack:tanque_botas"]
+}

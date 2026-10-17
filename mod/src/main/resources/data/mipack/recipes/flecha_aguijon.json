@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "A",
+    "S",
+    "F"
+  ],
+  "key": {
+    "A": {
+      "item": "mipack:aguijon"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    },
+    "F": {
+      "item": "minecraft:feather"
+    }
+  },
+  "result": {
+    "item": "mipack:flecha_aguijon",
+    "count": 4
+  }
+}

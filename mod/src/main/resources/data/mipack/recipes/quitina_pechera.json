@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "X X",
+    "XXX",
+    "XXX"
+  ],
+  "key": {
+    "X": {
+      "item": "mipack:quitina"
+    }
+  },
+  "result": {
+    "item": "mipack:quitina_pechera",
+    "count": 1
+  }
+}

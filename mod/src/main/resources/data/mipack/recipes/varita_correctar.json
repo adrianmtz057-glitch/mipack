@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " PQ",
+    " BP",
+    "B  "
+  ],
+  "key": {
+    "P": {
+      "item": "minecraft:prismarine_crystals"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "B": {
+      "item": "minecraft:blaze_rod"
+    }
+  },
+  "result": {
+    "item": "mipack:varita_correctar",
+    "count": 1
+  }
+}

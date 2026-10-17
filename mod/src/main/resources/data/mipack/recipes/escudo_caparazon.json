@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "CPC",
+    "CCC",
+    " C "
+  ],
+  "key": {
+    "C": {
+      "item": "mipack:caparazon"
+    },
+    "P": {
+      "tag": "minecraft:planks"
+    }
+  },
+  "result": {
+    "item": "mipack:escudo_caparazon",
+    "count": 1
+  }
+}

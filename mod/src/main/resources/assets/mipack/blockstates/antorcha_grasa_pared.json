@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "mipack:block/antorcha_grasa_pared"
+    },
+    "facing=north": {
+      "model": "mipack:block/antorcha_grasa_pared",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "mipack:block/antorcha_grasa_pared",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "mipack:block/antorcha_grasa_pared",
+      "y": 180
+    }
+  }
+}
