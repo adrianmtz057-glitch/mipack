@@ -246,7 +246,7 @@ def _incision(e, dx, peso, prof_max=30.0, iters=50, K=0.012, m=0.5):
 
 
 def rejuvenecer(h, b, dx, center, R=1100.0, borde_h=270.0, p=2.2, caldera_r=230.0, caldera_d=85.0,
-                barranco_max=30.0, n_parasitos=3, coladas=None, n_coladas=6, seed=8, log=True):
+                barranco_max=30.0, n_parasitos=3, coladas=None, n_coladas=6, cono_interior=True, seed=8, log=True):
     """Edificio joven sobre el volcán erosionado: cono de flancos superiores empinados (perfil
     cóncavo), caldera de paredes casi verticales con un cono interior y su cráter de lava,
     barrancos radiales en V y coladas post-glaciares de bordes y frentes empinados.
@@ -305,8 +305,11 @@ def rejuvenecer(h, b, dx, center, R=1100.0, borde_h=270.0, p=2.2, caldera_r=230.
     ri = np.hypot(X - icx, Z - icz)
     cono_i = 45.0 * np.clip(1.0 - ri / 95.0, 0, 1) ** 1.2
     crater_i = 16.0 * np.clip(1.0 - (ri / 26.0) ** 2, 0, 1)
-    e_new = np.where(rc < caldera_r, np.maximum(e_new, piso + cono_i - crater_i), e_new)
-    lago_lava = (ri < 22.0) & (rc < caldera_r)
+    if cono_interior:
+        e_new = np.where(rc < caldera_r, np.maximum(e_new, piso + cono_i - crater_i), e_new)
+        lago_lava = (ri < 22.0) & (rc < caldera_r)
+    else:                                   # caldera llena de lava (sin cono interior)
+        lago_lava = rc < caldera_r - 20.0
     hn = e_new + base
     if log:
         print(f'  [volcán] base {base:.0f} m, borde de la caldera {borde + base:.0f} m, '

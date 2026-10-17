@@ -46,6 +46,12 @@ class Fuente:
         self.gn = self.prov.shape[0]
         est = os.path.join(d, 'estructuras.json')
         self.estructuras = json.load(open(est)) if os.path.exists(est) else []
+        dec = os.path.join(d, 'decor.npz')       # bloques sueltos (palmeras): x, y, z, índice de nombre
+        if os.path.exists(dec):
+            dc = np.load(dec)
+            self.decor, self.decor_nombres = dc['xyzb'], [str(k) for k in dc['nombres']]
+        else:
+            self.decor, self.decor_nombres = np.zeros((0, 4), np.int32), []
 
 
 _CACHE = {}
@@ -171,6 +177,8 @@ def _region(args):
     chunks = {}
     t0 = time.time()
     geo_all = _geo_region(f, rx * 512, rz * 512, 512)
+    dec = f.decor[(f.decor[:, 0] // 512 == rx) & (f.decor[:, 2] // 512 == rz)]
+    dec_ids = np.array([pal.get(k) for k in f.decor_nombres], np.int64)
     for lz in range(32):
         for lx in range(32):
             cx, cz = rx * 32 + lx, rz * 32 + lz
@@ -181,6 +189,14 @@ def _region(args):
             bes = []
             if f.estructuras:
                 _pegar(blocks, pal, cx, cz, f.estructuras, bes)
+            dch = dec[(dec[:, 0] // 16 == cx) & (dec[:, 2] // 16 == cz)]
+            if len(dch):
+                yy = dch[:, 1] - MIN_Y
+                ok = (yy >= 0) & (yy < H)
+                dch, yy = dch[ok], yy[ok]
+                bz, bx = dch[:, 2] - cz * 16, dch[:, 0] - cx * 16
+                libre = blocks[yy, bz, bx] == 0                      # solo en aire
+                blocks[yy[libre], bz[libre], bx[libre]] = dec_ids[dch[libre, 3]]
             bio2 = np.asarray(f.BIO[cz * 16 + 2:cz * 16 + 16:4, cx * 16 + 2:cx * 16 + 16:4])
             bio = np.broadcast_to(bio2[None], (H // 4, 4, 4)).astype(np.uint8)
             chunks[(lx, lz)] = anvil.build_chunk(cx, cz, blocks, pal, bio, bnames, bes)

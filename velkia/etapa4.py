@@ -99,7 +99,8 @@ def cauce(Y, WL, FL, xy, ancho, nivel, prof, fluido=1, seco=None, sin_orilla=Non
         sec = seco[z0:z1, x0:x1].ravel() if seco is not None else np.zeros(sub.size, bool)
         mr = mar[z0:z1, x0:x1].ravel() if mar is not None else np.zeros(sub.size, bool)
         lvs = np.where(con, lv, 0.0)
-        lecho = np.floor(lvs - 1.0 - (prof - 1.0) * np.clip(1.0 - (d / np.maximum(hw, 1.0)) ** 2, 0, 1))
+        pf = np.asarray(prof)[kk] if np.ndim(prof) else prof
+        lecho = np.floor(lvs - 1.0 - (pf - 1.0) * np.clip(1.0 - (d / np.maximum(hw, 1.0)) ** 2, 0, 1))
         dentro &= ~sec & ~mr
         orilla &= ~sec & ~mr & (fl == 0)
         sub = np.where(dentro, np.minimum(sub, lecho), sub)
@@ -147,7 +148,8 @@ def sellar(Y, WL, FL, permitir=None, iters=4):
 
 
 # ===================================================================== preparar
-def preparar(etapa='salida/etapa1.npz', out='salida/mundo_datos', log=True):
+def preparar(etapa='salida/etapa1.npz', out='salida/mundo_datos', log=True, fluidos=True):
+    """fluidos=False: solo terreno, construcciones y mar (los ríos, lagos y lava los pone la v2)."""
     t0 = time.time()
     os.makedirs(out, exist_ok=True)
     d = np.load(etapa)
@@ -203,72 +205,73 @@ def preparar(etapa='salida/etapa1.npz', out='salida/mundo_datos', log=True):
     WL[mar] = SEA
     FL[mar] = 1
     paso(f'mar: {mar.mean() * 100:.1f} % del mapa')
-    # río principal
-    k0 = int(d['k_fuente']) if 'k_fuente' in d.files else 0
-    chm = ch[k0:]
-    wl_ch = WLc.ravel()[chm]
-    fin = int(np.argmax(~np.isfinite(wl_ch))) if (~np.isfinite(wl_ch)).any() else chm.size
-    chm, wl_ch = chm[:fin], wl_ch[:fin]
-    from .rios import ANCHO_MIN
-    rxy = d['rio_xy']
-    anch = np.interp(np.arange(len(rxy)), [0, len(rxy) - 1], [ANCHO_MIN, 30.0])
-    rxy, anch = _densificar(rxy, 2.0, anch)
-    lv = niveles_desde_cadena(rxy, chm, wl_ch, n, dx)
-    casc = np.zeros(len(rxy), bool)
-    salto = np.nonzero(np.diff(np.nan_to_num(lv, nan=-1e9)) < -3)[0]
-    for k in salto:
-        casc[max(0, k - 20):k + 20] = True
-    cauce(Y, WL, FL, rxy, anch, lv, 3.0, seco=huella, sin_orilla=casc, mar=mar)
-    paso(f'río: {np.isfinite(lv).sum()} vértices con agua, {len(salto)} cascadas')
-    # afluentes
-    for k in sorted([k for k in d.files if k.startswith('cad_')], key=lambda s: int(s[4:]))[2:]:
-        nm = [a for a in d['afluentes']][int(k[4:]) - 2] if 'afluentes' in d.files else None
-        if nm is None or 'afl_' + str(nm) not in d.files:
-            continue
-        c = d[k][int(d['kf_' + k]) if 'kf_' + k in d.files else 0:]
-        w = WLc.ravel()[c]
-        fin = int(np.argmax(~np.isfinite(w))) if (~np.isfinite(w)).any() else c.size
-        axy, = _densificar(d['afl_' + str(nm)], 2.0)
-        lva = niveles_desde_cadena(axy, c[:fin], w[:fin], n, dx)
-        cauce(Y, WL, FL, axy, np.full(len(axy), 9.0), lva, 2.0, seco=huella, mar=mar)
-        paso(f'afluente {nm}: {np.isfinite(lva).sum()} vértices con agua')
-    # lagos de los Jardines
-    if 'lagos_jardines' in d.files:
-        lg = ndi.zoom(d['lagos_jardines'].astype(np.float32), f, order=1) > 0.5
-        lg &= ~huella
-        nivel = int(np.floor(float(d['jardines_piso']) + SEA - 0.5))
-        prof = np.clip(ndi.distance_transform_edt(lg) / 6.0, 1, 6)
-        Y = np.where(lg, np.minimum(Y, nivel - prof), Y)
-        WL[lg] = nivel
-        FL[lg] = 1
-        paso(f'lagos de los Jardines a Y={nivel}')
-    # lava: canales (polilíneas del volcán) y lago del cráter
-    if 'lava_xy' in d.files:
-        L = d['lava_xy']
-        cortes = np.nonzero(np.isnan(L[:, 0]))[0]
-        ini = 0
-        for c in list(cortes) + [len(L)]:
-            seg = L[ini:c]
-            ini = c + 1
-            if len(seg) < 3:
+    if fluidos:
+        # río principal
+        k0 = int(d['k_fuente']) if 'k_fuente' in d.files else 0
+        chm = ch[k0:]
+        wl_ch = WLc.ravel()[chm]
+        fin = int(np.argmax(~np.isfinite(wl_ch))) if (~np.isfinite(wl_ch)).any() else chm.size
+        chm, wl_ch = chm[:fin], wl_ch[:fin]
+        from .rios import ANCHO_MIN
+        rxy = d['rio_xy']
+        anch = np.interp(np.arange(len(rxy)), [0, len(rxy) - 1], [ANCHO_MIN, 30.0])
+        rxy, anch = _densificar(rxy, 2.0, anch)
+        lv = niveles_desde_cadena(rxy, chm, wl_ch, n, dx)
+        casc = np.zeros(len(rxy), bool)
+        salto = np.nonzero(np.diff(np.nan_to_num(lv, nan=-1e9)) < -3)[0]
+        for k in salto:
+            casc[max(0, k - 20):k + 20] = True
+        cauce(Y, WL, FL, rxy, anch, lv, 3.0, seco=huella, sin_orilla=casc, mar=mar)
+        paso(f'río: {np.isfinite(lv).sum()} vértices con agua, {len(salto)} cascadas')
+        # afluentes
+        for k in sorted([k for k in d.files if k.startswith('cad_')], key=lambda s: int(s[4:]))[2:]:
+            nm = [a for a in d['afluentes']][int(k[4:]) - 2] if 'afluentes' in d.files else None
+            if nm is None or 'afl_' + str(nm) not in d.files:
                 continue
-            sxy, = _densificar(seg, 2.0)
-            iz = np.clip(sxy[:, 1].astype(int), 0, N - 1)
-            ix = np.clip(sxy[:, 0].astype(int), 0, N - 1)
-            lvl = np.minimum.accumulate(np.floor(Y[iz, ix]))
-            lvl = np.where(mar[iz, ix], np.nan, lvl)
-            cauce(Y, WL, FL, sxy, np.full(len(sxy), 5.0), lvl, 2.0, fluido=2, seco=huella, mar=mar)
-        if 'lago_lava' in d.files and d['lago_lava'].any():
-            ll = ndi.zoom(d['lago_lava'].astype(np.float32), f, order=1) > 0.5
-            if ll.any():
-                nv = int(np.floor(np.percentile(Y[ll], 30)))
-                Y = np.where(ll, np.minimum(Y, nv - 2), Y)
-                WL[ll] = nv
-                FL[ll] = 2
-        paso('lava')
+            c = d[k][int(d['kf_' + k]) if 'kf_' + k in d.files else 0:]
+            w = WLc.ravel()[c]
+            fin = int(np.argmax(~np.isfinite(w))) if (~np.isfinite(w)).any() else c.size
+            axy, = _densificar(d['afl_' + str(nm)], 2.0)
+            lva = niveles_desde_cadena(axy, c[:fin], w[:fin], n, dx)
+            cauce(Y, WL, FL, axy, np.full(len(axy), 9.0), lva, 2.0, seco=huella, mar=mar)
+            paso(f'afluente {nm}: {np.isfinite(lva).sum()} vértices con agua')
+        # lagos de los Jardines
+        if 'lagos_jardines' in d.files:
+            lg = ndi.zoom(d['lagos_jardines'].astype(np.float32), f, order=1) > 0.5
+            lg &= ~huella
+            nivel = int(np.floor(float(d['jardines_piso']) + SEA - 0.5))
+            prof = np.clip(ndi.distance_transform_edt(lg) / 6.0, 1, 6)
+            Y = np.where(lg, np.minimum(Y, nivel - prof), Y)
+            WL[lg] = nivel
+            FL[lg] = 1
+            paso(f'lagos de los Jardines a Y={nivel}')
+        # lava: canales (polilíneas del volcán) y lago del cráter
+        if 'lava_xy' in d.files:
+            L = d['lava_xy']
+            cortes = np.nonzero(np.isnan(L[:, 0]))[0]
+            ini = 0
+            for c in list(cortes) + [len(L)]:
+                seg = L[ini:c]
+                ini = c + 1
+                if len(seg) < 3:
+                    continue
+                sxy, = _densificar(seg, 2.0)
+                iz = np.clip(sxy[:, 1].astype(int), 0, N - 1)
+                ix = np.clip(sxy[:, 0].astype(int), 0, N - 1)
+                lvl = np.minimum.accumulate(np.floor(Y[iz, ix]))
+                lvl = np.where(mar[iz, ix], np.nan, lvl)
+                cauce(Y, WL, FL, sxy, np.full(len(sxy), 5.0), lvl, 2.0, fluido=2, seco=huella, mar=mar)
+            if 'lago_lava' in d.files and d['lago_lava'].any():
+                ll = ndi.zoom(d['lago_lava'].astype(np.float32), f, order=1) > 0.5
+                if ll.any():
+                    nv = int(np.floor(np.percentile(Y[ll], 30)))
+                    Y = np.where(ll, np.minimum(Y, nv - 2), Y)
+                    WL[ll] = nv
+                    FL[ll] = 2
+            paso('lava')
     # sellado (sin agua colgada), dejando caer el agua en las cascadas
     permitir = np.zeros((N, N), bool)
-    for x, z, dz in inf.get('cascadas_rio', []):
+    for x, z, dz in (inf.get('cascadas_rio', []) if fluidos else []):
         if dz > 3:
             permitir[max(0, int(z) - 48):int(z) + 48, max(0, int(x) - 48):int(x) + 48] = True
     nsub = sellar(Y, WL, FL, permitir)
