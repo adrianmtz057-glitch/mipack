@@ -220,8 +220,10 @@ def _modelos():
         _json(os.path.join(m, "item", f"{i}.json"), e)
         _json(os.path.join(m, "item", f"{i}_bloqueando.json"), b)
     # la antorcha
-    _json(os.path.join(m, "block", "antorcha_grasa.json"), {"parent": "minecraft:block/template_torch", "textures": {"torch": "mipack:block/antorcha_grasa"}})
-    _json(os.path.join(m, "block", "antorcha_grasa_pared.json"), {"parent": "minecraft:block/template_torch_wall", "textures": {"torch": "mipack:block/antorcha_grasa"}})
+    _json(os.path.join(m, "block", "antorcha_grasa.json"), {"parent": "minecraft:block/template_torch", "render_type": "minecraft:cutout",
+                                                            "textures": {"torch": "mipack:block/antorcha_grasa"}})
+    _json(os.path.join(m, "block", "antorcha_grasa_pared.json"), {"parent": "minecraft:block/template_torch_wall", "render_type": "minecraft:cutout",
+                                                                  "textures": {"torch": "mipack:block/antorcha_grasa"}})
     _json(os.path.join(m, "item", "antorcha_grasa.json"), {"parent": "minecraft:item/generated", "textures": {"layer0": "mipack:item/antorcha_grasa"}})
     bs = os.path.join(ASSETS, "blockstates")
     _json(os.path.join(bs, "antorcha_grasa.json"), {"variants": {"": {"model": "mipack:block/antorcha_grasa"}}})
@@ -237,7 +239,7 @@ def _modelos():
         caras["up"] = {"texture": tapa}
         caras["down"] = {"texture": "#arena"}
         return {"from": a, "to": b, "faces": caras}
-    _json(os.path.join(m, "block", "pedazo_piramide.json"), {"parent": "minecraft:block/block", "textures": tex, "elements": [
+    _json(os.path.join(m, "block", "pedazo_piramide.json"), {"parent": "minecraft:block/block", "render_type": "minecraft:cutout", "textures": tex, "elements": [
         caja([1, 0, 1], [15, 5, 15], "#lado"), caja([4, 5, 4], [12, 10, 12], "#lado"),
         caja([6.5, 10, 6.5], [9.5, 14, 9.5], "#oro", "#oro")]})
     _json(os.path.join(m, "item", "pedazo_piramide.json"), {"parent": "minecraft:item/generated", "textures": {"layer0": "mipack:item/pedazo_piramide"}})

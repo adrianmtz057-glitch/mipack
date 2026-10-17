@@ -1,4 +1,4 @@
-# Mipack: Crackatos, Khaset, La Bruma y los titanes (Forge 1.20.1)
+# Mipack: Crackatos, Khaset, La Bruma, los titanes y los objetos de Velkia (Forge 1.20.1)
 
 ## Qué necesitas
 1. **Minecraft 1.20.1 con Forge 47.4.10**, la versión que ya tienes.
@@ -189,11 +189,68 @@ Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, come
 - A ratos se hunde a dormir, atrapa algo o se mueve a otro charco del pantano.
 - Solo entra a pantanos, ríos y tierra común (no al mar, al desierto, a la nieve ni a las montañas).
 
+## Los objetos de Velkia
+Van en la pestaña **Velkia: objetos** del creativo. Los materiales los van a soltar los animales de cada bioma (todavía no están en el juego: por ahora salen en el creativo o con `/give`).
+
+**Materiales:** colmillo de chacal, aguijón de escorpión, escamas de luz, cuerno de piedra, caparazón de escarabajo, cola de lagarto, branquia de Moruvahn, ceniza, brasa, pluma negra, mura, sal, semilla de musgo, grasa de ballenato, pelaje grueso, quitina y glándula de salamandra.
+
+**Lo que se hace con ellos:**
+| Objeto | Receta | Qué hace |
+|---|---|---|
+| Daga de colmillo | colmillo sobre palo | Rápida; a veces desangra |
+| Martillo de cuerno | 3 cuernos arriba, 2 palos abajo | Lento y pesado; avienta lejos |
+| Flecha de aguijón (×4) | aguijón, palo y pluma en columna | Alenta al que pica |
+| Carne salada | sal + cualquier carne cocida | Llena mucho y quita el efecto de hambre; da un poco de sed |
+| Pulpa de cactus (×2) | un cactus | Un trago de agua |
+| Fertilizante de musgo (×2) | semilla de musgo + 2 harinas de hueso | Hace crecer todo en un cuadro de 3×3 |
+| Runa de Pibble | lapislázuli y oro alrededor de una perla de ender | Te lleva a donde moriste por última vez (se gasta) |
+| Varita de Revolthir | 2 varas de blaze, 2 de amatista y polvo de piedra luminosa | Lo que golpea recibe un efecto al azar |
+| Varita de Correctar | 2 varas de blaze, 2 cristales de prismarina y cuarzo | Quita los efectos de lo que golpea; clic derecho, los tuyos (cada 30 s) |
+| Bomba de brasa (×2) | ceniza + brasa + pólvora | Estalla en fuego sin romper bloques |
+| Señuelo de plumas | 3 plumas negras + hilo | Los hostiles de alrededor se olvidan de ti y van a donde cae (12 s) |
+| Escudo de escamas | forma de escudo con escamas y una tabla | Dura mucho más que el de madera |
+| Escudo de caparazón | forma de escudo con caparazones y una tabla | Ligero: al cubrirte casi no te alentas |
+| Cantimplora | 3 cueros + hilo | 3 sorbos de agua; se llena con clic derecho mirando agua |
+| Cantimplora reforzada | cantimplora + 2 grasas + hierro | 5 sorbos |
+| Antorcha de grasa (×4) | grasa sobre palo | Alumbra como antorcha y el agua no la apaga (se pone bajo el agua) |
+| Pedazo de pirámide | oro, brújula y arenisca cortada | Ver abajo |
+
+**Pociones** (en el soporte, con poción rara): cola de lagarto → regeneración; glándula de salamandra → resistencia al fuego; branquia → **branquias** (respiras bajo el agua y ahí adentro te regeneras; con redstone dura más). Todas se pueden hacer arrojadizas.
+
+**Pedazo de pirámide:**
+- **En la mano:** con clic derecho te dice hacia dónde y a cuántos bloques queda la pirámide del desierto más cercana. Mientras lo traes, el calor del desierto te sofoca la mitad.
+- **Colocado:** en 24 bloques alrededor no aparecen hostiles.
+
+## Las armaduras de Velkia
+Cada una tiene **forma propia** (no son recolores) y se hace con la forma de siempre de las armaduras. Cada pieza da su armadura como en Minecraft y **cada pieza suma su efecto**: con una sola ya se nota, con el set completo, todo. Estos efectos no salen en el menú ni hacen zoom: simplemente se sienten.
+
+| Armadura | Material | Dura como | Efecto |
+|---|---|---|---|
+| Del desierto (egipcia, abierta) | arenisca cortada | menos que hierro | **No sofoca** en el desierto (refresca un poco) |
+| De plumas | plumas | oro | Ligereza (hasta +18%) y **caída de pluma**: caes despacio y te haces menos daño |
+| De quitina | quitina | entre oro y hierro | Ligereza leve (hasta +6%) |
+| De tortuga (pechera, pantalón y botas; el casco es el de Minecraft) | escudos de tortuga | más que hierro | Nadas más rápido (hasta +60%) |
+| De pelaje | pelaje grueso | cuero | **Abriga** del frío de las montañas, pero sofoca mucho en el desierto |
+
+## El agua y el frío
+- **Barra de agua** arriba de la comida (10 gotas). Siempre baja: **fuera del desierto dura 60 minutos**.
+- **En el desierto** dura **35 minutos** sin armadura. La armadura **sofoca** y la acorta, pieza por pieza: el diamante completo la deja a la mitad y la netherita a un tercio, pero **nunca menos de 15 minutos**. Mientras te sofoca, ves el efecto **Sofocación**. De noche no sofoca y a la sombra sofoca la mitad. La armadura del desierto no sofoca.
+- **Dónde tomar agua:**
+  - la cantimplora;
+  - botellas de agua (un buen trago);
+  - el río: agachado, con la mano vacía, clic derecho mirando el agua;
+  - la lluvia, estando afuera;
+  - la pulpa de cactus, la sandía, la leche, los guisos y las bayas.
+- **Si llega a cero te desmayas:** los ojos se cierran y todo se ve negro unos 10 segundos. No te puedes mover ni hacer nada, pero **el chat sí se ve y se puede usar**. Los mobs sí te pueden pegar. Despiertas con un poco de agua.
+- Los **jugadores nuevos** tienen 10 minutos sin sed. En creativo no hay sed.
+- **Frío:** donde nieva, lejos de una fogata, fuego o lava, la comida se va más rápido (efecto **Frío**). La armadura de pelaje lo quita, pieza por pieza.
+- Todo se ajusta en `config/mipack-common.toml`: si hay sed, los minutos de cada caso, el mínimo, cuánto dura el desmayo, la gracia de los nuevos y si hay frío.
+
 ## El cielo y los efectos
 El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).
 
 ## Fotos
-En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera). De cerca: `acaro_amatista_*` y `guerrero_calavera_*`. La Bruma: `bruma_*` (de cerca, la garra, de lado, el grito, el zarpazo, en forma de niebla, la fase 2 de noche y su muerte).
+En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera). De cerca: `acaro_amatista_*` y `guerrero_calavera_*`. La Bruma: `bruma_*` (de cerca, la garra, de lado, el grito, el zarpazo, en forma de niebla, la fase 2 de noche y su muerte). Los objetos: `objetos_*` (las cinco armaduras puestas, los escudos y armas en la mano, la antorcha de grasa bajo el agua, el pedazo de pirámide, la barra de agua con la sofocación y el desmayo con el chat).
 
 ## Si algo sale mal
 - **"Missing mod geckolib":** te falta GeckoLib, o es de otra versión de Minecraft o de otro cargador (tiene que ser Forge 1.20.1).

@@ -1,5 +1,6 @@
 {
   "parent": "minecraft:block/block",
+  "render_type": "minecraft:cutout",
   "textures": {
     "arena": "minecraft:block/sandstone_top",
     "lado": "minecraft:block/cut_sandstone",
