@@ -19,9 +19,9 @@ from multiprocessing import Pool
 import numpy as np
 
 from . import anvil, nbt
-from .geology import ZMIN, ZRES, PERIODICA
+from .geology import ZMIN, ZRES
 from .layout import N, SEA
-from .materials import MaterialTables
+from .materials import MaterialTables, PERIODICA_MUNDO as PERIODICA
 
 MIN_Y = anvil.MIN_Y
 H = anvil.HEIGHT

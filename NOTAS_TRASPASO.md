@@ -28,6 +28,19 @@ Etapa 3: `velkia/validacion.py` (vía `hacer_revision`). Etapa 4: `velkia/valida
 
 **Regla del usuario:** la disposición de v3 coincide con el mapa 2 → se pasó al mundo jugable aunque queden detalles.
 
+## v1 (rediseño aprobado sobre el lienzo)
+
+Lienzo aprobado: zonas `referencia/zonas_v6b.npy` + ajustes de `velkia/zonas_v1.py` (domos/arena, isla del
+volcán, bordes a manchas). Orden acordado: 1 biomas/materiales → 2 ríos con valles (según la altura;
+los del sureste no deben verse "partiendo" montañas) → 3 volcán (isla, caldera llena, bocas) → 4 mura
+(agujas, lago morado, manantial) → 5 relieves por bioma (domos, terracota, dunas, charcas+palmeras del
+salar, charcos de Jardines, Fuertes fuera) → 6 cuevas y minerales sin oro → imagen → reconstruir.
+Cada paso se aprueba con imagen; el usuario NO quiere cambios en el world sin aprobación.
+
+- Paso 1 hecho: `python3 -m velkia.biomas_v1` (salida/mundo_datos -> salida/v1_datos, ~45 s).
+  Provincias de mundo nuevas DOMOS=7 y BADLANDS=8 (bandas horizontales, materials.BANDAS).
+  Datapack: salar con burbujas, agua de la mura morada que daña, bioma velkia:domos.
+
 ## Cómo correr (orden)
 
 ```bash

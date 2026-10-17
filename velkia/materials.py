@@ -7,7 +7,7 @@ como bandas de color en las paredes del cañón.
 import numpy as np
 
 from .geology import (GRANITO, METAMORFICO, ESTRATOS, BASALTO, SEDIMENTOS, EVAPORITAS, CORROMPIDO,
-                      COLUMNA_MESETA, NT, ZMIN, ZRES, build_tables)
+                      COLUMNA_MESETA, NT, ZMIN, ZRES, PERIODICA, build_tables)
 
 # --------------------------------------------------------------- roca por estrato
 # Para cada provincia: lista de "materiales" (índice de material de la tabla M) -> lista de
@@ -67,8 +67,43 @@ SUP_BLOQUES = {
     14: (['minecraft:clay'], ['minecraft:clay'], 2),
     15: (['minecraft:blackstone'], ['minecraft:deepslate'], 2),
     16: (['minecraft:terracotta'], ['minecraft:terracotta'], 2),
-    18: (['minecraft:dirt_path'], ['minecraft:coarse_dirt'], 2),
+    18: (['minecraft:smooth_sandstone'], ['minecraft:sandstone'], 2),     # sendero de la torre (bioma de arena)
 }
+
+# provincias solo del mundo (la erosión no las usa): bandas horizontales por cota (zref=0, thick=1)
+DOMOS, BADLANDS = 7, 8
+N_PROV = 9
+PERIODICA_MUNDO = np.r_[PERIODICA, True, True]
+# (bloque, peso, espesor mínimo, espesor máximo en bloques)
+BANDAS = {
+    # domos tipo Kata Tjuta: conglomerado de arenisca roja con capas de terracota clara
+    DOMOS: [('minecraft:red_sandstone', 5, 3, 8), ('minecraft:smooth_red_sandstone', 2, 2, 5),
+            ('minecraft:orange_terracotta', 2, 1, 3), ('minecraft:terracotta', 1, 1, 3),
+            ('minecraft:white_terracotta', 1, 1, 2)],
+    # montañas de terracota como el bioma vanilla de badlands
+    BADLANDS: [('minecraft:terracotta', 4, 2, 6), ('minecraft:orange_terracotta', 4, 2, 6),
+               ('minecraft:yellow_terracotta', 2, 1, 3), ('minecraft:white_terracotta', 2, 1, 2),
+               ('minecraft:light_gray_terracotta', 2, 1, 3), ('minecraft:red_terracotta', 3, 1, 4),
+               ('minecraft:brown_terracotta', 2, 1, 3)],
+}
+
+
+def _bandas(pal, opciones, rng):
+    """Fila de la tabla de roca con bandas horizontales de bloques al azar (periódica en NT)."""
+    fila = np.zeros(NT, np.uint16)
+    w = np.array([o[1] for o in opciones], float)
+    w /= w.sum()
+    k, prev = 0, -1
+    while k < NT:
+        c = int(rng.choice(len(opciones), p=w))
+        if c == prev:
+            continue
+        nombre, _, e0, e1 = opciones[c]
+        largo = int(rng.integers(e0, e1 + 1) / ZRES)
+        fila[k:k + largo] = pal.get(nombre)
+        k += largo
+        prev = c
+    return fila
 
 
 class MaterialTables:
@@ -78,7 +113,7 @@ class MaterialTables:
         self.F, self.M = build_tables(seed)
         rng = np.random.default_rng(seed + 100)
         # tabla bloque[prov, k] (k = índice de estrato a 0,25 m) con variación por banda de ~1-2 m
-        self.rock = np.zeros((7, NT), np.uint16)
+        self.rock = np.zeros((N_PROV, NT), np.uint16)
         band = np.repeat(rng.random(NT // 6 + 1), 6)[:NT]
         for prov in range(7):
             for k0 in range(0, NT, 6):
@@ -94,6 +129,8 @@ class MaterialTables:
                 w = w / w.sum()
                 c = np.searchsorted(np.cumsum(w), band[k0])
                 self.rock[prov, k0:k1] = pal.get(names[min(c, len(names) - 1)])
+        for prov, opciones in BANDAS.items():
+            self.rock[prov] = _bandas(pal, opciones, np.random.default_rng(seed + prov))
         self.sup_top = {}
         self.sup_sub = {}
         self.sup_depth = np.zeros(32, np.int16)

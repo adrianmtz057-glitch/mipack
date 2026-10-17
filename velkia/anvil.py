@@ -202,13 +202,30 @@ def write_level_dat(world_dir, name, spawn, size_blocks, center, seed=20261011):
 
 CUSTOM_BIOMES = {
     # nombre: (temperatura, lluvia, cielo, niebla, agua, niebla_agua, pasto, follaje, partícula, prob)
-    'salar': (2.0, 0.0, 0xA9C6E8, 0xE8EEF2, 0x9FD8E0, 0x6FB6C4, 0xD8D4B0, 0xC8C4A0, None, 0.0),
+    # salar: burbujas en TODA el agua del bioma (la partícula ambiental minecraft:bubble solo sobrevive
+    # dentro del agua) y sonido de burbujeo; sin arena de almas ni magma
+    'salar': (2.0, 0.4, 0xA9C6E8, 0xE8EEF2, 0x46BEC8, 0x2E8E96, 0x9CB060, 0x8CA050, 'minecraft:bubble', 0.35),
     'volcanica': (2.0, 0.0, 0x8E8A88, 0x6E625C, 0x3E5A66, 0x2A3238, 0x6E6A50, 0x5E5A40,
                   'minecraft:white_ash', 0.025),
-    'tierras_corrompidas': (0.9, 0.3, 0x6E5A86, 0x4A3A5E, 0x5A3A7A, 0x2A1A3A, 0x5E4A6A, 0x4E3A5A,
+    # mura: agua morada que hace daño (función velkia:agua_corrupta)
+    'tierras_corrompidas': (0.9, 0.3, 0x6E5A86, 0x4A3A5E, 0x7A2FB0, 0x3A0F5A, 0x5E4A6A, 0x4E3A5A,
                             'minecraft:ash', 0.012),
     'jardines': (0.8, 0.8, 0x78A7FF, 0xC0D8FF, 0x3F76E4, 0x050533, 0x6FBF4A, 0x5FAF3A, None, 0.0),
+    # domos de piedra (Kata Tjuta): seco, cielo cálido, pasto ocre
+    'domos': (2.0, 0.0, 0x8CB4E8, 0xE8D2B4, 0x3F8FB0, 0x2A5A6A, 0xBFA35A, 0xAE9450, None, 0.0),
 }
+SONIDOS = {'salar': {'sound': 'minecraft:block.bubble_column.upwards_ambient', 'tick_chance': 0.012}}
+
+AGUA_CORRUPTA = """# agua de la mura: hace daño a quien esté dentro (cada 10 ticks)
+execute as @e[type=!#velkia:inmunes] at @s if biome ~ ~ ~ velkia:tierras_corrompidas if block ~ ~ ~ minecraft:water run damage @s 2 minecraft:magic
+execute as @a[gamemode=!creative,gamemode=!spectator] at @s if biome ~ ~ ~ velkia:tierras_corrompidas if block ~ ~ ~ minecraft:water run effect give @s minecraft:wither 2 0 true
+schedule function velkia:agua_corrupta 10t replace
+"""
+INMUNES = ['minecraft:item', 'minecraft:experience_orb', 'minecraft:arrow', 'minecraft:spectral_arrow',
+           'minecraft:trident', 'minecraft:boat', 'minecraft:chest_boat', 'minecraft:minecart',
+           'minecraft:armor_stand', 'minecraft:item_frame', 'minecraft:glow_item_frame', 'minecraft:painting',
+           'minecraft:marker', 'minecraft:falling_block', 'minecraft:tnt', 'minecraft:area_effect_cloud',
+           'minecraft:fishing_bobber', 'minecraft:drowned', 'minecraft:guardian', 'minecraft:elder_guardian']
 
 
 def write_datapack(world_dir):
@@ -237,7 +254,20 @@ def write_datapack(world_dir):
                               'block_search_extent': 8, 'offset': 2.0}}
         if part:
             eff['particle'] = {'options': {'type': part}, 'probability': prob}
+        if name in SONIDOS:
+            eff['additions_sound'] = SONIDOS[name]
         bio = {'has_precipitation': d > 0, 'temperature': t, 'downfall': d, 'effects': eff,
                'spawners': {}, 'spawn_costs': {}, 'carvers': {}, 'features': []}
         json.dump(bio, open(os.path.join(root, 'data', 'velkia', 'worldgen', 'biome', name + '.json'), 'w'),
                   indent=2)
+    # función del agua de la mura, cargada al iniciar el mundo
+    fdir = os.path.join(root, 'data', 'velkia', 'functions')
+    os.makedirs(fdir, exist_ok=True)
+    open(os.path.join(fdir, 'agua_corrupta.mcfunction'), 'w').write(AGUA_CORRUPTA)
+    open(os.path.join(fdir, 'carga.mcfunction'), 'w').write('schedule function velkia:agua_corrupta 10t replace\n')
+    tdir = os.path.join(root, 'data', 'velkia', 'tags', 'entity_types')
+    os.makedirs(tdir, exist_ok=True)
+    json.dump({'values': INMUNES}, open(os.path.join(tdir, 'inmunes.json'), 'w'), indent=1)
+    ldir = os.path.join(root, 'data', 'minecraft', 'tags', 'functions')
+    os.makedirs(ldir, exist_ok=True)
+    json.dump({'values': ['velkia:carga']}, open(os.path.join(ldir, 'load.json'), 'w'), indent=1)
