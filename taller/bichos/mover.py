@@ -814,9 +814,353 @@ CORRER = {
     "ramita_tiesa": (correr_ramita, ["ramita"]),
 }
 
-ANIMACIONES = {"caminar": CAMINAR, "correr": CORRER}
+# ====================================================================== atacar
+# Un solo ataque por grupo (lo indispensable), con el estilo de su caminado. No van en bucle. GOLPE: el segundo en
+# que pega (el mod aplica el dano y la mecanica ahi).
+
+def _k(t, *puntos):
+    """Curva suave por los puntos (t, valor)."""
+    return animar.suave(t, list(puntos))
+
+
+def atacar_embestida(L):
+    """Embestida (toro, bufalo, cria de Iskarum, cabra): se echa atras con la cabeza baja, arremete y al final
+    avienta la cabeza para arriba."""
+    largo = 1.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("cuerpo", z=_k(t, (0, 0), (0.3, 1.5), (0.5, -3.0), (0.75, -1.0), (1.0, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.3, 4.0), (0.5, -6.0), (0.75, 2.0), (1.0, 0)))
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.35, -25.0), (0.5, -20.0), (0.62, 15.0), (1.0, 0)))
+        p.rot("trompa", rx=_k(t, (0, 0), (0.35, 25.0), (0.62, -20.0), (1.0, 0)))
+        for h in ("pata_dd", "pata_di"):
+            p.rot(h, _k(t, (0, 0), (0.3, 12.0), (0.5, -10.0), (1.0, 0)))
+        for h in ("pata_td", "pata_ti"):
+            p.rot(h, _k(t, (0, 0), (0.3, 8.0), (0.5, -18.0), (1.0, 0)))
+        p.rot("cola", rx=_k(t, (0, 0), (0.5, -18.0), (1.0, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def atacar_mordida_grande(L):
+    """Mordida grande: el hipopotamo alza la cabeza enorme y la azota; el cocodrilo arremete, muerde y da el giro
+    de la muerte (para arrastrar al agua); el ballenato sale de la arena de punta, traga y se vuelve a hundir."""
+    ident = L.b.id
+    if ident == "cocodrilo_luz":
+        largo = 1.4
+
+        def pose_en(t):
+            p = L.pose()
+            p.pos("cuerpo", z=_k(t, (0, 0), (0.15, 0.8), (0.32, -3.0), (0.6, -2.0), (1.4, 0)))
+            p.rot("cabeza", rx=_k(t, (0, 0), (0.2, 22.0), (0.35, -6.0), (0.6, 0.0), (1.4, 0)))
+            f = min(1.0, max(0.0, (t - 0.6) / 0.6))
+            p.rot("cuerpo", rz=360.0 * animar.facil(f))
+            p.pos("cuerpo", y=6.0 * math.sin(math.pi * f))
+            _onda(p, ("cola1", "cola2", "cola3"), t / 0.5, 10.0 * (1 - f), 1.0)
+            return p
+        return largo, pose_en
+    if ident == "ballenato_duna":
+        largo = 1.6
+
+        def pose_en(t):
+            p = L.pose()
+            p.pos("raiz", y=_k(t, (0, 0), (0.3, -2.5), (0.6, 7.0), (0.8, 6.0), (1.2, -1.0), (1.6, 0)))
+            p.rot("raiz", rx=_k(t, (0, 0), (0.3, -8.0), (0.6, 38.0), (0.8, 30.0), (1.2, -18.0), (1.6, 0)))
+            p.rot("cabeza", rx=_k(t, (0, 0), (0.55, 8.0), (0.75, -6.0), (1.0, 0)))
+            p.rot("cola", rx=_k(t, (0, 0), (0.45, -20.0), (0.7, 15.0), (1.1, -15.0), (1.6, 0)))
+            p.rot("aleta_d", rz=_k(t, (0, 0), (0.6, -30.0), (1.2, 10.0), (1.6, 0)))
+            p.rot("aleta_i", rz=_k(t, (0, 0), (0.6, 30.0), (1.2, -10.0), (1.6, 0)))
+            p.pos("cuerpo", y=1.0)
+            return p
+        return largo, pose_en
+    largo = 1.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.4, 32.0), (0.55, -12.0), (0.7, -8.0), (1.0, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.4, 3.0), (0.55, -3.0), (1.0, 0)))
+        p.pos("cuerpo", z=_k(t, (0, 0), (0.4, 0.8), (0.55, -2.0), (1.0, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def atacar_jauria(L):
+    """Mordida de jauria (lobo de fuego, chacal): se agacha, se lanza con las manos al frente, abre el hocico y
+    muerde, y jala sacudiendo la cabeza de lado a lado."""
+    largo = 0.9
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("cuerpo", y=_k(t, (0, 0), (0.2, -1.0), (0.4, 1.0), (0.55, 0.0), (0.9, 0)),
+              z=_k(t, (0, 0), (0.2, 1.0), (0.4, -4.0), (0.7, -3.0), (0.9, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.2, -4.0), (0.4, 5.0), (0.55, 0.0), (0.9, 0)))
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.2, -8.0), (0.4, 4.0), (0.55, -6.0), (0.9, 0)),
+              ry=_k(t, (0, 0), (0.45, 0.0), (0.52, 14.0), (0.6, -14.0), (0.68, 12.0), (0.76, 0.0), (0.9, 0)))
+        p.rot("mandibula", rx=_k(t, (0, 0), (0.3, -32.0), (0.4, 0.0), (0.8, 0.0), (0.9, 0)))
+        for h in ("pata_dd", "pata_di"):
+            p.rot(h, _k(t, (0, 0), (0.2, -8.0), (0.38, 34.0), (0.55, 10.0), (0.9, 0)))
+        for h in ("pata_td", "pata_ti"):
+            p.rot(h, _k(t, (0, 0), (0.2, 10.0), (0.4, -22.0), (0.9, 0)))
+        p.rot("cola", rx=_k(t, (0, 0), (0.4, -16.0), (0.9, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def atacar_zarpazo(L):
+    """Zarpazo: el gato se alza y suelta un manotazo con la derecha; el babuino se para de manos y barre con el brazo
+    de afuera hacia adentro (asi arrebata la comida)."""
+    babuino = L.b.id == "babuino"
+    largo = 0.7 if babuino else 0.6
+    golpe = 0.35 if babuino else 0.3
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cuerpo", rx=_k(t, (0, 0), (golpe - 0.12, 12.0 if babuino else 9.0), (golpe, 6.0), (largo, 0)),
+              ry=_k(t, (0, 0), (golpe - 0.12, -10.0 if babuino else 0.0), (golpe, 10.0 if babuino else 0.0), (largo, 0)))
+        p.rot("pata_dd", _k(t, (0, 0), (golpe - 0.12, 80.0 if babuino else 65.0), (golpe, 5.0), (largo, 0)),
+              rz=_k(t, (0, 0), (golpe - 0.12, 25.0 if babuino else 8.0), (golpe, -25.0 if babuino else -4.0), (largo, 0)))
+        p.pos("pata_dd", y=_k(t, (0, 0), (golpe - 0.12, 1.2), (golpe, 0.3), (largo, 0)))
+        p.rot("cabeza", rx=_k(t, (0, 0), (golpe - 0.12, -10.0), (golpe, -4.0), (largo, 0)))
+        p.rot("cola", rx=_k(t, (0, 0), (golpe, -12.0), (largo, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def atacar_picada(L):
+    """Picada (halcon, aguila, cuervo, murcielago): abre las alas, se clava inclinado al frente con las garras
+    adelante y pega; el cuervo y el murcielago rematan con el pico o la mordida."""
+    murcielago = L.b.id == "murcielago_mura"
+    largo = 0.6 if murcielago else 0.8
+    golpe = 0.3 if murcielago else 0.45
+
+    def pose_en(t):
+        p = L.pose()
+        if murcielago:
+            a = _k(t, (0, 0), (0.15, 30.0), (golpe, -10.0), (0.45, 26.0), (largo, 0))
+            p.rot("ala_d", rz=a)
+            p.rot("ala_i", rz=-a)
+            p.rot("cuerpo", rx=_k(t, (0, 0), (golpe, -25.0), (largo, 0)))
+            p.pos("cuerpo", y=1.0, z=_k(t, (0, 0), (golpe, -2.0), (largo, 0)))
+            for h in ("pata_d", "pata_i"):
+                p.pos(h, y=1.0, z=_k(t, (0, 0), (golpe, -2.0), (largo, 0)))
+            p.rot("cabeza", rx=_k(t, (0, 0), (golpe - 0.08, 15.0), (golpe, -15.0), (largo, 0)))
+            return p
+        alas = _k(t, (0, 0), (0.15, 95.0), (0.35, 40.0), (golpe, 100.0), (0.65, 60.0), (largo, 0))
+        p.rot("ala_d", rz=alas)
+        p.rot("ala_i", rz=-alas)
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.35, -28.0), (golpe, -12.0), (largo, 0)))
+        p.pos("cuerpo", y=_k(t, (0, 0), (0.2, 1.5), (golpe, 0.5), (largo, 0)))
+        for h in ("pata_d", "pata_i"):
+            p.rot(h, _k(t, (0, 0), (0.3, -10.0), (golpe, 45.0), (0.65, 18.0), (largo, 0)))
+        cab = "cabeza"
+        p.rot(cab, rx=_k(t, (0, 0), (golpe - 0.05, 10.0), (golpe + 0.05, -22.0), (largo, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def atacar_pinza(L):
+    """Pinza o aguijon: el escorpion abre las pinzas y clava la cola por encima de la espalda; el cangrejo alza la
+    pinza grande y la cierra de golpe."""
+    if L.b.id == "escorpion_luz":
+        largo = 0.7
+
+        def pose_en(t):
+            p = L.pose()
+            for k, h in enumerate(("cola1", "cola2", "cola3", "cola4")):
+                p.rot(h, rx=_k(t, (0, 0), (0.25, 6.0), (0.4, -14.0 - 6.0 * k), (0.55, -8.0), (0.7, 0)))
+            p.rot("pinza_d", ry=_k(t, (0, 0), (0.25, 18.0), (0.45, -6.0), (0.7, 0)))
+            p.rot("pinza_i", ry=_k(t, (0, 0), (0.25, -18.0), (0.45, 6.0), (0.7, 0)))
+            p.pos("cuerpo", z=_k(t, (0, 0), (0.25, 0.6), (0.4, -0.8), (0.7, 0)))
+            return p
+        return largo, pose_en
+    largo = 0.6
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("pinza_d", rx=_k(t, (0, 0), (0.2, 40.0), (0.35, -10.0), (0.6, 0)))
+        p.rot("pinza_i", rx=_k(t, (0, 0), (0.15, 15.0), (0.4, -5.0), (0.6, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.2, 6.0), (0.35, -3.0), (0.6, 0)))
+        return p
+    return largo, pose_en
+
+
+def atacar_lanzarse(L):
+    """Lanzarse y morder: la serpiente alza la cabeza, se recoge en S y se dispara al frente; el ajolote arremete con
+    todo el cuerpo y muerde."""
+    tramos = sorted((h for h in L.huesos if h.startswith("s") and h[1:].isdigit()), key=lambda h: int(h[1:]))
+    if tramos:
+        largo = 0.9 if L.b.id == "cria_varkhum" else 0.8
+        g = 0.45 * largo / 0.8
+        alza = 8.0 if L.b.id == "cria_varkhum" else 11.0
+
+        def pose_en(t):
+            p = L.pose()
+            p.rot(tramos[0], rx=_k(t, (0, 0), (g - 0.15, alza), (g, 4.0), (largo, 0)))
+            p.pos(tramos[0], z=_k(t, (0, 0), (g - 0.15, 2.0), (g, -5.0), (g + 0.15, -4.0), (largo, 0)))
+            p.rot(tramos[1], rx=_k(t, (0, 0), (g - 0.15, -alza), (g, -4.0), (largo, 0)))
+            curva = _k(t, (0, 0), (g - 0.15, 1.0), (g, 0.2), (largo, 0))
+            for k, h in enumerate(tramos[2:6]):
+                p.rot(h, ry=curva * (18.0 if k % 2 == 0 else -18.0))
+            return p
+        return largo, pose_en
+    largo = 0.7
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("cuerpo", z=_k(t, (0, 0), (0.2, 0.8), (0.35, -2.5), (0.7, 0)))
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.2, 15.0), (0.35, -10.0), (0.7, 0)))
+        _onda(p, ("cola1", "cola2", "cola3"), t / 0.35, 12.0, 1.0)
+        return p
+    return largo, pose_en
+
+
+def atacar_emboscada(L):
+    """Emboscada (ramita): tiesa como rama y de golpe se despliega: alza el frente y azota las patas de adelante."""
+    largo = 0.9
+    tiesa = {1: 35.0, 2: -30.0, 3: -30.0}
+
+    def pose_en(t):
+        p = L.pose()
+        f = _k(t, (0, 1.0), (0.25, 1.0), (0.4, 0.0), (0.9, 0.0))      # 1 = tiesa
+        for k in (1, 2, 3):
+            for lado, s in (("d", 1), ("i", -1)):
+                h = f"pata_{k}{lado}"
+                p.rot(h, ry=s * tiesa[k] * f, rz=s * 4.0 * f)
+        p.rot("pata_1d", rz=_k(t, (0, 0), (0.4, 45.0), (0.55, -8.0), (0.9, 0)))
+        p.rot("pata_1i", rz=_k(t, (0, 0), (0.4, -45.0), (0.55, 8.0), (0.9, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.25, 0.0), (0.42, 22.0), (0.55, 8.0), (0.9, 0)))
+        p.pos("cuerpo", y=_k(t, (0, 0), (0.25, 0.0), (0.42, 1.5), (0.9, 0)))
+        return p
+    return largo, pose_en
+
+
+def atacar_pegarse(L):
+    """Pegarse (garrapata): se agacha y salta con las patas abiertas para agarrarse."""
+    largo = 0.7
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("raiz", y=_k(t, (0, 0), (0.15, 0.0), (0.32, 3.5), (0.5, 1.0), (0.7, 0)),
+              z=_k(t, (0, 0), (0.15, 0.5), (0.45, -4.0), (0.7, 0)))
+        p.rot("raiz", rx=_k(t, (0, 0), (0.3, 10.0), (0.5, -3.0), (0.7, 0)))
+        abre = _k(t, (0, 0), (0.15, 0.0), (0.35, 30.0), (0.5, 20.0), (0.7, 0))
+        for k in (1, 2, 3):
+            p.rot(f"pata_{k}d", rz=abre)
+            p.rot(f"pata_{k}i", rz=-abre)
+        return p
+    return largo, pose_en
+
+
+def atacar_escupir(L):
+    """Escupir (salamandra): echa la cabeza atras tomando aire y la avienta al frente escupiendo la brasa."""
+    largo = 0.8
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.3, 22.0), (0.45, -10.0), (0.6, -4.0), (0.8, 0)))
+        p.pos("cuerpo", z=_k(t, (0, 0), (0.3, 1.0), (0.45, -1.0), (0.8, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.3, 5.0), (0.45, -3.0), (0.8, 0)))
+        p.rot("cola1", ry=_k(t, (0, 0), (0.3, 10.0), (0.45, -10.0), (0.8, 0)))
+        return p
+    return largo, pose_en
+
+
+def atacar_explotar(L):
+    """Explotar (escarabajo de brasa, al morir): tiembla cada vez mas fuerte, se alza con las patas tiesas y revienta
+    (las chispas las pone el mod al final)."""
+    largo = 0.8
+
+    def pose_en(t):
+        p = L.pose()
+        f = t / largo
+        temblor = 0.35 * f * math.sin(TAU * 9 * t)
+        p.pos("cuerpo", x=temblor, y=1.2 * f + abs(temblor))
+        p.rot("cuerpo", rz=8.0 * f * math.sin(TAU * 7 * t))
+        for k in (1, 2, 3):
+            p.rot(f"pata_{k}d", rz=28.0 * f)
+            p.rot(f"pata_{k}i", rz=-28.0 * f)
+        return p
+    return largo, pose_en
+
+
+def atacar_generico(L):
+    """El ataque generico de los que solo atacan manchados de mura: las aves dan picotazo, los chicos (liebre,
+    marmota, lagartos) una mordida rapida, el dromedario patea atras y el escarabajo sagrado da un cabezazo."""
+    ident = L.b.id
+    if ident == "dromedario":
+        largo = 0.9
+
+        def pose_en(t):
+            p = L.pose()
+            p.rot("cuerpo", rx=_k(t, (0, 0), (0.3, -4.0), (0.45, -9.0), (0.9, 0)))
+            for h in ("pata_td", "pata_ti"):
+                p.rot(h, _k(t, (0, 0), (0.3, 10.0), (0.45, -55.0), (0.65, -10.0), (0.9, 0)))
+                p.pos(h, y=_k(t, (0, 0), (0.45, 1.5), (0.9, 0)))
+            p.rot("cuello", rx=_k(t, (0, 0), (0.45, -12.0), (0.9, 0)))
+            p.rot("cabeza", rx=_k(t, (0, 0), (0.45, 10.0), (0.9, 0)))
+            return _montar_patas(L, p)
+        return largo, pose_en
+    if ident == "escarabajo_sagrado":
+        largo = 0.7
+
+        def pose_en(t):
+            p = L.pose()
+            p.pos("cuerpo", z=_k(t, (0, 0), (0.2, 0.8), (0.35, -2.0), (0.7, 0)))
+            p.rot("cuerpo", rx=_k(t, (0, 0), (0.2, 6.0), (0.35, -6.0), (0.7, 0)))
+            p.pos("cuerpo", y=_k(t, (0, 0), (0.2, 0.5), (0.35, 0.3), (0.7, 0)))
+            p.rot("cabeza", rx=_k(t, (0, 0), (0.2, 12.0), (0.35, -10.0), (0.7, 0)))
+            return p
+        return largo, pose_en
+    if "ala_d" in L.huesos:                                  # aves: picotazo
+        largo = 0.5
+
+        def pose_en(t):
+            p = L.pose()
+            cab = "cuello" if "cuello" in L.huesos else "cabeza"
+            p.rot(cab, rx=_k(t, (0, 0), (0.12, 12.0), (0.25, -32.0), (0.5, 0)))
+            p.rot("cuerpo", rx=_k(t, (0, 0), (0.25, -8.0), (0.5, 0)))
+            p.rot("ala_d", rz=_k(t, (0, 0), (0.25, 20.0), (0.5, 0)))
+            p.rot("ala_i", rz=_k(t, (0, 0), (0.25, -20.0), (0.5, 0)))
+            return _montar_patas(L, p)
+        return largo, pose_en
+    largo = 0.5                                               # mordida rapida
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("cuerpo", z=_k(t, (0, 0), (0.12, 0.6), (0.25, -1.5), (0.5, 0)))
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.12, 12.0), (0.25, -12.0), (0.5, 0)))
+        return _montar_patas(L, p) if "pata_dd" in L.huesos and L.rig.padre["pata_dd"] == "raiz" else p
+    return largo, pose_en
+
+
+ATACAR = {
+    "embestida": (atacar_embestida, ["toro_arena", "bufalo_terracota", "cria_iskarum", "cabra_escarcha"]),
+    "mordida_grande": (atacar_mordida_grande, ["hipopotamo", "cocodrilo_luz", "ballenato_duna"]),
+    "jauria": (atacar_jauria, ["lobo_fuego", "chacal_ceniza"]),
+    "zarpazo": (atacar_zarpazo, ["gato_thza", "babuino"]),
+    "picada": (atacar_picada, ["halcon_cobre", "aguila_gris", "cuervo_negro", "murcielago_mura"]),
+    "pinza": (atacar_pinza, ["escorpion_luz", "cangrejo"]),
+    "lanzarse": (atacar_lanzarse, ["serpiente_rio_seco", "cria_varkhum", "cria_moruvahn"]),
+    "emboscada": (atacar_emboscada, ["ramita"]),
+    "pegarse": (atacar_pegarse, ["garrapata_sal"]),
+    "escupir": (atacar_escupir, ["salamandra_ceniza"]),
+    "explotar": (atacar_explotar, ["escarabajo_brasa"]),
+    "generico_mura": (atacar_generico, ["pato_estanque", "ibis", "flamenco", "buitre", "liebre_dorada", "marmota",
+                                        "lagarto_roca", "lagartija_blanca", "dromedario", "escarabajo_sagrado"]),
+}
+GOLPE = {"embestida": 0.5, "mordida_grande": {"hipopotamo": 0.55, "cocodrilo_luz": 0.35, "ballenato_duna": 0.75},
+         "jauria": 0.4, "zarpazo": {"gato_thza": 0.3, "babuino": 0.35},
+         "picada": {"murcielago_mura": 0.3, "*": 0.45}, "pinza": {"escorpion_luz": 0.4, "cangrejo": 0.35},
+         "lanzarse": {"cria_varkhum": 0.5, "serpiente_rio_seco": 0.45, "cria_moruvahn": 0.35}, "emboscada": 0.55,
+         "pegarse": 0.45, "escupir": 0.45, "explotar": 0.8,
+         "generico_mura": {"dromedario": 0.45, "escarabajo_sagrado": 0.35, "*": 0.25}}
+
+ANIMACIONES = {"caminar": CAMINAR, "correr": CORRER, "atacar": ATACAR}
+EN_BUCLE = {"caminar": True, "correr": True, "atacar": False}
 DESDE_ARRIBA = ("reptiles", "serpientes", "cangrejo", "insectos", "aracnidos", "escurridizos", "carrera_baja",
-                "patitas_insectos", "patitas_aracnidos", "patitas_cangrejo", "ramita_tiesa")   # la segunda vista, desde arriba
+                "patitas_insectos", "patitas_aracnidos", "patitas_cangrejo", "ramita_tiesa", "lanzarse", "emboscada",
+                "pegarse", "escupir", "explotar")   # la segunda vista, desde arriba
 
 
 # ====================================================================== revisar
@@ -895,13 +1239,13 @@ def revisar_uniones(L, cuadros, tolerancia=0.3, cada=1):
     return fallas
 
 
-def gif(listos, nombre, poses, ruta, alto=None, cada=1, vistas=((35, 12), (90, 4))):
+def gif(listos, nombre, poses, ruta, alto=None, cada=1, vistas=((35, 12), (90, 4)), bucle=True):
     """Un GIF de todos los bichos del grupo lado a lado (de 3/4 y de lado), en caminadora."""
     alto = alto or (300 if len(listos) <= 2 else 230)
     columnas = []
     for L, (largo, pose_en) in zip(listos, poses):
-        datos, cuadros = animar.hornear(L.rig, nombre, largo, pose_en)
-        rev = animar.revisar(L.rig, cuadros, True)
+        datos, cuadros = animar.hornear(L.rig, nombre, largo, pose_en, bucle=bucle)
+        rev = animar.revisar(L.rig, cuadros, bucle)
         print(f"  {L.b.id}: {len(cuadros)} cuadros, lo mas bajo {rev['mas_bajo']} ({rev['hueso']}), "
               f"brinco del bucle {rev['brinco_del_bucle']}")
         tex = _tex(L.lienzo)
@@ -950,7 +1294,8 @@ def main(args):
         listos = [Listo(i) for i in ids]
         print(nombre, g)
         vistas = ((35, 12), (15, 70)) if g in DESDE_ARRIBA else ((35, 12), (90, 4))
-        print("  ->", gif(listos, nombre, [f(L) for L in listos], os.path.join(SALIDA, f"{nombre}_{g}.gif"), vistas=vistas))
+        print("  ->", gif(listos, nombre, [f(L) for L in listos], os.path.join(SALIDA, f"{nombre}_{g}.gif"), vistas=vistas,
+                          bucle=EN_BUCLE.get(nombre, True)))
 
 
 if __name__ == "__main__":
