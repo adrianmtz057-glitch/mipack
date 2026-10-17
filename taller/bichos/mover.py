@@ -109,10 +109,13 @@ def _lateral(p, h, s, u, apoyo, amplitud, alza):
     p.rot(h, ry=s * giro, rz=s * sube)
 
 
-def _onda(p, huesos, u, amplitud, desfase, eje="ry", crece=0.0):
-    """Una onda que corre hacia atras por una cadena de huesos (colas, serpientes)."""
+def _onda(p, huesos, u, amplitud, desfase, eje="ry", crece=0.0, rampa=0):
+    """Una onda que corre hacia atras por una cadena de huesos (colas, serpientes); rampa: en cuantos tramos llega a
+    toda su amplitud (el cuello de la serpiente dobla menos)."""
     for k, h in enumerate(huesos):
         a = amplitud * (1 + crece * k) * math.sin(TAU * u - desfase * (k + 1))
+        if rampa:
+            a *= min(1.0, (k + 1) / rampa)
         p.rot(h, **{eje: a})
 
 
@@ -216,7 +219,7 @@ def caminar_murcielago(L):
     def pose_en(t):
         u = t / largo
         p = L.pose()
-        a = 38.0 * math.sin(TAU * u)
+        a = 32.0 * math.sin(TAU * u)
         p.rot("ala_d", rz=a, ry=-6.0 * math.cos(TAU * u))
         p.rot("ala_i", rz=-a, ry=6.0 * math.cos(TAU * u))
         p.pos("cuerpo", y=1.0 - 0.8 * math.sin(TAU * u))
@@ -319,7 +322,7 @@ def caminar_serpiente(L):
     def pose_en(t):
         u = t / largo
         p = L.pose()
-        _onda(p, tramos[1:], u, 16.0, 0.75)
+        _onda(p, tramos[1:], u, 16.0, 0.75, rampa=3)
         p.rot(tramos[0], ry=-6.0 * math.sin(TAU * u - 0.75))
         p.rot(tramos[0], rx=1.0 * math.sin(2 * TAU * u))
         return p
@@ -473,11 +476,424 @@ CAMINAR = {
     "zancudas": (caminar_zancuda, ["ibis", "flamenco"]),
     "cangrejo": (caminar_cangrejo, ["cangrejo"]),
 }
-ANIMACIONES = {"caminar": CAMINAR}
-DESDE_ARRIBA = ("reptiles", "serpientes", "cangrejo", "insectos", "aracnidos")   # la segunda vista, desde arriba
+# ====================================================================== correr
+
+def _montar_patas(L, p):
+    """Las patas cuelgan de la raiz: si el cuerpo sube, se mece o se ladea, la cadera de cada pata lo sigue (si el
+    cuerpo baja no hace falta: se encima sobre la pata, que queda escondida adentro)."""
+    T = L.rig.transformaciones(p)
+    T0 = L.rig.transformaciones({})
+    local = animar._inversa(T["raiz"]).despues(T["cuerpo"])          # lo que se movio el cuerpo sobre la raiz
+    local0 = animar._inversa(T0["raiz"]).despues(T0["cuerpo"])
+    for h in L.huesos:
+        if h.startswith("pata") and L.rig.padre[h] == "raiz":
+            piv = L.rig.pivote[h]
+            a, b = local(piv), local0(piv)
+            p.pos(h, x=a[0] - b[0], y=max(0.0, a[1] - b[1]), z=a[2] - b[2])
+    return p
+
+
+def _galope(L, p, fases, u, apoyo, amplitud, alza, atras=1.0):
+    """Las cuatro patas rigidas con su fase cada una (galope, brinco, estampida); atras: cuanto de la zancada dan
+    las de atras."""
+    for h, f in fases.items():
+        giro, sube = _pata(u + f, apoyo, amplitud * (atras if h[5] == "t" else 1.0), alza)
+        p.rot(h, giro)
+        p.pos(h, y=sube)
+
+
+def correr_lobo(L):
+    """Galope de lobo (lobo de fuego, chacal), no de perro: galope transversal largo y parejo (trasera izq, trasera
+    der, delantera izq, delantera der) con un tramo en el aire; el lomo se mece poco, la cabeza va baja y fija al
+    frente (la cabeza compensa el meneo del cuerpo), las orejas atras y la cola horizontal."""
+    largo = 0.55
+    fases = {"pata_ti": 0.0, "pata_td": 0.1, "pata_di": 0.5, "pata_dd": 0.6}
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        _galope(L, p, fases, u, 0.42, 42.0, 0.8, atras=0.7)
+        meneo = 5.0 * math.sin(TAU * u + 0.6)
+        p.rot("cuerpo", rx=meneo)
+        p.pos("cuerpo", y=0.6 + 0.6 * math.sin(2 * TAU * u))
+        p.rot("cabeza", rx=-meneo - 9.0)                 # baja y firme
+        p.rot("mandibula", rx=-4.0 - 3.0 * math.sin(2 * TAU * u))
+        p.rot("cola", rx=-14.0 + 3.0 * math.sin(TAU * u), ry=3.0 * math.sin(TAU * u))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_zorro(L):
+    """Fenec: galope rasante y rapido con la cola de timon, estirada atras."""
+    largo = 0.4
+    fases = {"pata_ti": 0.0, "pata_td": 0.08, "pata_di": 0.5, "pata_dd": 0.58}
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        _galope(L, p, fases, u, 0.4, 40.0, 0.6, atras=0.7)
+        meneo = 6.0 * math.sin(TAU * u + 0.6)
+        p.rot("cuerpo", rx=meneo)
+        p.pos("cuerpo", y=0.4 + 0.5 * math.sin(2 * TAU * u))
+        p.rot("cabeza", rx=-meneo - 5.0)
+        p.rot("cola", rx=-22.0 + 2.0 * math.sin(TAU * u), ry=6.0 * math.sin(TAU * u))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_felino(L):
+    """Gato: galope rotatorio con el lomo muy flexible (se encoge y se estira), pegado al piso; la cola balancea."""
+    largo = 0.45
+    fases = {"pata_ti": 0.0, "pata_td": 0.08, "pata_dd": 0.5, "pata_di": 0.58}
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        _galope(L, p, fases, u, 0.38, 48.0, 1.4)
+        meneo = 10.0 * math.sin(TAU * u + 0.5)
+        p.rot("cuerpo", rx=meneo)
+        p.pos("cuerpo", y=-0.4 + 0.5 * math.sin(2 * TAU * u))
+        p.rot("cabeza", rx=-meneo - 3.0)
+        p.rot("cola", rx=-10.0 + 10.0 * math.sin(TAU * u - 0.8), ry=8.0 * math.sin(TAU * u))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_estampida(L):
+    """Estampida (toro, bufalo, hipopotamo, cria de Iskarum): galope pesado, la cabeza baja (los cuernos al frente),
+    todo el cuerpo rebota y se mece; la trompa y la cola van sueltas."""
+    largo = {"cria_iskarum": 0.75, "hipopotamo": 0.65}.get(L.b.id, 0.6)
+    fases = {"pata_ti": 0.0, "pata_td": 0.12, "pata_di": 0.5, "pata_dd": 0.62}
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        _galope(L, p, fases, u, 0.5, 30.0, 1.8)
+        meneo = 5.0 * math.sin(TAU * u + 0.6)
+        p.rot("cuerpo", rx=meneo, rz=2.0 * math.sin(TAU * u))
+        p.pos("cuerpo", y=0.3 + 0.9 * math.sin(2 * TAU * u))
+        p.rot("cabeza", rx=-meneo - 14.0, rz=-2.0 * math.sin(TAU * u))
+        p.rot("trompa", rx=14.0 * math.sin(2 * TAU * u - 1.0), rz=6.0 * math.sin(TAU * u))
+        p.rot("cola", rx=-12.0 + 8.0 * math.sin(2 * TAU * u), rz=8.0 * math.sin(TAU * u))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_brincos(L):
+    """Brincos por pares (babuino, liebre, marmota): las manos juntas y luego las patas juntas, el lomo se dobla y
+    se estira. La liebre corre en zigzag (cambia de lado cada dos brincos)."""
+    ident = L.b.id
+    ciclo = {"babuino": 0.5, "marmota": 0.4, "liebre_dorada": 0.4}[ident]
+    largo = ciclo * (4 if ident == "liebre_dorada" else 1)
+    fases = {"pata_dd": 0.0, "pata_di": 0.06, "pata_td": 0.5, "pata_ti": 0.56}
+
+    def pose_en(t):
+        u = t / ciclo
+        p = L.pose()
+        liebre = ident == "liebre_dorada"
+        _galope(L, p, fases, u, 0.42, 30.0 if liebre else 36.0, 1.0 if liebre else 2.0)
+        meneo = 9.0 * math.sin(TAU * u)
+        p.rot("cuerpo", rx=meneo)
+        p.pos("cuerpo", y=0.8 + 0.8 * math.sin(TAU * u - 0.5))
+        p.rot("cabeza", rx=-meneo * 0.8)
+        p.rot("cola", rx=-6.0 * math.sin(TAU * u - 1.0))
+        if ident == "liebre_dorada":                   # zigzag: gira a un lado y luego al otro
+            p.rot("raiz", ry=18.0 * math.sin(TAU * t / largo))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_elastico(L):
+    """Saltos elasticos (cervatillo, cabra): rebota con las cuatro patas tiesas (las de adelante un poco adelante,
+    las de atras atras), todo el cuerpo en el aire; la cabeza en alto y la cola parada."""
+    largo = 0.6
+
+    def pose_en(t):
+        u = (t / largo) % 1.0
+        p = L.pose()
+        aire = math.sin(math.pi * min(1.0, u / 0.7)) if u < 0.7 else 0.0
+        p.pos("raiz", y=5.0 * aire)
+        abre = 10.0 * aire
+        p.rot("pata_dd", abre)
+        p.rot("pata_di", abre)
+        p.rot("pata_td", -abre)
+        p.rot("pata_ti", -abre)
+        if u >= 0.7:                                    # al caer se agacha y rebota
+            f = (u - 0.7) / 0.3
+            p.pos("cuerpo", y=-0.8 * math.sin(math.pi * f))
+        p.rot("cuerpo", rx=4.0 * math.sin(TAU * u))
+        p.rot("cuello", rx=-3.0 * math.sin(TAU * u))
+        p.rot("cabeza", rx=4.0 * aire)
+        p.rot("cola", rx=-25.0)
+        return p
+    return largo, pose_en
+
+
+def correr_camello(L):
+    """Dromedario: ambladura rapida (la montura que vuela en la arena): zancadas largas, el cuello estirado al
+    frente y bien mecido de lado a lado."""
+    largo = 0.7
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        for lado, f in (("d", 0.0), ("i", 0.5)):
+            for fila in "dt":
+                giro, alza = _pata(u + f, 0.5, 28.0, 2.4)
+                p.rot(f"pata_{fila}{lado}", giro)
+                p.pos(f"pata_{fila}{lado}", y=alza)
+        p.rot("cuerpo", rz=5.0 * math.sin(TAU * u))
+        p.pos("cuerpo", y=0.4 + 0.5 * math.cos(2 * TAU * u))
+        p.rot("cuello", rx=-14.0 + 4.0 * math.sin(2 * TAU * u - 0.6), rz=-3.0 * math.sin(TAU * u))
+        p.rot("cabeza", rx=12.0 - 3.5 * math.sin(2 * TAU * u - 0.6))
+        p.rot("cola", rx=-15.0, rz=10.0 * math.sin(TAU * u - 0.8))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_escurridizo(L):
+    """Escurridizos (lagarto, lagartija): patitas a toda velocidad, la S del cuerpo mas marcada y la cola alzada
+    meciendose."""
+    largo = 0.3
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        for h, s, f in (("pata_dd", 1, 0.0), ("pata_ti", -1, 0.0), ("pata_di", -1, 0.5), ("pata_td", 1, 0.5)):
+            _lateral(p, h, s, u + f, 0.5, 32.0, 22.0)
+        dobla = 12.0 * math.sin(TAU * u)
+        p.rot("cuerpo", ry=dobla)
+        p.rot("cabeza", ry=-dobla * 1.1, rx=4.0)
+        p.rot("cola1", rx=-14.0)
+        _onda(p, ("cola1", "cola2", "cola3"), u, 12.0, 1.0, crece=0.2)
+        return p
+    return largo, pose_en
+
+
+def correr_bajo(L):
+    """Carrera baja (cocodrilo, salamandra, ajolote): serpentea fuerte pegado al piso, con zancadas largas."""
+    largo = {"cocodrilo_luz": 0.8, "salamandra_ceniza": 0.55, "cria_moruvahn": 0.6}[L.b.id]
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        for h, s, f in (("pata_dd", 1, 0.0), ("pata_ti", -1, 0.0), ("pata_di", -1, 0.5), ("pata_td", 1, 0.5)):
+            _lateral(p, h, s, u + f, 0.5, 34.0, 20.0)
+        dobla = 15.0 * math.sin(TAU * u)
+        p.rot("cuerpo", ry=dobla)
+        p.pos("cuerpo", y=0.25 * math.cos(2 * TAU * u))
+        p.rot("cabeza", ry=-dobla * 1.15)
+        _onda(p, ("cola1", "cola2", "cola3"), u, 15.0, 1.1, crece=0.3)
+        return p
+    return largo, pose_en
+
+
+def acelerado(f, k=2.0):
+    """La misma animacion k veces mas rapida (las patitas: insectos, aracnidos, cangrejo)."""
+    def g(L):
+        largo, pose_en = f(L)
+        return round(largo / k / 0.05) * 0.05, lambda t: pose_en(t * largo / (round(largo / k / 0.05) * 0.05))
+    return g
+
+
+def correr_serpiente(L):
+    """Serpientes: la onda mas rapida y mas ancha, con la cabeza alzada."""
+    tramos = sorted((h for h in L.huesos if h.startswith("s") and h[1:].isdigit()), key=lambda h: int(h[1:]))
+    largo = 0.9 if L.b.id == "cria_varkhum" else 0.7
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        _onda(p, tramos[1:], u, 15.0 if L.b.id == "cria_varkhum" else 22.0, 0.8, rampa=3)
+        p.rot(tramos[0], rx=8.0, ry=-8.0 * math.sin(TAU * u - 0.8))
+        p.rot(tramos[1], rx=-8.0)
+        return p
+    return largo, pose_en
+
+
+def correr_despegue(L):
+    """Despegue (todas las aves): corre a pasitos rapidos inclinada al frente con las alas abiertas aleteando, como
+    al tomar vuelo."""
+    largo = 0.4 if L.largo_pata("pata_d") < 5 else 0.5
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        for h, f in (("pata_d", 0.0), ("pata_i", 0.5)):
+            giro, alza = _pata(u + f, 0.5, 30.0, 1.6)
+            p.rot(h, giro)
+            p.pos(h, y=alza)
+        p.rot("cuerpo", rx=-10.0)
+        p.pos("cuerpo", y=0.5 + 0.4 * math.sin(2 * TAU * u))
+        aleteo = 75.0 + 30.0 * math.sin(2 * TAU * u)
+        p.rot("ala_d", rz=aleteo)
+        p.rot("ala_i", rz=-aleteo)
+        p.rot("cuello", rx=-12.0)
+        p.rot("cabeza", rx=10.0)
+        p.rot("cola", rx=8.0)
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def correr_murcielago(L):
+    """Murcielago: aleteo mas rapido, inclinado al frente."""
+    largo = 0.25
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        a = 32.0 * math.sin(TAU * u)
+        p.rot("cuerpo", rx=-18.0)
+        p.rot("ala_d", rz=a)
+        p.rot("ala_i", rz=-a)
+        p.pos("cuerpo", y=1.0 - 0.6 * math.sin(TAU * u))
+        for h in ("pata_d", "pata_i"):
+            p.pos(h, y=1.0 - 0.6 * math.sin(TAU * u))
+            p.rot(h, 40.0)
+        p.rot("cabeza", rx=14.0)
+        return p
+    return largo, pose_en
+
+
+def correr_ballenato(L):
+    """Ballenato: nada rapido y brinca fuera de la arena como delfin (sale de punta, arquea y se clava)."""
+    largo = 1.6
+
+    def pose_en(t):
+        u = (t / largo) % 1.0
+        p = L.pose()
+        brinco = math.sin(math.pi * min(1.0, u / 0.55)) if u < 0.55 else 0.0
+        f = min(1.0, u / 0.55)
+        p.pos("raiz", y=9.0 * brinco)
+        p.rot("raiz", rx=(22.0 - 44.0 * f) * (1.0 if u < 0.55 else 0.0))
+        nado = 1.0 - brinco
+        p.rot("cola", rx=-24.0 * math.sin(TAU * 3 * u - 1.2) * nado + 10.0 * brinco)
+        p.rot("cuerpo", rx=4.0 * math.sin(TAU * 3 * u) * nado)
+        p.pos("cuerpo", y=1.0)
+        p.rot("aleta_d", rz=-25.0 * brinco + 10.0 * math.sin(TAU * 3 * u) * nado)
+        p.rot("aleta_i", rz=25.0 * brinco - 10.0 * math.sin(TAU * 3 * u) * nado)
+        return p
+    return largo, pose_en
+
+
+def correr_ramita(L):
+    """Ramita: no corre; se queda tiesa fingiendo ser rama (las patas pegadas al cuerpo, a lo largo) y apenas se
+    mece con el viento."""
+    largo = 2.0
+
+    def pose_en(t):
+        u = t / largo
+        p = L.pose()
+        for k, s in ((1, 1), (1, -1), (2, 1), (2, -1), (3, 1), (3, -1)):
+            h = f"pata_{k}{'d' if s > 0 else 'i'}"
+            p.rot(h, ry=s * (35.0 if k == 1 else -30.0), rz=s * 4.0)
+        p.rot("cabeza", rx=-4.0)
+        p.rot("cuerpo", rz=1.5 * math.sin(TAU * u))
+        return p
+    return largo, pose_en
+
+
+CORRER = {
+    "galope_lobo": (correr_lobo, ["lobo_fuego", "chacal_ceniza"]),
+    "zorro": (correr_zorro, ["fenec"]),
+    "felino": (correr_felino, ["gato_thza"]),
+    "estampida": (correr_estampida, ["toro_arena", "bufalo_terracota", "hipopotamo", "cria_iskarum"]),
+    "brincos": (correr_brincos, ["babuino", "liebre_dorada", "marmota"]),
+    "elasticos": (correr_elastico, ["cervatillo_musgo", "cabra_escarcha"]),
+    "camello": (correr_camello, ["dromedario"]),
+    "escurridizos": (correr_escurridizo, ["lagarto_roca", "lagartija_blanca"]),
+    "carrera_baja": (correr_bajo, ["cocodrilo_luz", "salamandra_ceniza", "cria_moruvahn"]),
+    "patitas_insectos": (acelerado(caminar_insecto), ["escarabajo_sagrado", "escarabajo_brasa"]),
+    "patitas_aracnidos": (acelerado(caminar_aracnido), ["escorpion_luz", "garrapata_sal"]),
+    "patitas_cangrejo": (acelerado(caminar_cangrejo), ["cangrejo"]),
+    "serpientes": (correr_serpiente, ["serpiente_rio_seco", "cria_varkhum"]),
+    "despegue": (correr_despegue, ["pato_estanque", "buitre", "halcon_cobre", "aguila_gris", "cuervo_negro", "ibis",
+                                   "flamenco"]),
+    "murcielago": (correr_murcielago, ["murcielago_mura"]),
+    "ballenato": (correr_ballenato, ["ballenato_duna"]),
+    "ramita_tiesa": (correr_ramita, ["ramita"]),
+}
+
+ANIMACIONES = {"caminar": CAMINAR, "correr": CORRER}
+DESDE_ARRIBA = ("reptiles", "serpientes", "cangrejo", "insectos", "aracnidos", "escurridizos", "carrera_baja",
+                "patitas_insectos", "patitas_aracnidos", "patitas_cangrejo", "ramita_tiesa")   # la segunda vista, desde arriba
 
 
 # ====================================================================== revisar
+
+def _cajas(L):
+    """{hueso de GeckoLib: [(giro del cubo o None, desde, hasta)]}: los cubos de cada hueso en px del modelo."""
+    rutas = set(L.a.m.pivotes)
+    for c in L.a.m.cubos:
+        partes = c.hueso.split("/")
+        rutas.update("/".join(partes[:i + 1]) for i in range(len(partes)))
+    nombre = geckolib.nombres_de_huesos(rutas)
+    cajas = {}
+    for c in L.a.m.cubos:
+        giro = geckolib._giro_en(tuple(c.origen), tuple(math.radians(r) for r in c.rot)) if c.rot else None
+        cajas.setdefault(nombre[c.hueso], []).append((giro, tuple(c.desde), tuple(c.hasta)))
+    return cajas
+
+
+def _esquinas(giro, f, h):
+    pts = [(x, y, z) for x in (f[0], h[0]) for y in (f[1], h[1]) for z in (f[2], h[2])]
+    return [giro(p) for p in pts] if giro else pts
+
+
+def _fuera(p, cajas):
+    """Lo que el punto p (px del modelo) queda fuera del cubo mas cercano de la lista (0 si esta adentro)."""
+    mejor = 1e9
+    for giro, f, h in cajas:
+        q = animar._inversa(giro)(p) if giro else p
+        d = math.sqrt(sum(max(f[i] - q[i], 0.0, q[i] - h[i]) ** 2 for i in range(3)))
+        mejor = min(mejor, d)
+    return mejor
+
+
+def revisar_uniones(L, cuadros, tolerancia=0.3, cada=1):
+    """Que ninguna pieza se despegue de aquella a la que va pegada (su padre, o el cuerpo si cuelga de la raiz):
+    las esquinas de la pieza que en reposo quedan dentro de la otra deben seguir dentro en cada cuadro.
+    Devuelve [(hueso, pegado a, cuanto se separa en px, en que segundo)] de los que fallan (en reposo: t = None)."""
+    cajas = _cajas(L)
+    fallas = []
+    for b in cajas:
+        padre = L.rig.padre.get(b)
+        if b == "cuerpo" or padre is None or (padre == "raiz" and b in ("bola",)) or b.startswith("s0"):
+            continue
+        a = padre if padre in cajas else "cuerpo"
+        if a not in cajas or a == b:
+            continue
+        reposo = L.rig.transformaciones({})
+
+        def pegadas(x, y):
+            """Las esquinas de x que en reposo quedan dentro de y."""
+            pts = [p for giro, f, h in cajas[x] for p in _esquinas(giro, f, h)]
+            dentro = [p for p in pts if _fuera(animar._inversa(reposo[y])(reposo[x](p)), cajas[y]) <= 1e-3]
+            if dentro:                                   # la union es la bisagra: las esquinas cerca del pivote
+                piv = L.rig.pivote[b]
+                cerca = min(math.dist(q, piv) for q in dentro)
+                dentro = [q for q in dentro if math.dist(q, piv) <= cerca + 1.5]
+            return dentro, pts
+        dentro, esquinas = pegadas(b, a)
+        x, y = b, a
+        if not dentro:                                   # o al reves: el cuello que se mete en la cabeza
+            dentro, _ = pegadas(a, b)
+            x, y = a, b
+        if not dentro:
+            d = min(_fuera(animar._inversa(reposo[a])(reposo[b](p)), cajas[a]) for p in esquinas)
+            fallas.append((b, a, round(d, 2), None))
+            continue
+        peor, cuando = 0.0, None
+        for t, pose in cuadros[::cada]:
+            T = L.rig.transformaciones(pose)
+            inv = animar._inversa(T[y])
+            d = max(_fuera(inv(T[x](p)), cajas[y]) for p in dentro)
+            if d > peor:
+                peor, cuando = d, t
+        if peor > tolerancia:
+            fallas.append((b, a, round(peor, 2), cuando))
+    return fallas
+
 
 def gif(listos, nombre, poses, ruta, alto=None, cada=1, vistas=((35, 12), (90, 4))):
     """Un GIF de todos los bichos del grupo lado a lado (de 3/4 y de lado), en caminadora."""

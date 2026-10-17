@@ -106,6 +106,13 @@ def cuadrupedo(ident, piel, cuerpo=(8, 8, 14), pata=(2.5, 8), cabeza=(5, 5, 5), 
     g, L = pata
     ga, La = patas_atras or pata
     base = max(L, La) + alto_extra
+    zf, zt = -l / 2 + g / 2 + 0.6, l / 2 - ga / 2 - 0.6
+    incl = 0.0
+    if abs(L - La) > 1.0:                                  # unas patas mas cortas (babuino): el cuerpo se inclina
+        sen = (L - La) / (zt - zf)                         # para que las cuatro lleguen a la panza
+        incl = math.degrees(math.asin(sen))
+        base = L + zf * sen - h / 2 * (1 - math.cos(math.radians(incl))) + alto_extra
+        a.m.giros["raiz/cuerpo"] = (incl, 0.0, 0.0)
     a.hueso("raiz/cuerpo", (0, base + h / 2, 0))
     a.caja("raiz/cuerpo", "cuerpo", (-w / 2, base, -l / 2), (w / 2, base + h, l / 2))
     if panza:
@@ -128,7 +135,7 @@ def cuadrupedo(ident, piel, cuerpo=(8, 8, 14), pata=(2.5, 8), cabeza=(5, 5, 5), 
                parte="cuerpo")
     # patas
     for lado, s in (("d", 1), ("i", -1)):
-        for fila, gz, gg, LL in (("d", -l / 2 + g / 2 + 0.6, g, L), ("t", l / 2 - ga / 2 - 0.6, ga, La)):
+        for fila, gz, gg, LL in (("d", zf, g, L), ("t", zt, ga, La)):
             x = s * (w / 2 - gg / 2 - 0.4)
             ruta = a.hueso(f"raiz/pata_{fila}{lado}", (x, LL + alto_extra, gz))
             a.caja(ruta, f"pata_{fila}{lado}", (x - gg / 2, 0, gz - gg / 2), (x + gg / 2, LL + alto_extra + 1.0, gz + gg / 2),
@@ -148,6 +155,8 @@ def cuadrupedo(ident, piel, cuerpo=(8, 8, 14), pata=(2.5, 8), cabeza=(5, 5, 5), 
         centro = (0.0, base + h * 0.75 + hh * 0.25, -l / 2 - hl / 2 + 1.0)
         ruta_cab = a.hueso("raiz/cuerpo/cabeza", (0.0, centro[1] - hh * 0.3, centro[2] + hl / 2))
     cab = a.centrada(ruta_cab, "cabeza", centro, cabeza)
+    if incl:                                               # la cabeza no se inclina con el cuerpo
+        a.m.giros[ruta_cab] = (-incl, 0.0, 0.0)
     cx, cy, cz = centro
     if hocico:
         sw, sh, sl = hocico
@@ -325,14 +334,14 @@ def reptil(ident, piel, cuerpo=(4, 2.5, 8), pata=(1.2, 2.5), cabeza=(3.2, 2.2, 3
         a.caja("raiz/cuerpo", "cresta", (-cresta[0] / 2, base + h - 0.1, -l / 2 + 0.5), (cresta[0] / 2, base + h + cresta[1], l / 2 - 0.5))
     for lado, s in (("d", 1), ("i", -1)):
         for fila, z in (("d", -l / 2 + g), ("t", l / 2 - g)):
-            p0 = (s * (w / 2 - 0.3), base + h * 0.35, z)
+            p0 = (s * (w / 2 - 0.8), base + h * 0.35, z)
             codo = (s * (w / 2 + L * 0.6), base + h * 0.35, z - 0.2)
             pie = (s * (w / 2 + L * 0.75), 0.0, z - 0.6)
             ruta = a.hueso(f"raiz/cuerpo/pata_{fila}{lado}", p0)
             a.segmento(ruta, f"pata_{fila}{lado}", p0, codo, g, parte="pata")
             a.segmento(ruta, f"canilla_{fila}{lado}", codo, pie, g * 0.9, parte="pata")
     hw, hh, hl = cabeza
-    centro = (0.0, base + h * 0.55, -l / 2 - hl / 2 + 0.6)
+    centro = (0.0, base + h * 0.55, -l / 2 - hl / 2 + 1.0)
     ruta_cab = a.hueso("raiz/cuerpo/cabeza", (0.0, centro[1], -l / 2 + 0.6))
     cab = a.centrada(ruta_cab, "cabeza", centro, cabeza)
     cx, cy, cz = centro
@@ -352,8 +361,10 @@ def reptil(ident, piel, cuerpo=(4, 2.5, 8), pata=(1.2, 2.5), cabeza=(3.2, 2.2, 3
     ruta = "raiz/cuerpo"
     for k in range(3):
         ruta = a.hueso(f"{ruta}/cola{k + 1}", p)
-        q = _mas(p, _unit((0.0, -0.06 - 0.05 * k, 1.0)), cl / 3)
-        a.segmento(ruta, f"cola{k + 1}", p, q, cg * (1 - 0.25 * k), cg * (1 - 0.25 * k) * 0.8, parte="cola")
+        d = _unit((0.0, -0.06 - 0.05 * k, 1.0))
+        q = _mas(p, d, cl / 3)
+        p0 = _mas(p, d, -0.6 if k else -0.7)               # cada tramo se mete en el anterior: al ondular no se abre
+        a.segmento(ruta, f"cola{k + 1}", p0, q, cg * (1 - 0.25 * k), cg * (1 - 0.25 * k) * 0.8, parte="cola")
         p = q
     if aleta_cola:
         a.caja(ruta, "aleta_dorsal", (-0.2, p[1] - 0.2, p[2] - cl / 3), (0.2, p[1] + cg * 1.4, p[2]), parte="cresta")
@@ -380,7 +391,8 @@ def serpiente(ident, piel, tramos=8, grosor=2.5, largo_tramo=3.5, cabeza=(3.2, 2
         q = _mas(p, d, largo_tramo)
         ruta = a.hueso(f"{ruta}/s{k}", p)
         g = grosor * (1.0 if k < tramos - 2 else 0.8 if k < tramos else 0.55)
-        a.segmento(ruta, f"cuerpo{k}" if k < tramos else "cola", p, q, g, g, parte="cuerpo" if k < tramos else "cola")
+        p0 = _mas(p, d, -1.4 if k == 1 else -0.7)          # cada tramo se mete en el anterior (o en la cabeza)
+        a.segmento(ruta, f"cuerpo{k}" if k < tramos else "cola", p0, q, g, g, parte="cuerpo" if k < tramos else "cola")
         p = q
     return a
 
@@ -485,7 +497,7 @@ def pez(ident, piel, cuerpo=(8, 7, 14), cabeza=(7, 6, 5), cola=(9, 1, 5), aletas
         a.caja(ruta_cab, "hocico", (-hw / 2 + 0.3, base, centro[2] - hl / 2 - 0.6), (hw / 2 - 0.3, base + hh * 0.35, centro[2] - hl / 2 + 0.01))
     cw, ch, cl = cola
     ruta = a.hueso("raiz/cuerpo/cola", (0, base + h / 2, l / 2))
-    a.caja(ruta, "cola", (-w / 4, base + h * 0.25, l / 2 - 0.5), (w / 4, base + h * 0.7, l / 2 + cl * 0.8))
+    a.caja(ruta, "cola", (-w / 4, base + h * 0.25, l / 2 - 1.5), (w / 4, base + h * 0.7, l / 2 + cl * 0.8))
     a.caja(ruta, "aleta_cola", (-cw / 2, base + h * 0.42, l / 2 + cl * 0.6), (cw / 2, base + h * 0.42 + ch, l / 2 + cl * 1.3),
            parte="cola_punta")
     aw, ag, al = aletas
@@ -517,8 +529,9 @@ def murcielago(ident, piel, cuerpo=(3, 3.5, 3), cabeza=(3, 3, 2.5), envergadura=
         b0 = (s * (hw / 2 - 0.5), centro[1] + hh / 2 - 0.2, centro[2])
         a.segmento(ruta_cab, f"oreja_{'d' if s > 0 else 'i'}", b0, _mas(b0, _unit((s * 0.4, 1, 0.1)), 2.2), 1.0, 0.5, parte="oreja")
         ruta = a.hueso(f"raiz/cuerpo/ala_{'d' if s > 0 else 'i'}", (s * w / 2, base + h - 0.5, 0.0))
-        a.caja(ruta, f"membrana_{'d' if s > 0 else 'i'}", (min(s * w / 2, s * (w / 2 + envergadura)), base + 0.3, -0.25),
-               (max(s * w / 2, s * (w / 2 + envergadura)), base + h + 0.8, 0.25), parte="membrana")
+        adentro = s * (w / 2 - 1.4)                         # la membrana entra al cuerpo: al aletear no se despega
+        a.caja(ruta, f"membrana_{'d' if s > 0 else 'i'}", (min(adentro, s * (w / 2 + envergadura)), base + 0.3, -0.25),
+               (max(adentro, s * (w / 2 + envergadura)), base + h + 0.8, 0.25), parte="membrana")
         a.segmento(ruta, f"ala_hueso_{'d' if s > 0 else 'i'}", (s * w / 2, base + h + 0.6, 0.0),
                    (s * (w / 2 + envergadura), base + h + 0.9, 0.0), 0.5, parte="pata")
     for s in (1, -1):
