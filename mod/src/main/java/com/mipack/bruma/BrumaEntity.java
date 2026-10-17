@@ -83,7 +83,7 @@ import java.util.UUID;
  * (taller/personajes/bruma_anim.py); el modelo (taller/personajes/bruma.py) mide 1.85 bloques y se dibuja ESCALA veces.
  */
 public class BrumaEntity extends Monster implements GeoEntity {
-    public enum Estado { QUIETO, ACECHAR, ZARPAZO, AGARRAR, DRENAR, GRITO, DISOLVERSE, VIAJAR, APARECER, JIRONES, FASE2, MUERTE }
+    public enum Estado { QUIETO, ACECHAR, ZARPAZO, AGARRAR, DRENAR, GRITO, DISOLVERSE, VIAJAR, APARECER, JIRONES, FASE2, TITIRITERA, CLONES, RODILLAS, MUERTE }
 
     /** Cuanto crece el modelo en el juego (el render lo usa): unos 6 bloques de alto. */
     public static final float ESCALA = 3.2f;
@@ -127,9 +127,12 @@ public class BrumaEntity extends Monster implements GeoEntity {
     private static final RawAnimation A_APARECER = RawAnimation.begin().thenPlay("animation.bruma.aparecer");
     private static final RawAnimation A_JIRONES = RawAnimation.begin().thenPlay("animation.bruma.jirones");
     private static final RawAnimation A_FASE2 = RawAnimation.begin().thenPlay("animation.bruma.fase2");
+    private static final RawAnimation A_TITIRITERA = RawAnimation.begin().thenPlayAndHold("animation.bruma.fase2");
+    private static final RawAnimation A_RODILLAS = RawAnimation.begin().thenPlay("animation.bruma.grito").thenLoop("animation.bruma.flotar");
     private static final RawAnimation A_MUERTE = RawAnimation.begin().thenPlayAndHold("animation.bruma.muerte");
 
     private static final DustParticleOptions NEGRA = new DustParticleOptions(new Vector3f(0.05f, 0.05f, 0.06f), 1.6f);
+    private static final DustParticleOptions HILO = new DustParticleOptions(new Vector3f(0.55f, 0.25f, 0.75f), 0.6f);
     private static final DustParticleOptions GRIS = new DustParticleOptions(new Vector3f(0.18f, 0.19f, 0.21f), 1.2f);
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
@@ -143,6 +146,12 @@ public class BrumaEntity extends Monster implements GeoEntity {
     private int ticksEnEstado, maxJugadores, corporeaHasta, atascado;
     private int enfriar = 20, enfriarGrito = 120, enfriarAgarre = 100, enfriarJirones = 80, enfriarViaje = 160, enfriarAlmas;
     private boolean grito0, soltando, enLuz, avisoLuz;
+    // el ejercito y los clones (ataques de centro): si ya salio el ejercito, cuando vuelven los clones, quienes son
+    private boolean ejercitoHecho, murioGrande;
+    private int enfriarClones = 400, yendoCentro = -1;
+    private Estado trasCentro;
+    private BlockPos centroPropio;
+    private final List<UUID> soldados = new ArrayList<>(), clones = new ArrayList<>();
     private LivingEntity presa;
     private float danoEnDrenaje;
     private int apagadas, drenados;                                // para las pruebas
@@ -282,6 +291,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
         this.enfriarJirones--;
         this.enfriarViaje--;
         this.enfriarAlmas--;
+        this.enfriarClones--;
         if (this.tickCount % 20 == 0) {
             participantes();
             this.amenaza.olvidar();
@@ -291,10 +301,12 @@ public class BrumaEntity extends Monster implements GeoEntity {
             apagarLuces();
         luz();
         this.entityData.set(CORPOREA, this.enLuz || this.tickCount < this.corporeaHasta || this.isOnFire()
-                || e == Estado.ZARPAZO || e == Estado.AGARRAR || e == Estado.DRENAR || e == Estado.GRITO || e == Estado.JIRONES);
+                || e == Estado.ZARPAZO || e == Estado.AGARRAR || e == Estado.DRENAR || e == Estado.GRITO || e == Estado.JIRONES
+                || e == Estado.RODILLAS);
         this.barra.setProgress(this.getHealth() / this.getMaxHealth());
         if (!fase2() && this.getHealth() < this.getMaxHealth() * 0.5f && e != Estado.FASE2 && e != Estado.AGARRAR
-                && e != Estado.DRENAR && e != Estado.VIAJAR && e != Estado.DISOLVERSE) {
+                && e != Estado.DRENAR && e != Estado.VIAJAR && e != Estado.DISOLVERSE && e != Estado.TITIRITERA
+                && e != Estado.CLONES && e != Estado.RODILLAS) {
             cambiar(Estado.FASE2);
             e = Estado.FASE2;
         }
@@ -315,6 +327,9 @@ public class BrumaEntity extends Monster implements GeoEntity {
             case APARECER -> aparecer(objetivo);
             case JIRONES -> jirones();
             case FASE2 -> faseDos();
+            case TITIRITERA -> titiritera(objetivo);
+            case CLONES -> enClones(objetivo);
+            case RODILLAS -> rodillas();
             default -> {
             }
         }
@@ -426,6 +441,14 @@ public class BrumaEntity extends Monster implements GeoEntity {
             flotarEn(this.position(), 0.05);
             if (this.ticksEnEstado > 60)
                 cambiar(Estado.QUIETO);
+            return;
+        }
+        if (yendoCentro >= 0 || (!ejercitoHecho && this.getHealth() < this.getMaxHealth() * 0.7f)) {
+            alCentro(Estado.TITIRITERA);
+            return;
+        }
+        if (fase2() && enfriarClones <= 0 && this.presa == null) {
+            alCentro(Estado.CLONES);
             return;
         }
         double d = horizontal(objetivo);
@@ -714,6 +737,206 @@ public class BrumaEntity extends Monster implements GeoEntity {
     }
 
     /** Vuela hacia un punto (sin gravedad), acelerando suave hasta vmax bloques por tick. */
+    // ------------------------------------------------------------------ el ejercito y los clones (de centro)
+
+    private BlockPos centro() {
+        BlockPos c = com.mipack.arena.Arena.centro(this);
+        if (c != null)
+            return c;
+        if (this.centroPropio == null)
+            this.centroPropio = BlockPos.containing(this.getX(), this.getY() - 0.5, this.getZ());
+        return this.centroPropio;
+    }
+
+    /** Va al centro (sin arena: donde esta) y ahi empieza el ataque de centro; si alguien tapa el centro, no sale. */
+    private void alCentro(Estado ataque) {
+        if (this.yendoCentro < 0) {
+            this.yendoCentro = 0;
+            this.trasCentro = ataque;
+            this.centroPropio = null;
+        }
+        BlockPos c = centro();
+        Vec3 e = com.mipack.arena.Arena.encima(c);
+        this.yendoCentro++;
+        if (this.yendoCentro > 200)
+            this.teleportTo(e.x, e.y, e.z);
+        double dx = e.x - this.getX(), dz = e.z - this.getZ();
+        if (dx * dx + dz * dz > 6.0) {
+            flotarEn(new Vec3(e.x, e.y + 1.0, e.z), 0.45);
+            return;
+        }
+        this.yendoCentro = -1;
+        if (!com.mipack.arena.Arena.intentarCentro(this)) {
+            if (this.trasCentro == Estado.CLONES)
+                this.enfriarClones = 600;
+            else
+                this.ejercitoHecho = true;                     // se lo taparon: ya no lo intenta
+            this.playSound(SoundEvents.WARDEN_HURT, 3.0f, 0.5f);
+            cambiar(Estado.RODILLAS);
+            return;
+        }
+        cambiar(this.trasCentro);
+    }
+
+    /** Un punto de piso cerca de 'p' (busca de arriba a abajo junto al centro: sirve en cuevas). */
+    private Vec3 piso(double x, double z, int y0) {
+        BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
+        for (int y = y0 + 4; y > y0 - 8; y--) {
+            m.set(x, y, z);
+            if (this.level().getBlockState(m).isAir() && this.level().getBlockState(m.above()).isAir()
+                    && this.level().getBlockState(m.below()).isSolidRender(this.level(), m.below()))
+                return new Vec3(x, y, z);
+        }
+        return null;
+    }
+
+    /** Arriba del centro, intocable, mueve las manos y del piso sale su ejercito; acaba cuando muere el grande. */
+    private void titiritera(LivingEntity objetivo) {
+        BlockPos c = centro();
+        flotarEn(com.mipack.arena.Arena.encima(c).add(0, 7, 0), 0.2);
+        if (objetivo != null)
+            mirar(objetivo.position());
+        if (!(this.level() instanceof ServerLevel sl))
+            return;
+        if (this.ticksEnEstado == 1) {
+            this.ejercitoHecho = true;
+            this.murioGrande = false;
+            this.soldados.clear();
+            this.playSound(SoundEvents.WARDEN_EMERGE, 4.0f, 0.6f);
+            this.playSound(SoundEvents.ELDER_GUARDIAN_CURSE, 3.0f, 0.5f);
+            ejercito(sl, c);
+        }
+        if (this.ticksEnEstado % 8 == 0)
+            hilos(sl, this.soldados);
+        boolean hayGrande = false;
+        for (UUID u : this.soldados)
+            if (sl.getEntity(u) instanceof SoldadoBruma s && s.isAlive() && s.tipo() == SoldadoBruma.Tipo.GRANDE)
+                hayGrande = true;
+        if (this.murioGrande || (!hayGrande && this.ticksEnEstado > 40)) {
+            cambiar(Estado.RODILLAS);
+        } else if (this.ticksEnEstado > 3600) {
+            cambiar(Estado.ACECHAR);
+        }
+    }
+
+    /** 20 soldados, 6 arqueros y el grande junto al centro: siempre los mismos, no importa cuantos jugadores. */
+    private void ejercito(ServerLevel sl, BlockPos c) {
+        int n = 0;
+        for (int i = 0; i < 27; i++) {
+            EntityType<SoldadoBruma> tipo = i == 0 ? Mipack.SOLDADO_GRANDE.get() : i <= 6 ? Mipack.ARQUERO_BRUMA.get() : Mipack.SOLDADO_BRUMA.get();
+            double ang = i * 2.39996, r = i == 0 ? 3.0 : i <= 6 ? 14 + this.random.nextDouble() * 4 : 6 + this.random.nextDouble() * 8;
+            Vec3 p = piso(c.getX() + 0.5 + Math.cos(ang) * r, c.getZ() + 0.5 + Math.sin(ang) * r, c.getY() + 1);
+            if (p == null)
+                p = piso(c.getX() + 0.5 + Math.cos(ang) * 4, c.getZ() + 0.5 + Math.sin(ang) * 4, c.getY() + 1);
+            if (p == null)
+                continue;
+            SoldadoBruma s = tipo.create(sl);
+            if (s == null)
+                continue;
+            s.moveTo(p.x, p.y, p.z, (float) Math.toDegrees(ang) + 90f, 0f);
+            s.deLaBruma(this);
+            sl.addFreshEntity(s);
+            this.soldados.add(s.getUUID());
+            n++;
+        }
+        if (Mipack.PRUEBA)
+            Mipack.LOGGER.info("[Bruma] ejercito: {} soldados", n);
+    }
+
+    /** Los hilos de titiritera: de sus manos a algunos de los suyos. */
+    private void hilos(ServerLevel sl, List<UUID> quienes) {
+        Vec3 manos = this.position().add(0, this.getBbHeight() * 0.85, 0);
+        int hechos = 0;
+        for (int i = 0; i < quienes.size() && hechos < 7; i++) {
+            UUID u = quienes.get((i + this.tickCount / 8) % quienes.size());
+            if (!(sl.getEntity(u) instanceof net.minecraft.world.entity.LivingEntity s) || !s.isAlive())
+                continue;
+            hechos++;
+            Vec3 a = s.position().add(0, s.getBbHeight() + 0.2, 0), d = manos.subtract(a);
+            int pasos = (int) Math.min(30, d.length() / 1.2);
+            for (int k = 0; k <= pasos; k++) {
+                Vec3 p = a.add(d.scale(k / (double) Math.max(1, pasos)));
+                sl.sendParticles(HILO, p.x, p.y, p.z, 1, 0, 0, 0, 0);
+            }
+        }
+    }
+
+    /** Cuando muere el grande: grita, pierde vida y se arrodilla. */
+    public void murioElGrande() {
+        if (getEstado() != Estado.TITIRITERA)
+            return;
+        this.murioGrande = true;
+        this.playSound(SoundEvents.WARDEN_ROAR, 5.0f, 0.5f);
+        this.setHealth(Math.max(1f, this.getHealth() - this.getMaxHealth() * 0.12f));
+    }
+
+    /** Arriba e intocable; salen sus clones. Si caen todos, baja vulnerable. */
+    private void enClones(LivingEntity objetivo) {
+        BlockPos c = centro();
+        flotarEn(com.mipack.arena.Arena.encima(c).add(0, 7, 0), 0.2);
+        if (objetivo != null)
+            mirar(objetivo.position());
+        if (!(this.level() instanceof ServerLevel sl))
+            return;
+        if (this.ticksEnEstado == 1) {
+            this.clones.clear();
+            this.playSound(SoundEvents.ILLUSIONER_MIRROR_MOVE, 4.0f, 0.5f);
+            int n = Math.min(12, 5 + this.maxJugadores / 3);
+            for (int i = 0; i < n; i++) {
+                ClonBruma k = Mipack.CLON_BRUMA.get().create(sl);
+                if (k == null)
+                    continue;
+                double ang = i * Math.PI * 2 / n;
+                k.moveTo(this.getX() + Math.cos(ang) * 4, this.getY() + 1, this.getZ() + Math.sin(ang) * 4, (float) Math.toDegrees(ang), 0f);
+                k.deLaBruma(this);
+                sl.addFreshEntity(k);
+                sl.sendParticles(NEGRA, k.getX(), k.getY() + 1.5, k.getZ(), 20, 0.5, 1.0, 0.5, 0);
+                this.clones.add(k.getUUID());
+            }
+        }
+        if (this.ticksEnEstado % 8 == 0)
+            hilos(sl, this.clones);
+        this.clones.removeIf(u -> !(sl.getEntity(u) instanceof ClonBruma k) || !k.isAlive());
+        if (this.clones.isEmpty() && this.ticksEnEstado > 20) {
+            this.enfriarClones = 1800;
+            cambiar(Estado.RODILLAS);
+        } else if (this.ticksEnEstado > 1200) {             // nadie los mato: se deshacen y ella sigue
+            for (UUID u : this.clones)
+                if (sl.getEntity(u) instanceof ClonBruma k)
+                    k.discard();
+            this.clones.clear();
+            this.enfriarClones = 1200;
+            cambiar(Estado.ACECHAR);
+        }
+    }
+
+    /** Para las pruebas: empieza ese estado ya. */
+    public void probar(Estado e) {
+        cambiar(e);
+    }
+
+    /** Cada clon que muere le quita vida. */
+    public void murioUnClon() {
+        if (getEstado() == Estado.CLONES) {
+            this.setHealth(Math.max(1f, this.getHealth() - this.getMaxHealth() * 0.03f));
+            this.playSound(SoundEvents.WARDEN_HURT, 2.0f, 0.6f);
+        }
+    }
+
+    /** De rodillas (abajo, con cuerpo) 6 s: le entra 50 % mas de dano. */
+    private void rodillas() {
+        Vec3 abajo = piso(this.getX(), this.getZ(), (int) Math.floor(this.getY()));
+        flotarEn(abajo != null ? abajo : this.position().add(0, -0.3, 0), 0.5);
+        if (this.ticksEnEstado == 2)
+            this.playSound(SoundEvents.WARDEN_DEATH, 3.0f, 0.7f);
+        if (this.level() instanceof ServerLevel sl && this.ticksEnEstado % 10 == 0)
+            sl.sendParticles(ParticleTypes.SCULK_SOUL, this.getX(), this.getY() + 2, this.getZ(), 3, 0.8, 0.8, 0.8, 0.02);
+        if (this.ticksEnEstado >= 120) {
+            this.enfriar = 20;
+            cambiar(Estado.ACECHAR);
+        }
+    }
+
     private void flotarEn(Vec3 punto, double vmax) {
         Vec3 d = punto.subtract(this.position());
         double largo = d.length();
@@ -844,8 +1067,16 @@ public class BrumaEntity extends Monster implements GeoEntity {
     public boolean hurt(DamageSource fuente, float cantidad) {
         Estado e = getEstado();
         boolean siempre = fuente.is(DamageTypeTags.BYPASSES_INVULNERABILITY);          // /kill
-        if (!siempre && (e == Estado.VIAJAR || e == Estado.FASE2 || esAlma(fuente.getEntity()) || fuente.getEntity() == this))
+        if (!siempre && (e == Estado.VIAJAR || e == Estado.FASE2 || esAlma(fuente.getEntity()) || fuente.getEntity() == this
+                || fuente.getEntity() instanceof SoldadoBruma || fuente.getEntity() instanceof ClonBruma))
             return false;
+        if (!siempre && (e == Estado.TITIRITERA || e == Estado.CLONES)) {   // arriba, moviendo a los suyos: intocable
+            if (this.level() instanceof ServerLevel sl)
+                sl.sendParticles(ParticleTypes.SCULK_SOUL, this.getX(), this.getY() + 3, this.getZ(), 4, 0.6, 1.0, 0.6, 0.02);
+            return false;
+        }
+        if (e == Estado.RODILLAS)
+            cantidad *= 1.5f;
         boolean fuego = fuente.is(DamageTypeTags.IS_FIRE);
         if (fuego)
             this.corporeaHasta = this.tickCount + 100;          // el fuego la obliga a tomar cuerpo
@@ -989,6 +1220,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
         super.addAdditionalSaveData(tag);
         tag.putBoolean("Fase2", fase2());
         tag.putBoolean("Grito", this.grito0);
+        tag.putBoolean("Ejercito", this.ejercitoHecho);
         tag.putInt("Jugadores", this.maxJugadores);
     }
 
@@ -997,6 +1229,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
         super.readAdditionalSaveData(tag);
         this.entityData.set(FASE2, tag.getBoolean("Fase2"));
         this.grito0 = tag.getBoolean("Grito");
+        this.ejercitoHecho = tag.getBoolean("Ejercito");
         this.maxJugadores = tag.getInt("Jugadores");
         if (this.hasCustomName())
             this.barra.setName(this.getDisplayName());
@@ -1019,6 +1252,8 @@ public class BrumaEntity extends Monster implements GeoEntity {
             case APARECER -> A_APARECER;
             case JIRONES -> A_JIRONES;
             case FASE2 -> A_FASE2;
+            case TITIRITERA, CLONES -> A_TITIRITERA;
+            case RODILLAS -> A_RODILLAS;
             case MUERTE -> A_MUERTE;
         };
         return estado.setAndContinue(a);

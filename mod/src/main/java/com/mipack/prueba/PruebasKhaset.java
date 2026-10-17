@@ -56,6 +56,7 @@ public class PruebasKhaset {
                 throw new GameTestAssertException("/khaset difficult " + nivel + " no cambio la dificultad");
         }
         KhasetEntity k = h.spawn(Mipack.KHASET.get(), new BlockPos(30, PISO, 24));
+        k.getPersistentData().remove("mipack_centro");        // pelea libre (sin la arena de otra prueba)
         CristalSacrificio cristal = h.spawn(Mipack.CRISTAL.get(), new BlockPos(8, PISO, 24));
         Pelea p = new Pelea();
         AABB arena = new AABB(h.absolutePos(new BlockPos(1, PISO, 1)), h.absolutePos(new BlockPos(48, PISO + 9, 48)));

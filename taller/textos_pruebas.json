@@ -38,7 +38,15 @@
     "arena.mipack.furia": "%s se enfurece: pega más fuerte, pero también recibe más daño",
     "arena.mipack.lejos": "La arena castiga a los que pegan de lejos o desde arriba",
     "arena.mipack.bloques": "En la arena no se ponen ni se rompen bloques",
-    "arena.mipack.perlas": "En la arena no sirven las perlas"
+    "arena.mipack.perlas": "En la arena no sirven las perlas",
+    "entity.mipack.soldado_bruma": "Soldado de la Bruma",
+    "entity.mipack.arquero_bruma": "Arquero de la Bruma",
+    "entity.mipack.soldado_grande": "Soldado grande de la Bruma",
+    "entity.mipack.clon_bruma": "Clon de la Bruma",
+    "item.mipack.soldado_bruma_spawn_egg": "Huevo de soldado de la Bruma",
+    "item.mipack.arquero_bruma_spawn_egg": "Huevo de arquero de la Bruma",
+    "item.mipack.soldado_grande_spawn_egg": "Huevo de soldado grande",
+    "item.mipack.clon_bruma_spawn_egg": "Huevo de clon de la Bruma"
   },
   "en": {
     "item.mipack.acaro_amatista_spawn_egg": "Amethyst Mite Spawn Egg",
@@ -79,6 +87,14 @@
     "arena.mipack.furia": "%s is enraged: hits harder, but also takes more damage",
     "arena.mipack.lejos": "The arena punishes those who hit from afar or from above",
     "arena.mipack.bloques": "No placing or breaking blocks in the arena",
-    "arena.mipack.perlas": "Ender pearls don't work in the arena"
+    "arena.mipack.perlas": "Ender pearls don't work in the arena",
+    "entity.mipack.soldado_bruma": "Mist Soldier",
+    "entity.mipack.arquero_bruma": "Mist Archer",
+    "entity.mipack.soldado_grande": "Great Mist Soldier",
+    "entity.mipack.clon_bruma": "Mist Clone",
+    "item.mipack.soldado_bruma_spawn_egg": "Mist Soldier Spawn Egg",
+    "item.mipack.arquero_bruma_spawn_egg": "Mist Archer Spawn Egg",
+    "item.mipack.soldado_grande_spawn_egg": "Great Mist Soldier Spawn Egg",
+    "item.mipack.clon_bruma_spawn_egg": "Mist Clone Spawn Egg"
   }
 }

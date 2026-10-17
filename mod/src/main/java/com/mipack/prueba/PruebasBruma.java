@@ -48,11 +48,16 @@ public class PruebasBruma {
         for (int i = 0; i < 12; i++)                         // antorchas que tiene que apagar
             h.setBlock(new BlockPos(14 + (i % 4) * 7, PISO, 14 + (i / 4) * 10), Blocks.TORCH);
         BrumaEntity jefe = h.spawn(Mipack.BRUMA.get(), new BlockPos(24, PISO + 1, 24));
+        jefe.getPersistentData().remove("mipack_centro");        // pelea libre (sin la arena de otra prueba)
         Pelea p = new Pelea();
         AABB arena = new AABB(h.absolutePos(new BlockPos(1, PISO, 1)), h.absolutePos(new BlockPos(48, PISO + 9, 48)));
         h.onEachTick(() -> {
             if (jefe.isRemoved() || jefe.isDeadOrDying())
                 return;
+            if (jefe.getEstado() == Estado.TITIRITERA)                // nadie mata al grande en esta prueba: se le ayuda
+                for (var s : h.getLevel().getEntitiesOfClass(com.mipack.bruma.SoldadoBruma.class, jefe.getBoundingBox().inflate(40)))
+                    if (s.tipo() == com.mipack.bruma.SoldadoBruma.Tipo.GRANDE && !s.subiendo())
+                        s.kill();
             for (int i = 0; i < p.husks.length; i++) {
                 if (p.husks[i] != null && p.husks[i].isAlive())
                     continue;

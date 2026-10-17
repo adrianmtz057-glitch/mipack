@@ -181,5 +181,13 @@
   "arena.mipack.furia": "%s is enraged: hits harder, but also takes more damage",
   "arena.mipack.lejos": "The arena punishes those who hit from afar or from above",
   "arena.mipack.bloques": "No placing or breaking blocks in the arena",
-  "arena.mipack.perlas": "Ender pearls don't work in the arena"
+  "arena.mipack.perlas": "Ender pearls don't work in the arena",
+  "entity.mipack.soldado_bruma": "Mist Soldier",
+  "entity.mipack.arquero_bruma": "Mist Archer",
+  "entity.mipack.soldado_grande": "Great Mist Soldier",
+  "entity.mipack.clon_bruma": "Mist Clone",
+  "item.mipack.soldado_bruma_spawn_egg": "Mist Soldier Spawn Egg",
+  "item.mipack.arquero_bruma_spawn_egg": "Mist Archer Spawn Egg",
+  "item.mipack.soldado_grande_spawn_egg": "Great Mist Soldier Spawn Egg",
+  "item.mipack.clon_bruma_spawn_egg": "Mist Clone Spawn Egg"
 }

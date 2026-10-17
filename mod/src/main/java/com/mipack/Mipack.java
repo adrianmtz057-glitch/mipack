@@ -112,6 +112,28 @@ public class Mipack {
                     .sized(1.8f, 5.4f).clientTrackingRange(16).updateInterval(1)
                     .build(MODID + ":bruma"));
 
+    /** El ejercito de La Bruma (de tamano de jugador; el grande, el doble) y sus clones. */
+    public static final RegistryObject<EntityType<com.mipack.bruma.SoldadoBruma>> SOLDADO_BRUMA = ENTIDADES.register("soldado_bruma",
+            () -> EntityType.Builder.<com.mipack.bruma.SoldadoBruma>of(com.mipack.bruma.SoldadoBruma::new, MobCategory.MONSTER)
+                    .sized(0.6f, 1.95f).clientTrackingRange(10).build(MODID + ":soldado_bruma"));
+    public static final RegistryObject<EntityType<com.mipack.bruma.SoldadoBruma>> ARQUERO_BRUMA = ENTIDADES.register("arquero_bruma",
+            () -> EntityType.Builder.<com.mipack.bruma.SoldadoBruma>of(com.mipack.bruma.SoldadoBruma::new, MobCategory.MONSTER)
+                    .sized(0.6f, 1.95f).clientTrackingRange(10).build(MODID + ":arquero_bruma"));
+    public static final RegistryObject<EntityType<com.mipack.bruma.SoldadoBruma>> SOLDADO_GRANDE = ENTIDADES.register("soldado_grande",
+            () -> EntityType.Builder.<com.mipack.bruma.SoldadoBruma>of(com.mipack.bruma.SoldadoBruma::new, MobCategory.MONSTER)
+                    .sized(1.3f, 4.2f).clientTrackingRange(12).build(MODID + ":soldado_grande"));
+    public static final RegistryObject<EntityType<com.mipack.bruma.ClonBruma>> CLON_BRUMA = ENTIDADES.register("clon_bruma",
+            () -> EntityType.Builder.<com.mipack.bruma.ClonBruma>of(com.mipack.bruma.ClonBruma::new, MobCategory.MONSTER)
+                    .sized(0.9f, 2.9f).clientTrackingRange(10).build(MODID + ":clon_bruma"));
+    public static final RegistryObject<Item> HUEVO_SOLDADO = OBJETOS.register("soldado_bruma_spawn_egg",
+            () -> new ForgeSpawnEggItem(SOLDADO_BRUMA, 0x15121A, 0x6B2E8C, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_ARQUERO = OBJETOS.register("arquero_bruma_spawn_egg",
+            () -> new ForgeSpawnEggItem(ARQUERO_BRUMA, 0x15121A, 0x8A8A8A, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_GRANDE = OBJETOS.register("soldado_grande_spawn_egg",
+            () -> new ForgeSpawnEggItem(SOLDADO_GRANDE, 0x0A090C, 0xC9A23A, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_CLON = OBJETOS.register("clon_bruma_spawn_egg",
+            () -> new ForgeSpawnEggItem(CLON_BRUMA, 0x050506, 0x4A4E57, new Item.Properties()));
+
     public static final RegistryObject<Item> HUEVO_CRACKATOS = OBJETOS.register("crackatos_spawn_egg",
             () -> new ForgeSpawnEggItem(CRACKATOS, 0x231A31, 0x8A64CC, new Item.Properties()));
     public static final RegistryObject<Item> HUEVO_KHASET = OBJETOS.register("khaset_spawn_egg",
@@ -142,6 +164,10 @@ public class Mipack {
                         out.accept(HUEVO_ACARO.get());
                         out.accept(HUEVO_XIUHCOATL.get());
                         out.accept(HUEVO_GUERRERO.get());
+                        out.accept(HUEVO_SOLDADO.get());
+                        out.accept(HUEVO_ARQUERO.get());
+                        out.accept(HUEVO_GRANDE.get());
+                        out.accept(HUEVO_CLON.get());
                         out.accept(net.minecraft.world.item.Items.VEX_SPAWN_EGG);   // las almas en pena de la Bruma
                         for (var p : com.mipack.objetos.ObjetosMipack.POCIONES_PRUEBA)
                             out.accept(net.minecraft.world.item.alchemy.PotionUtils.setPotion(
@@ -182,6 +208,10 @@ public class Mipack {
         event.put(BRUMA.get(), BrumaEntity.atributos().build());
         event.put(XIUHCOATL.get(), Xiuhcoatl.atributos().build());
         event.put(GUERRERO.get(), com.mipack.khaset.GuerreroCalavera.atributos().build());
+        event.put(SOLDADO_BRUMA.get(), com.mipack.bruma.SoldadoBruma.soldado().build());
+        event.put(ARQUERO_BRUMA.get(), com.mipack.bruma.SoldadoBruma.arquero().build());
+        event.put(SOLDADO_GRANDE.get(), com.mipack.bruma.SoldadoBruma.grande().build());
+        event.put(CLON_BRUMA.get(), com.mipack.bruma.ClonBruma.atributos().build());
         Titanes.atributos(event);
     }
 
