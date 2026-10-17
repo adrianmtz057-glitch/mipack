@@ -86,6 +86,8 @@ public final class PosesJugador {
             return f;
         if (p.getVehicle() instanceof KhasetEntity k)
             return k.presaEnAltar(p) ? Pose.ALTAR : Pose.AGARRADO;
+        if (p.getVehicle() instanceof com.mipack.bruma.BrumaEntity)
+            return Pose.AGARRADO;                                  // colgando de la mano de La Bruma
         Estado e = estado(p);
         if (e == null)
             return Pose.NINGUNA;

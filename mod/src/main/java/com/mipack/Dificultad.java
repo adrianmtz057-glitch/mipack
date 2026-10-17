@@ -1,5 +1,6 @@
 package com.mipack;
 
+import com.mipack.bruma.BrumaEntity;
 import com.mipack.entidad.CrackatosEntity;
 import com.mipack.khaset.KhasetEntity;
 import com.mipack.khaset.Xiuhcoatl;
@@ -22,7 +23,8 @@ import java.util.EnumMap;
 import java.util.Locale;
 
 /**
- * La dificultad de cada jefe: {@code /khaset difficult <easy|normal|hardcore>} y {@code /crackatos difficult ...}
+ * La dificultad de cada jefe: {@code /khaset difficult <easy|normal|hardcore>}, {@code /crackatos difficult ...} y
+ * {@code /bruma difficult ...}
  * (sin nivel dice cual tiene). Solo los operadores la cambian, la respuesta solo le llega a quien la escribio y en el
  * juego no se ve en ningun lado. Se guarda con el mundo; empieza en normal.
  * <ul>
@@ -31,7 +33,8 @@ import java.util.Locale;
  *     estampida;</li>
  * <li>easy: todavia mas.</li>
  * </ul>
- * Lo propio de cada jefe esta en su clase (KhasetEntity.Ajustes, CrackatosEntity.Ajustes); aqui, la vida y el dano.
+ * Lo propio de cada jefe esta en su clase (KhasetEntity.Ajustes, CrackatosEntity.Ajustes, BrumaEntity.Ajustes); aqui,
+ * la vida y el dano.
  */
 @Mod.EventBusSubscriber(modid = Mipack.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class Dificultad extends SavedData {
@@ -51,7 +54,7 @@ public final class Dificultad extends SavedData {
         }
     }
 
-    public enum Jefe {KHASET, CRACKATOS}
+    public enum Jefe {KHASET, CRACKATOS, BRUMA}
 
     private static final String ARCHIVO = "mipack_dificultad";
     private final EnumMap<Jefe, Nivel> niveles = new EnumMap<>(Jefe.class);
@@ -94,7 +97,7 @@ public final class Dificultad extends SavedData {
         d.setDirty();
     }
 
-    /** Por cuanto se multiplica un golpe de jefe (Khaset y sus serpientes, Crackatos con sus puas y su ola). */
+    /** Por cuanto se multiplica un golpe de jefe (Khaset y sus serpientes, Crackatos con sus puas y su ola, La Bruma). */
     public static float dano(Entity quien) {
         if (quien == null)
             return 1f;
@@ -102,6 +105,8 @@ public final class Dificultad extends SavedData {
             return de(quien.level(), Jefe.KHASET).dano;
         if (quien instanceof CrackatosEntity)
             return de(quien.level(), Jefe.CRACKATOS).dano;
+        if (quien instanceof BrumaEntity)
+            return de(quien.level(), Jefe.BRUMA).dano;
         return 1f;
     }
 
@@ -125,6 +130,10 @@ public final class Dificultad extends SavedData {
     }
 
     private static String nombre(Jefe j) {
-        return j == Jefe.KHASET ? "Khaset" : "Crackatos";
+        return switch (j) {
+            case KHASET -> "Khaset";
+            case CRACKATOS -> "Crackatos";
+            case BRUMA -> "La Bruma";
+        };
     }
 }

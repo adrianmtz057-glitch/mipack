@@ -32,6 +32,8 @@ public final class Golpes {
     public static final ResourceKey<DamageType> FORCEJEO = tipo("forcejeo");
     /** Las esquirlas de amatista de Crackatos: sangran poco a poco (nada lo reduce). */
     public static final ResourceKey<DamageType> ESQUIRLAS = tipo("esquirlas");
+    /** La Bruma te drena el alma: atraviesa la armadura y el escudo (Proteccion si cuenta). */
+    public static final ResourceKey<DamageType> DRENAR = tipo("drenar");
 
     private Golpes() {
     }

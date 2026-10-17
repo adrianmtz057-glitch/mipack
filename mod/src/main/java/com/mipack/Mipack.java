@@ -1,5 +1,6 @@
 package com.mipack;
 
+import com.mipack.bruma.BrumaEntity;
 import com.mipack.entidad.CrackatosEntity;
 import com.mipack.geo.FabricaMallas;
 import com.mipack.entidad.Ola;
@@ -38,8 +39,8 @@ import org.slf4j.Logger;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 /**
- * Mipack: los jefes y criaturas de Velkia: Crackatos, la bestia de piedra amatista, y Khaset, el dios del fuego
- * corrompido (modelos y animaciones de GeckoLib generados con taller/ en el repo).
+ * Mipack: los jefes y criaturas de Velkia: Crackatos, la bestia de piedra amatista, Khaset, el dios del fuego
+ * corrompido, y La Bruma negra (modelos y animaciones de GeckoLib generados con taller/ en el repo).
  */
 @Mod(Mipack.MODID)
 public class Mipack {
@@ -47,6 +48,7 @@ public class Mipack {
     public static final Logger LOGGER = LogUtils.getLogger();
     /** Modo de prueba (-Dmipack.prueba=true): los jefes tambien atacan a otros mobs y cuentan en el log lo que hacen. */
     public static final boolean PRUEBA = Boolean.getBoolean("mipack.prueba") || "khaset".equals(System.getProperty("mipack.captura"))
+            || "bruma".equals(System.getProperty("mipack.captura"))
             || System.getProperty("mipack.captura", "").startsWith("titanes");
 
     public static final DeferredRegister<EntityType<?>> ENTIDADES = DeferredRegister.create(ForgeRegistries.ENTITY_TYPES, MODID);
@@ -104,10 +106,18 @@ public class Mipack {
                     .sized(0.5f, 0.1f).clientTrackingRange(10).updateInterval(20)
                     .build(MODID + ":aviso"));
 
+    /** La Bruma: el modelo mide 1.85 bloques y se dibuja 3.2 veces (unos 6 bloques); flota, la caja es la del cuerpo. */
+    public static final RegistryObject<EntityType<BrumaEntity>> BRUMA = ENTIDADES.register("bruma",
+            () -> EntityType.Builder.of(BrumaEntity::new, MobCategory.MONSTER)
+                    .sized(1.8f, 5.4f).clientTrackingRange(16).updateInterval(1)
+                    .build(MODID + ":bruma"));
+
     public static final RegistryObject<Item> HUEVO_CRACKATOS = OBJETOS.register("crackatos_spawn_egg",
             () -> new ForgeSpawnEggItem(CRACKATOS, 0x231A31, 0x8A64CC, new Item.Properties()));
     public static final RegistryObject<Item> HUEVO_KHASET = OBJETOS.register("khaset_spawn_egg",
             () -> new ForgeSpawnEggItem(KHASET, 0x981C36, 0x22AA9C, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_BRUMA = OBJETOS.register("bruma_spawn_egg",
+            () -> new ForgeSpawnEggItem(BRUMA, 0x0E0F11, 0x9A9384, new Item.Properties()));
     public static final RegistryObject<Item> CRISTAL_ITEM = OBJETOS.register("cristal_sacrificio",
             () -> new CristalSacrificio.Objeto(new Item.Properties().stacksTo(1)));
 
@@ -122,6 +132,7 @@ public class Mipack {
                     .displayItems((params, out) -> {
                         out.accept(HUEVO_CRACKATOS.get());
                         out.accept(HUEVO_KHASET.get());
+                        out.accept(HUEVO_BRUMA.get());
                         out.accept(CRISTAL_ITEM.get());
                         out.accept(MACUAHUITL.get());
                     })
@@ -152,6 +163,7 @@ public class Mipack {
         event.put(CRACKATOS.get(), CrackatosEntity.atributos().build());
         event.put(ACARO.get(), com.mipack.entidad.AcaroAmatista.atributos().build());
         event.put(KHASET.get(), KhasetEntity.atributos().build());
+        event.put(BRUMA.get(), BrumaEntity.atributos().build());
         event.put(XIUHCOATL.get(), Xiuhcoatl.atributos().build());
         event.put(GUERRERO.get(), com.mipack.khaset.GuerreroCalavera.atributos().build());
         Titanes.atributos(event);

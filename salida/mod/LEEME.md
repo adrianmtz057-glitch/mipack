@@ -1,4 +1,4 @@
-# Mipack: Crackatos, Khaset y los titanes (Forge 1.20.1)
+# Mipack: Crackatos, Khaset, La Bruma y los titanes (Forge 1.20.1)
 
 ## Qué necesitas
 1. **Minecraft 1.20.1 con Forge 47.4.10**, la versión que ya tienes.
@@ -42,8 +42,8 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 
 ## Dificultad de los jefes (solo operadores)
 Cada jefe tiene su nivel: **easy**, **normal** o **hardcore**. Empieza en **normal** y se guarda con el mundo.
-- `/khaset difficult <easy|normal|hardcore>` y `/crackatos difficult <easy|normal|hardcore>` lo cambian.
-- `/khaset difficult` y `/crackatos difficult`, sin nivel, te dicen cuál tiene.
+- `/khaset difficult <easy|normal|hardcore>`, `/crackatos difficult <...>` y `/bruma difficult <...>` lo cambian.
+- `/khaset difficult`, `/crackatos difficult` y `/bruma difficult`, sin nivel, te dicen cuál tiene.
 - Solo los operadores pueden usarlos. La respuesta solo te llega a ti y en el juego no se ve en ningún lado: nadie más sabe en qué nivel está.
 - Si lo cambias a media pelea, la vida se ajusta y conserva el mismo porcentaje.
 
@@ -51,7 +51,7 @@ Cada jefe tiene su nivel: **easy**, **normal** o **hardcore**. Empieza en **norm
 
 | | easy | normal | hardcore |
 |---|---|---|---|
-| Vida de los dos jefes | 60 % | 80 % | 100 % |
+| Vida de los jefes | 60 % | 80 % | 100 % |
 | Daño de sus golpes (también serpientes, púas y ola) | 65 % | 80 % | 100 % |
 | **Khaset:** tiempo agarrado antes de empezar el sacrificio (más 2.2 s del sacrificio) | 11 s | 7 s | 3 s |
 | Khaset: barra para zafarse | zona más ancha, cursor más lento | un poco más fácil | como estaba |
@@ -63,6 +63,11 @@ Cada jefe tiene su nivel: **easy**, **normal** o **hardcore**. Empieza en **norm
 | Crackatos: con el camino ya fijo, antes de arrancar | 2 s | 1.3 s | 0.5 s |
 | Crackatos: lentitud en el camino marcado | I | II | II |
 | Crackatos: tiempo atorado en la pared | +1.5 s | +0.5 s | como estaba |
+| **La Bruma:** daño que le entra en forma de niebla | 50 % | 35 % | 25 % |
+| La Bruma: lo más que te drena | 4 s | 5 s | 7 s |
+| La Bruma: lo que hay que bajarle para que suelte | 3 % | 5 % | 7 % |
+| La Bruma: grita cada | ~21 s | ~16 s | ~12 s |
+| La Bruma: almas en pena a la vez (fase 2) | hasta 2 | hasta 4 | hasta 8 |
 
 Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con la presa en alto** hasta que se cumple ese tiempo. Mientras, te puedes zafar con la barra o tus amigos te pueden rescatar. Si alguien se le acerca, sigue pisando.
 
@@ -108,6 +113,53 @@ Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con
 **Golpes:** atraviesan la armadura (Protección sí cuenta) y tiran el escudo.
 
 **Arena recomendada:** una plaza de 60×60 o más con columnas (para el silbato) y el altar de un lado o arriba de una pirámide.
+
+## La Bruma negra (jefe)
+Un espectro enorme y flaco, hecho de jirones de tela negra, que flota encorvado dentro de su propia bruma, con una garra de hueso estirada.
+
+**Cómo sale:**
+- **Con el huevo:** en la pestaña **Mipack** está el "Huevo de La Bruma".
+- **Con comando:** `/summon mipack:bruma`.
+- Te ignora en creativo. Cuando llega alguien, **grita**.
+
+**Tamaño:** unos 6 bloques de alto. Flota: no pisa el piso y no recibe daño de caída.
+
+**Vida:** 1200, más 700 por cada jugador que entra a la pelea (en 64 bloques). Armadura 4.
+
+**La bruma:**
+- A su alrededor todo se oscurece: a los que estén cerca les da **Oscuridad**. Su barra de jefe **oscurece el cielo y trae niebla**.
+- **Apaga las luces:** las antorchas y los faroles cercanos se caen (los puedes recoger), y las fogatas y las velas se apagan.
+- **En la fase 2** la bruma llega más lejos, apaga más seguido y además da Debilidad.
+
+**Forma de niebla (lo más importante):**
+- Casi siempre está hecha de niebla: se ve **translúcida** y **solo le entra una parte del daño** (35 % en normal).
+- Toma cuerpo (se ve sólida y le entra todo) en tres casos:
+  - mientras ataca, y un par de segundos después;
+  - **con fuego:** flechas en llamas, Aspecto ígneo, lava;
+  - **con luz fuerte:** las luces que no puede apagar la obligan a tomar cuerpo mientras esté cerca de ellas. Son la piedra luminosa, la linterna de mar, la luz de hongo, las ranaluces y la calabaza iluminada. Si la llevas a tu zona de luz, se vuelve sólida, más lenta, y suelta a quien esté drenando.
+
+**Ataques:**
+- **Zarpazo:** echa la garra para atrás y barre lo que tiene enfrente. Te avienta y te deja **Marchitez**.
+- **Agarrar y drenar:** se lanza, te agarra con la mano y **te levanta** (no te puedes bajar con shift). Te chupa el alma: te quita vida, te baja el hambre y ella se cura. Te suelta en estos casos:
+  - si los demás le bajan **el 5 %** de su vida mientras drena;
+  - si hay luz fuerte;
+  - si se acaba el tiempo (5 s en normal);
+  - si te salva un tótem.
+
+  Al soltarte caes despacio.
+- **Grito:** se encoge y grita. A todos los que la vean, en 14 bloques (20 en la fase 2), les hace daño mágico y les da Oscuridad, Lentitud III y Debilidad, además de **congelarlos**. **Detrás de una pared no te alcanza.**
+- **Jirones:** si tiene a 2 o más encima, gira sobre sí misma y **azota con las tiras**. Los avienta y les da Marchitez.
+- **Atravesar:** se deshace en bruma y **cruza paredes** (no se dibuja ni se le puede pegar), y **aparece detrás de alguien** para atacarlo. Lo hace si te alejas o si se atora.
+
+**Fase 2 (mitad de vida):** se alza y se retuerce. La bruma crece y ataca más rápido. **Salen almas en pena**, vexes que viven 30 segundos y van contra quien ella persigue: 2 más 1 por jugador, hasta 4 en normal. Salen otra vez cada 25 segundos.
+
+**Reparte el foco** igual que los otros jefes.
+
+**Golpes:** el zarpazo y los jirones atraviesan la armadura (Protección sí cuenta) y tiran el escudo.
+
+**Al morir:** se le cae la cabeza y se hunde en su bruma hasta desvanecerse. Se llevan a sus almas. Suelta experiencia, fragmentos de eco y membranas de phantom.
+
+**Para pelear:** lleva **arco con Llama** o espada con **Aspecto ígneo**, y **piedra luminosa o linternas de mar** para poner tu zona de luz. Las antorchas no aguantan. Usa paredes o columnas para cubrirte del grito.
 
 ## Los titanes (en construcción)
 Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, comen, descansan y se quedan mirando a quien se acerca) y se mueven solos por el mapa con el **motor de rutas**. Por ahora está **Candil, el ajolote del lodo** (pantano, unos 27 bloques de largo). Los demás van saliendo de más fácil a más difícil.

@@ -27,6 +27,7 @@ public final class ClienteMipack {
         evento.registerEntityRenderer(Mipack.ACARO.get(), AcaroRenderer::new);
         evento.registerEntityRenderer(Mipack.GUERRERO.get(), RenderGuerrero::new);
         evento.registerEntityRenderer(Mipack.KHASET.get(), RenderersKhaset.Khaset::new);
+        evento.registerEntityRenderer(Mipack.BRUMA.get(), BrumaRenderer::new);
         evento.registerEntityRenderer(Mipack.CRISTAL.get(), RenderersKhaset.Cristal::new);
         evento.registerEntityRenderer(Mipack.XIUHCOATL.get(), RenderersKhaset.Serpiente::new);
         evento.registerEntityRenderer(Mipack.DARDO.get(), RenderersKhaset.Dardo::new);
