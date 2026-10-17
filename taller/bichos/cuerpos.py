@@ -461,8 +461,9 @@ def insecto(ident, piel, tipo="escarabajo", cuerpo=(5, 3, 6), pata=(0.6, 4), cab
             p = q
         a.segmento(ruta, "aguijon", p, _mas(p, _unit((0, -0.6, -1)), ag * 1.3), ag * 0.55, parte="aguijon")
     if bola:
-        a.hueso("raiz/bola", (0.0, bola / 2, -l / 2 - hl - bola / 2 - 0.2))
-        a.centrada("raiz/bola", "bola", (0.0, bola / 2, -l / 2 - hl - bola / 2 - 0.2), (bola, bola, bola), parte="bola")
+        # la bola va detras: el escarabajo la empuja de reversa con las patas de atras
+        a.hueso("raiz/bola", (0.0, bola / 2, l / 2 + bola / 2 + 0.2))
+        a.centrada("raiz/bola", "bola", (0.0, bola / 2, l / 2 + bola / 2 + 0.2), (bola, bola, bola), parte="bola")
     return a
 
 
