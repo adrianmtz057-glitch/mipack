@@ -1156,11 +1156,575 @@ GOLPE = {"embestida": 0.5, "mordida_grande": {"hipopotamo": 0.55, "cocodrilo_luz
          "pegarse": 0.45, "escupir": 0.45, "explotar": 0.8,
          "generico_mura": {"dromedario": 0.45, "escarabajo_sagrado": 0.35, "*": 0.25}}
 
-ANIMACIONES = {"caminar": CAMINAR, "correr": CORRER, "atacar": ATACAR}
-EN_BUCLE = {"caminar": True, "correr": True, "atacar": False}
+
+# ====================================================================== ambiente
+# Animaciones de ambiente: chiquitas y por grupos estrictos (hasta de uno). Todas en bucle: las que son una postura
+# (echarse, sentarse, colgarse) se quedan respirando; GeckoLib hace la transicion al entrar y al salir.
+
+def _seguir(L, p, h):
+    """La pata h (colgada de la raiz) sigue por completo a su cadera en el cuerpo (tambien si baja)."""
+    T = L.rig.transformaciones(p)
+    T0 = L.rig.transformaciones({})
+    local = animar._inversa(T["raiz"]).despues(T["cuerpo"])
+    local0 = animar._inversa(T0["raiz"]).despues(T0["cuerpo"])
+    piv = L.rig.pivote[h]
+    a, b = local(piv), local0(piv)
+    p.pos(h, x=a[0] - b[0], y=a[1] - b[1], z=a[2] - b[2])
+    return a
+
+
+def _sentar(L, p, angulo, f=1.0):
+    """Sentado sobre las ancas: el lomo se alza 'angulo' (por f, de 0 a 1) sin que se muevan las manos del piso, y
+    las patas de atras se doblan al frente hasta que el pie llega al piso."""
+    th = math.radians(angulo * f)
+    c = L.rig.pivote["cuerpo"]
+    y0, zf = L.rig.pivote["pata_dd"][1], L.rig.pivote["pata_dd"][2]
+    sube = (y0 - c[1]) * (math.cos(th) - 1) - (zf - c[2]) * math.sin(th)
+    p.rot("cuerpo", rx=angulo * f)
+    p.pos("cuerpo", y=-sube)
+    for h in ("pata_dd", "pata_di"):
+        _seguir(L, p, h)
+    cajas = _cajas(L)
+    for h in ("pata_td", "pata_ti"):
+        _seguir(L, p, h)
+        rot, tras = p.get(h, ((0, 0, 0), (0, 0, 0)))
+        bajo, alto = 0.0, 110.0                         # el giro mas chico con el que la pata ya no entra al piso
+        for _ in range(14):
+            medio = (bajo + alto) / 2
+            p[h] = ((medio, rot[1], rot[2]), tras)
+            T = L.rig.transformaciones(p)
+            y = min(T[h](q)[1] for giro, a, b in cajas[h] for q in _esquinas(giro, a, b))
+            bajo, alto = (bajo, medio) if y >= 0.05 else (medio, alto)
+        p[h] = ((alto, rot[1], rot[2]), tras)
+    return p
+
+
+def _pararse(L, p, angulo, f=1.0):
+    """Parado en las patas de atras (o sentado en las ancas): el lomo gira 'angulo' alrededor de la cadera de atras,
+    que no se mueve; las de adelante se alzan con el pecho."""
+    p.rot("cuerpo", rx=angulo * f)
+    T = L.rig.transformaciones(p)
+    T0 = L.rig.transformaciones({})
+    cadera = L.rig.pivote["pata_td"]
+    a, b = T["cuerpo"](cadera), T0["cuerpo"](cadera)
+    p.pos("cuerpo", x=b[0] - a[0], y=b[1] - a[1], z=b[2] - a[2])
+    for h in ("pata_dd", "pata_di"):
+        _seguir(L, p, h)
+    return p
+
+
+def _echar(L, p, f=1.0):
+    """Echado: el cuerpo baja hasta el piso y las patas se doblan debajo (las de adelante hacia atras, las de atras
+    hacia adelante)."""
+    g = 0.0
+    for c in L.a.m.cubos:
+        if c.nombre == "pata_dd" or c.nombre.startswith("pata_dd"):
+            g = c.hasta[0] - c.desde[0]
+            break
+    panza = min(c.desde[1] for c in L.a.m.cubos if c.hueso == "raiz/cuerpo")       # lo mas bajo del cuerpo
+    baja = (panza - 0.05) * f
+    p.pos("cuerpo", y=-baja)
+    for h, s in (("pata_dd", -1), ("pata_di", -1), ("pata_td", 1), ("pata_ti", 1)):
+        p.rot(h, s * 90.0 * f)
+        p.pos(h, y=-(L.largo_pata(h) - g / 2 - 0.1) * f)
+    return p
+
+
+def _ciclo3(t, largo, entra=0.5, sale=0.5):
+    """De 0 a 1 al entrar, 1 en medio y de vuelta a 0 al final (para las que van y vuelven en el bucle)."""
+    return _k(t, (0, 0.0), (entra, 1.0), (largo - sale, 1.0), (largo, 0.0))
+
+
+def ambiente_pastar(L):
+    """Pastar (toro, bufalo, cabra, cervatillo, dromedario, hipopotamo): baja la cabeza, arranca y mastica, y la alza
+    a mirar."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        f = _ciclo3(t, largo, 0.6, 0.6)
+        mordida = 4.0 * math.sin(TAU * 4 * t) * _k(t, (0, 0), (0.7, 0), (0.9, 1), (2.0, 1), (2.2, 0), (3.0, 0))
+        if "cuello" in L.huesos:
+            p.rot("cuello", rx=-38.0 * f)
+            p.rot("cabeza", rx=12.0 * f + mordida)
+        else:
+            p.rot("cabeza", rx=-30.0 * f + mordida)
+        p.rot("cola", rz=6.0 * math.sin(TAU * t / 1.5))
+        return p
+    return largo, pose_en
+
+
+def ambiente_trompa(L):
+    """Cria de Iskarum: arranca pasto con la trompa y se lo lleva a la boca."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.5, -12.0), (1.6, -6.0), (2.4, 0)))
+        p.rot("trompa", rx=_k(t, (0, 0), (0.5, -25.0), (0.8, -30.0), (1.4, 40.0), (1.8, 35.0), (2.4, 0)),
+              rz=_k(t, (0, 0), (0.8, 6.0), (1.4, -4.0), (2.4, 0)))
+        return p
+    return largo, pose_en
+
+
+def ambiente_mordisquear(L):
+    """Liebre y marmota: se sientan en las ancas con la comida entre las manos y mordisquean rapidito."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        f = _ciclo3(t, largo, 0.4, 0.4)
+        _pararse(L, p, 38.0, f)
+        for h in ("pata_dd", "pata_di"):
+            p.rot(h, 55.0 * f)
+        p.rot("cabeza", rx=-30.0 * f + 3.0 * math.sin(TAU * 6 * t) * f)
+        p.rot("cola", rx=-30.0 * f)
+        return p
+    return largo, pose_en
+
+
+def ambiente_beber_lamiendo(L):
+    """Caninos y gato: bajan la cabeza al agua y beben a lengüetazos."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        f = _ciclo3(t, largo, 0.5, 0.5)
+        p.rot("cuerpo", rx=-5.0 * f)
+        p.rot("cabeza", rx=-38.0 * f + 3.5 * math.sin(TAU * 5 * t) * f)
+        p.rot("mandibula", rx=(-6.0 - 6.0 * math.sin(TAU * 5 * t)) * f)
+        p.rot("cola", rx=-4.0 * f, ry=6.0 * math.sin(TAU * t / 1.2))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def ambiente_beber_ave(L):
+    """Aves: meten el pico, lo sacan y alzan la cabeza para tragar."""
+    largo = 2.0
+
+    def pose_en(t):
+        p = L.pose()
+        cab = "cuello" if "cuello" in L.huesos else "cabeza"
+        p.rot(cab, rx=_k(t, (0, 0), (0.4, -45.0), (0.8, -42.0), (1.2, 18.0), (1.5, 18.0), (2.0, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.4, -10.0), (0.9, -8.0), (1.2, 4.0), (2.0, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def ambiente_lamer_cria(L):
+    """Caninos y gato: bajan la cabeza de lado hacia la cria y la lamen a lengüetazos largos."""
+    largo = 2.8
+
+    def pose_en(t):
+        p = L.pose()
+        f = _ciclo3(t, largo, 0.5, 0.5)
+        p.rot("cabeza", rx=(-16.0 + 5.0 * math.sin(TAU * 2 * t)) * f, ry=12.0 * f, rz=-4.0 * f)
+        p.rot("mandibula", rx=-8.0 * f)
+        p.rot("cola", ry=10.0 * math.sin(TAU * t / 0.7))
+        return p
+    return largo, pose_en
+
+
+def ambiente_sentarse(L):
+    """Lobo y chacal: se sientan en manada a vigilar, jadeando y mirando alrededor."""
+    largo = 4.0
+
+    def pose_en(t):
+        p = L.pose()
+        _sentar(L, p, 30.0)
+        p.rot("cabeza", rx=-22.0, ry=14.0 * math.sin(TAU * t / largo))
+        p.rot("mandibula", rx=-6.0 - 3.0 * math.sin(TAU * 3 * t))
+        p.rot("cola", rx=-45.0)
+        p.pos("cuerpo", y=0.12 * math.sin(TAU * 3 * t))
+        return p
+    return largo, pose_en
+
+
+def ambiente_aullar(L):
+    """Lobo y chacal: sentados, alzan la cabeza y aullan."""
+    largo = 3.2
+
+    def pose_en(t):
+        p = L.pose()
+        _sentar(L, p, 30.0)
+        aullido = _k(t, (0, 0), (0.6, 1.0), (2.4, 1.0), (3.2, 0))
+        p.rot("cabeza", rx=-22.0 + 62.0 * aullido)
+        p.rot("mandibula", rx=-22.0 * aullido * (0.85 + 0.15 * math.sin(TAU * 2 * t)))
+        p.rot("cola", rx=-45.0)
+        return p
+    return largo, pose_en
+
+
+def ambiente_acicalarse_gato(L):
+    """Gato: sentado se lame la mano y se la pasa por la cara."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        _sentar(L, p, 35.0)
+        f = _ciclo3(t, largo, 0.5, 0.5)
+        p.rot("pata_dd", 50.0 * f)
+        p.pos("pata_dd", y=1.0 * f)
+        lame = math.sin(TAU * 2.5 * t)
+        p.rot("cabeza", rx=-35.0 + (-14.0 + 6.0 * lame) * f, ry=-10.0 * f + 8.0 * lame * f * (t > 1.8))
+        p.rot("cola", rx=25.0, ry=10.0 * math.sin(TAU * t / 1.5))
+        return p
+    return largo, pose_en
+
+
+def ambiente_acicalarse_ave(L):
+    """Aves: voltean la cabeza atras, alzan el ala y se acomodan las plumas a piquetitos."""
+    largo = 2.6
+
+    def pose_en(t):
+        p = L.pose()
+        f = _ciclo3(t, largo, 0.5, 0.5)
+        cab = "cuello" if "cuello" in L.huesos else "cabeza"
+        p.rot(cab, ry=65.0 * f, rx=(-14.0 + 5.0 * math.sin(TAU * 4 * t)) * f)
+        p.rot("ala_d", rz=22.0 * f)
+        return p
+    return largo, pose_en
+
+
+def ambiente_despiojar(L):
+    """Babuino: sentado se rasca y se busca entre el pelo del costado."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        _sentar(L, p, 15.0)
+        f = _ciclo3(t, largo, 0.5, 0.5)
+        p.rot("pata_dd", 45.0 * f + 8.0 * math.sin(TAU * 3 * t) * f, rz=-18.0 * f)
+        p.pos("pata_dd", y=2.0 * f)
+        p.rot("cabeza", rx=-4.0 - 1.0 * f, ry=4.0 * f)
+        p.rot("cola", rx=10.0)
+        return p
+    return largo, pose_en
+
+
+def ambiente_una_pata(L):
+    """Flamenco e ibis: se paran en una pata (la otra doblada arriba) y meten la cabeza."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("pata_i", -70.0)
+        p.pos("pata_i", y=2.5)
+        p.pos("cuerpo", x=0.4, y=0.1 * math.sin(TAU * t / 1.5))
+        p.rot("cuerpo", rz=-3.0)
+        p.rot("cuello", rx=18.0 + 2.0 * math.sin(TAU * t / 1.5))
+        p.rot("cabeza", rx=-14.0)
+        return p
+    return largo, pose_en
+
+
+def ambiente_alas_al_sol(L):
+    """Buitre y aguila: abren las alas al sol y las dejan extendidas, meciendose con el aire."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        a = 100.0 + 4.0 * math.sin(TAU * t / 1.5)
+        p.rot("ala_d", rz=a)
+        p.rot("ala_i", rz=-a)
+        p.rot("cuerpo", rx=-4.0)
+        p.rot("cabeza", ry=20.0 * math.sin(TAU * t / largo))
+        return p
+    return largo, pose_en
+
+
+def ambiente_boca_abierta(L):
+    """Cocodrilo: se asolea con el hocico abierto, quieto."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cabeza", rx=18.0 + 1.0 * math.sin(TAU * t / 1.5))
+        p.rot("cola3", ry=4.0 * math.sin(TAU * t / largo))
+        return p
+    return largo, pose_en
+
+
+def ambiente_lagartijeo(L):
+    """Lagarto, lagartija y salamandra: lagartijas (se alzan y bajan con las manos) y cabecean."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        sube = max(0.0, math.sin(TAU * t / 0.4)) if t < 1.2 else 0.0
+        p.pos("cuerpo", y=0.7 * sube)
+        for h, s in (("pata_dd", 1), ("pata_di", -1), ("pata_td", 1), ("pata_ti", -1)):
+            p.rot(h, rz=-s * 16.0 * sube)
+        p.rot("cabeza", rx=6.0 * sube + 3.0 * math.sin(TAU * t / 0.8) * (t >= 1.2))
+        return p
+    return largo, pose_en
+
+
+def ambiente_silbar(L):
+    """Marmota: se para en dos patas a vigilar y silba (la cabeza da tironcitos)."""
+    largo = 2.6
+
+    def pose_en(t):
+        p = L.pose()
+        f = _ciclo3(t, largo, 0.4, 0.4)
+        _pararse(L, p, 62.0, f)
+        for h in ("pata_dd", "pata_di"):
+            p.rot(h, 40.0 * f)
+        p.rot("cola", rx=-62.0 * f)
+        silbido = max(0.0, math.sin(TAU * 2 * t)) if 0.8 < t < 1.9 else 0.0
+        p.rot("cabeza", rx=(-55.0 + 10.0 * silbido) * f)
+        return p
+    return largo, pose_en
+
+
+def ambiente_colgarse(L):
+    """Murcielago: colgado de cabeza, con las alas cerradas, se mece."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("raiz", rz=180.0, rx=3.0 * math.sin(TAU * t / largo))
+        p.pos("raiz", y=11.0)
+        p.rot("ala_d", rz=-55.0)
+        p.rot("ala_i", rz=55.0)
+        p.rot("cabeza", ry=15.0 * math.sin(TAU * t / largo))
+        return p
+    return largo, pose_en
+
+
+def ambiente_enroscarse(L):
+    """Serpientes: se enroscan a dormir (respirando)."""
+    tramos = sorted((h for h in L.huesos if h.startswith("s") and h[1:].isdigit()), key=lambda h: int(h[1:]))
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        giro = 15.0 if L.b.id == "cria_varkhum" else 31.0
+        for h in tramos[1:]:
+            p.rot(h, ry=giro + 0.6 * math.sin(TAU * t / largo))
+        p.rot(tramos[0], ry=-10.0)
+        return p
+    return largo, pose_en
+
+
+def ambiente_limpiarse_ojos(L):
+    """Cangrejo: se limpia los ojos con una pinza y luego con la otra."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        d = _k(t, (0, 0), (0.3, 1.0), (1.0, 1.0), (1.2, 0), (2.4, 0))
+        i = _k(t, (0, 0), (1.2, 0), (1.5, 1.0), (2.2, 1.0), (2.4, 0))
+        p.rot("pinza_d", rx=(35.0 + 6.0 * math.sin(TAU * 4 * t)) * d, ry=-20.0 * d)
+        p.rot("pinza_i", rx=(35.0 + 6.0 * math.sin(TAU * 4 * t)) * i, ry=20.0 * i)
+        return p
+    return largo, pose_en
+
+
+def ambiente_echarse(L):
+    """Los grandes (toro, bufalo, hipopotamo, Iskarum, dromedario, cervatillo, cabra): echados descansando,
+    respirando, rumiando y mirando alrededor."""
+    largo = 4.0
+
+    def pose_en(t):
+        p = L.pose()
+        _echar(L, p)
+        p.pos("cuerpo", y=0.15 * math.sin(TAU * t / 2.0))
+        mira = 14.0 * math.sin(TAU * t / largo)
+        if "cuello" in L.huesos:
+            p.rot("cuello", rx=-8.0)
+        p.rot("cabeza", ry=mira, rx=2.0 * math.sin(TAU * 3 * t / largo))
+        p.rot("cola", rx=-25.0, rz=8.0 * math.sin(TAU * t / 2.0))
+        return p
+    return largo, pose_en
+
+
+def ambiente_bostezo(L):
+    """Hipopotamo: bostezo enorme con la cabeza bien alzada."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cabeza", rx=_k(t, (0, 0), (0.8, 40.0), (2.0, 42.0), (3.0, 0)))
+        p.rot("cuerpo", rx=_k(t, (0, 0), (0.8, 3.0), (2.0, 3.0), (3.0, 0)))
+        return _montar_patas(L, p)
+    return largo, pose_en
+
+
+def ambiente_moldear_bola(L):
+    """Escarabajo sagrado: con la cabeza abajo palmea la bola con las patas de atras para redondearla."""
+    largo = 1.6
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cuerpo", rx=-7.0)
+        p.pos("cuerpo", y=0.3)
+        for lado, s, f in (("d", 1, 0.0), ("i", -1, 0.5)):
+            a = math.sin(TAU * (2 * t / largo + f))
+            p.rot(f"pata_3{lado}", ry=-s * (18.0 + 10.0 * a), rz=s * (14.0 + 8.0 * a))
+        return p
+    return largo, pose_en
+
+
+def ambiente_rama(L):
+    """Ramita: quieta como rama, se mece con el viento."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cuerpo", rz=2.5 * math.sin(TAU * t / largo), ry=2.0 * math.sin(TAU * 2 * t / largo))
+        p.pos("cuerpo", x=0.3 * math.sin(TAU * t / largo))
+        p.rot("cabeza", rz=-2.0 * math.sin(TAU * t / largo))
+        return p
+    return largo, pose_en
+
+
+def ambiente_cola_escorpion(L):
+    """Escorpion: mece la cola alzada y chasquea las pinzas."""
+    largo = 2.0
+
+    def pose_en(t):
+        p = L.pose()
+        _onda(p, ("cola1", "cola2", "cola3", "cola4"), t / largo, 6.0, 0.7)
+        p.rot("cola4", rx=-6.0 * max(0.0, math.sin(TAU * 2 * t / largo)))
+        chasquido = 8.0 * max(0.0, math.sin(TAU * 4 * t / largo))
+        p.rot("pinza_d", ry=chasquido)
+        p.rot("pinza_i", ry=-chasquido)
+        return p
+    return largo, pose_en
+
+
+def ambiente_soplar(L):
+    """Ballenato: asoma de la arena, sopla arena por el lomo y se vuelve a acomodar."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("raiz", y=_k(t, (0, 0), (0.8, 1.5), (1.2, 2.0), (2.0, 1.5), (3.0, 0)))
+        p.rot("raiz", rx=_k(t, (0, 0), (0.8, -5.0), (2.0, -4.0), (3.0, 0)))
+        p.pos("cuerpo", y=1.0 + _k(t, (0, 0), (1.0, 0), (1.15, 0.5), (1.4, 0), (3.0, 0)))
+        p.rot("cola", rx=6.0 * math.sin(TAU * t / 1.5))
+        return p
+    return largo, pose_en
+
+
+def ambiente_esconderse(L):
+    """Garrapata: se aplasta contra el piso con las patas recogidas, y de vez en cuando mueve una."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        p.pos("cuerpo", y=-0.4)
+        for k in (1, 2, 3):
+            p.rot(f"pata_{k}d", rz=12.0)
+            p.rot(f"pata_{k}i", rz=-12.0)
+        p.rot("pata_1d", ry=10.0 * max(0.0, math.sin(TAU * 2 * t / largo)))
+        return p
+    return largo, pose_en
+
+
+def ambiente_frotar_patas(L):
+    """Escarabajo de brasa: se frota las patas de adelante."""
+    largo = 1.6
+
+    def pose_en(t):
+        p = L.pose()
+        a = math.sin(TAU * 3 * t / largo)
+        p.rot("pata_1d", rz=18.0, ry=10.0 * a)
+        p.rot("pata_1i", rz=-18.0, ry=10.0 * a)
+        p.rot("cabeza", rx=-4.0)
+        return p
+    return largo, pose_en
+
+
+def ambiente_flotar(L):
+    """Cria de Moruvahn: reposa meciendo la cola despacio y cabeceando, como en el agua."""
+    largo = 3.0
+
+    def pose_en(t):
+        p = L.pose()
+        _onda(p, ("cola1", "cola2", "cola3"), t / largo, 8.0, 0.9)
+        p.rot("cabeza", rx=3.0 * math.sin(TAU * t / 1.5), ry=6.0 * math.sin(TAU * t / largo))
+        p.pos("cuerpo", y=0.15 * math.sin(TAU * t / 1.5))
+        return p
+    return largo, pose_en
+
+
+def ambiente_ladear(L):
+    """Cuervo y halcon: ladean la cabeza con curiosidad a un lado y al otro."""
+    largo = 2.4
+
+    def pose_en(t):
+        p = L.pose()
+        p.rot("cabeza", rz=_k(t, (0, 0), (0.3, 25.0), (0.9, 25.0), (1.2, -20.0), (1.9, -20.0), (2.4, 0)),
+              ry=_k(t, (0, 0), (0.3, 10.0), (1.2, -10.0), (2.4, 0)))
+        return p
+    return largo, pose_en
+
+
+def ambiente_juguetear(L):
+    """Cervatillo (el que nunca ataca): brinca juguetón de un lado a otro sacudiendo la cabeza."""
+    largo = 1.6
+
+    def pose_en(t):
+        p = L.pose()
+        u = (t / 0.8) % 1.0
+        brinco = math.sin(math.pi * min(1.0, u / 0.6)) if u < 0.6 else 0.0
+        p.pos("raiz", y=3.0 * brinco)
+        p.rot("raiz", ry=20.0 * math.sin(TAU * t / largo))
+        p.rot("cabeza", rz=12.0 * math.sin(TAU * 2 * t / largo))
+        p.rot("cola", rx=-20.0 * brinco)
+        for h in ("pata_dd", "pata_di"):
+            p.rot(h, 15.0 * brinco)
+        for h in ("pata_td", "pata_ti"):
+            p.rot(h, -15.0 * brinco)
+        return p
+    return largo, pose_en
+
+
+AMBIENTE = {
+    "pastar": (ambiente_pastar, ["toro_arena", "bufalo_terracota", "cabra_escarcha", "cervatillo_musgo", "dromedario",
+                                 "hipopotamo"]),
+    "arrancar_con_trompa": (ambiente_trompa, ["cria_iskarum"]),
+    "mordisquear": (ambiente_mordisquear, ["liebre_dorada", "marmota"]),
+    "beber_lamiendo": (ambiente_beber_lamiendo, ["lobo_fuego", "chacal_ceniza", "fenec", "gato_thza"]),
+    "beber_aves": (ambiente_beber_ave, ["pato_estanque", "ibis", "flamenco", "cuervo_negro", "buitre", "halcon_cobre",
+                                        "aguila_gris"]),
+    "lamer_cria": (ambiente_lamer_cria, ["lobo_fuego", "chacal_ceniza", "fenec", "gato_thza"]),
+    "sentarse_manada": (ambiente_sentarse, ["lobo_fuego", "chacal_ceniza"]),
+    "aullar": (ambiente_aullar, ["lobo_fuego", "chacal_ceniza"]),
+    "acicalarse_gato": (ambiente_acicalarse_gato, ["gato_thza"]),
+    "acicalarse_aves": (ambiente_acicalarse_ave, ["pato_estanque", "halcon_cobre", "aguila_gris", "cuervo_negro",
+                                                  "buitre", "ibis", "flamenco"]),
+    "despiojar": (ambiente_despiojar, ["babuino"]),
+    "una_pata": (ambiente_una_pata, ["flamenco", "ibis"]),
+    "alas_al_sol": (ambiente_alas_al_sol, ["buitre", "aguila_gris"]),
+    "boca_abierta": (ambiente_boca_abierta, ["cocodrilo_luz"]),
+    "lagartijeo": (ambiente_lagartijeo, ["lagarto_roca", "lagartija_blanca", "salamandra_ceniza"]),
+    "silbar": (ambiente_silbar, ["marmota"]),
+    "colgarse": (ambiente_colgarse, ["murcielago_mura"]),
+    "enroscarse": (ambiente_enroscarse, ["serpiente_rio_seco", "cria_varkhum"]),
+    "limpiarse_ojos": (ambiente_limpiarse_ojos, ["cangrejo"]),
+    "echarse": (ambiente_echarse, ["toro_arena", "bufalo_terracota", "hipopotamo", "cria_iskarum", "dromedario",
+                                   "cervatillo_musgo", "cabra_escarcha"]),
+    "bostezo": (ambiente_bostezo, ["hipopotamo"]),
+    "moldear_bola": (ambiente_moldear_bola, ["escarabajo_sagrado"]),
+    "mecerse_rama": (ambiente_rama, ["ramita"]),
+    "cola_escorpion": (ambiente_cola_escorpion, ["escorpion_luz"]),
+    "soplar_arena": (ambiente_soplar, ["ballenato_duna"]),
+    "esconderse": (ambiente_esconderse, ["garrapata_sal"]),
+    "frotar_patas": (ambiente_frotar_patas, ["escarabajo_brasa"]),
+    "flotar_quieto": (ambiente_flotar, ["cria_moruvahn"]),
+    "ladear_cabeza": (ambiente_ladear, ["cuervo_negro", "halcon_cobre"]),
+    "juguetear": (ambiente_juguetear, ["cervatillo_musgo"]),
+}
+
+ANIMACIONES = {"caminar": CAMINAR, "correr": CORRER, "atacar": ATACAR, "ambiente": AMBIENTE}
+EN_BUCLE = {"caminar": True, "correr": True, "atacar": False, "ambiente": True}
 DESDE_ARRIBA = ("reptiles", "serpientes", "cangrejo", "insectos", "aracnidos", "escurridizos", "carrera_baja",
                 "patitas_insectos", "patitas_aracnidos", "patitas_cangrejo", "ramita_tiesa", "lanzarse", "emboscada",
-                "pegarse", "escupir", "explotar")   # la segunda vista, desde arriba
+                "pegarse", "escupir", "explotar", "enroscarse", "limpiarse_ojos", "moldear_bola", "cola_escorpion",
+                "esconderse", "frotar_patas", "flotar_quieto", "lagartijeo", "mecerse_rama")   # la segunda vista, desde arriba
 
 
 # ====================================================================== revisar
