@@ -496,6 +496,10 @@ def textos():
           "death.attack.mipack.drenar.player": "%2$s le drenó el alma a %1$s",
           "bruma.mipack.fase2": "La bruma crece... las luces no van a durar",
           "bruma.mipack.luz": "¡La luz obliga a La Bruma a tomar cuerpo!"}
+    from . import objetos_mod                              # los objetos de Velkia (sus nombres viven alla)
+    es_o, en_o = objetos_mod.textos()
+    es.update(es_o)
+    en.update(en_o)
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
     for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg", "bruma_spawn_egg"):

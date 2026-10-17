@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " O ",
+    "SCS",
+    "SSS"
+  ],
+  "key": {
+    "O": {
+      "item": "minecraft:gold_ingot"
+    },
+    "S": {
+      "item": "minecraft:cut_sandstone"
+    },
+    "C": {
+      "item": "minecraft:compass"
+    }
+  },
+  "result": {
+    "item": "mipack:pedazo_piramide",
+    "count": 1
+  }
+}

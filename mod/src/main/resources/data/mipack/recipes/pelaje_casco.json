@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XXX",
+    "X X"
+  ],
+  "key": {
+    "X": {
+      "item": "mipack:pelaje_grueso"
+    }
+  },
+  "result": {
+    "item": "mipack:pelaje_casco",
+    "count": 1
+  }
+}

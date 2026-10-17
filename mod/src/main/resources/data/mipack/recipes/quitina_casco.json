@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XXX",
+    "X X"
+  ],
+  "key": {
+    "X": {
+      "item": "mipack:quitina"
+    }
+  },
+  "result": {
+    "item": "mipack:quitina_casco",
+    "count": 1
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "G",
+    "S"
+  ],
+  "key": {
+    "G": {
+      "item": "mipack:grasa"
+    },
+    "S": {
+      "item": "minecraft:stick"
+    }
+  },
+  "result": {
+    "item": "mipack:antorcha_grasa",
+    "count": 4
+  }
+}

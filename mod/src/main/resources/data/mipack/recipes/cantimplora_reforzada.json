@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {
+      "item": "mipack:cantimplora"
+    },
+    {
+      "item": "mipack:grasa"
+    },
+    {
+      "item": "mipack:grasa"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    }
+  ],
+  "result": {
+    "item": "mipack:cantimplora_reforzada",
+    "count": 1
+  }
+}

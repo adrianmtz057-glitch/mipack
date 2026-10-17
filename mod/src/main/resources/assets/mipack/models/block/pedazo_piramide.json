@@ -1,0 +1,107 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "arena": "minecraft:block/sandstone_top",
+    "lado": "minecraft:block/cut_sandstone",
+    "oro": "minecraft:block/gold_block",
+    "particle": "minecraft:block/cut_sandstone"
+  },
+  "elements": [
+    {
+      "from": [
+        1,
+        0,
+        1
+      ],
+      "to": [
+        15,
+        5,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lado"
+        },
+        "south": {
+          "texture": "#lado"
+        },
+        "east": {
+          "texture": "#lado"
+        },
+        "west": {
+          "texture": "#lado"
+        },
+        "up": {
+          "texture": "#arena"
+        },
+        "down": {
+          "texture": "#arena"
+        }
+      }
+    },
+    {
+      "from": [
+        4,
+        5,
+        4
+      ],
+      "to": [
+        12,
+        10,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lado"
+        },
+        "south": {
+          "texture": "#lado"
+        },
+        "east": {
+          "texture": "#lado"
+        },
+        "west": {
+          "texture": "#lado"
+        },
+        "up": {
+          "texture": "#arena"
+        },
+        "down": {
+          "texture": "#arena"
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        10,
+        6.5
+      ],
+      "to": [
+        9.5,
+        14,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#oro"
+        },
+        "south": {
+          "texture": "#oro"
+        },
+        "east": {
+          "texture": "#oro"
+        },
+        "west": {
+          "texture": "#oro"
+        },
+        "up": {
+          "texture": "#oro"
+        },
+        "down": {
+          "texture": "#arena"
+        }
+      }
+    }
+  ]
+}

@@ -145,6 +145,7 @@ public class Mipack {
         ENTIDADES.register(bus);
         OBJETOS.register(bus);
         PESTANAS.register(bus);
+        com.mipack.objetos.ObjetosMipack.registrar(bus);
         EfectosKhaset.EFECTOS.register(bus);
         com.mipack.entidad.EfectosCrackatos.EFECTOS.register(bus);
         SonidosMipack.SONIDOS.register(bus);
@@ -152,6 +153,7 @@ public class Mipack {
         bus.addListener(this::preparar);
         bus.addListener(this::atributos);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, MipackConfig.CLIENTE);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, com.mipack.agua.ConfigAgua.SPEC);
         // los modelos de mipack pueden traer mallas (GeckoLib solo dibuja cubos): ver geo/FabricaMallas
         GeckoLibUtil.addCustomBakedModelFactory(MODID, new FabricaMallas());
         MinecraftForge.EVENT_BUS.addListener(this::alEntrar);
@@ -171,6 +173,8 @@ public class Mipack {
 
     private void preparar(FMLCommonSetupEvent event) {
         event.enqueueWork(RedKhaset::registrar);
+        event.enqueueWork(com.mipack.agua.RedAgua::registrar);
+        event.enqueueWork(com.mipack.objetos.ObjetosMipack::preparar);
     }
 
     /** Los bloques de una ola que quedaron guardados (se cerro el mundo a media ola) no vuelven a aparecer. */
