@@ -507,7 +507,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
             default -> {
             }
         }
-        if (this.fase >= 3 && --this.enfriarGuerreros <= 0)
+        if (this.fase >= 2 && --this.enfriarGuerreros <= 0)
             guerreros(2 + this.maxJugadores / 4);
         ondas();
         erupciones();
@@ -674,10 +674,10 @@ public class KhasetEntity extends Monster implements GeoEntity {
                 op.add(Estado.DARDO);
                 peso.add(lejos ? 5 : 3);
             }
-            if (listo(Estado.INVOCAR)) {
-                op.add(Estado.INVOCAR);
-                peso.add(this.fase >= 2 ? 3 : 2);
-            }
+        }
+        if (listo(Estado.INVOCAR)) {                              // invoca a sus bichos de cerca o de lejos
+            op.add(Estado.INVOCAR);
+            peso.add(this.fase >= 2 ? 5 : 3);
         }
         if (op.isEmpty())
             return null;
@@ -955,7 +955,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
             this.playSound(SoundEvents.WARDEN_SONIC_BOOM, 3.0f, 1.4f);
         }
         if (termino())
-            trasAtaque(Estado.SILBATO, this.fase == 3 ? 220 : 320);
+            trasAtaque(Estado.SILBATO, this.fase == 3 ? 600 : 800);
     }
 
     // ---- captura y sacrificio
@@ -997,7 +997,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
         if (termino()) {
             this.presaElegida = null;
             if (presas().isEmpty())
-                trasAtaque(Estado.AGARRAR, 60);
+                trasAtaque(Estado.AGARRAR, 340);
             else
                 cambiar(presas().size() > 1 ? Estado.CARGAR_DOS : Estado.CARGAR);
         }
@@ -1005,7 +1005,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
 
     private void cargar() {
         if (presas().isEmpty()) {
-            trasAtaque(Estado.AGARRAR, 60);
+            trasAtaque(Estado.AGARRAR, 340);
             return;
         }
         if (this.ticksEnEstado % 20 == 10)
@@ -1074,7 +1074,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
             this.playSound(SoundEvents.GENERIC_EXPLODE, 2.5f, 0.5f);
         }
         if (presas().isEmpty()) {
-            trasAtaque(Estado.AGARRAR, 60);
+            trasAtaque(Estado.AGARRAR, 340);
             return;
         }
         if (termino()) {
@@ -1090,7 +1090,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
             mirarA(cristal.position());
         quedarse(null, 0f);
         if (presas().isEmpty() && t() < s[1]) {                  // se le zafaron todos
-            trasAtaque(Estado.AGARRAR, 80);
+            trasAtaque(Estado.AGARRAR, 420);
             return;
         }
         if (cristal != null && t() < s[1])
@@ -1141,7 +1141,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
         if (termino()) {
             soltarPresas(false);
             this.entityData.set(CRISTAL, -1);
-            trasAtaque(Estado.AGARRAR, 100);
+            trasAtaque(Estado.AGARRAR, 500);
         }
     }
 
@@ -1318,7 +1318,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
                 soltarUna(p, true);
                 this.playSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK, 2.0f, 0.6f);
                 if (presas().isEmpty() && getEstado().cargando() && getEstado() != Estado.SALTO_ALTAR)
-                    trasAtaque(Estado.AGARRAR, 80);
+                    trasAtaque(Estado.AGARRAR, 420);
                 return;
             }
         } else {

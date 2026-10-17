@@ -52,11 +52,13 @@ import java.util.UUID;
 /**
  * La sed y el frio.
  * <ul>
- * <li>El agua siempre baja: fuera del desierto la barra dura {@code minutos_fuera}; en el desierto
+ * <li>El agua siempre baja: la barra dura {@code minutos_fuera}; en los biomas frescos (la lista
+ *     {@code biomas_frescos}: montanas, jardines) dura mas, {@code minutos_fresco}. En los biomas calientes (la lista
+ *     {@code biomas_calientes}: desierto, volcan, canon, sales) la Sofocacion esta siempre y la barra dura
  *     {@code minutos_desierto}, dividido entre lo que sofoca la armadura (pieza por pieza, cada una con su peso:
  *     diamante completo sofoca el doble, netherita el triple) y nunca menos de {@code minutos_minimo}. La armadura del
- *     desierto no sofoca. De noche no hay sofocacion y a la sombra es la mitad; el pedazo de piramide en la mano
- *     tambien la baja a la mitad. Mientras te sofoca, se ve el efecto Sofocacion.</li>
+ *     desierto no sofoca. De noche la armadura no pesa y a la sombra pesa la mitad; el pedazo de piramide en la mano
+ *     tambien la baja a la mitad.</li>
  * <li>Se toma agua de: la cantimplora, las botellas de agua, el rio (agachado, clic derecho con la mano vacia), la
  *     lluvia (estando afuera) y algunas comidas (la pulpa de cactus, la sandia, la leche, los guisos...).</li>
  * <li>En cero te desmayas: no te puedes mover ni hacer nada (el chat si) por {@code segundos_desmayo}, la pantalla se
@@ -133,6 +135,22 @@ public final class SistemaAgua {
         return Math.min(1.0f, f);
     }
 
+    /** Si el bioma esta en la lista (ids "minecraft:desert" o etiquetas "#minecraft:is_badlands"). */
+    static boolean es(net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> bioma, java.util.List<? extends String> lista) {
+        for (String e : lista) {
+            if (e.startsWith("#")) {
+                ResourceLocation rl = ResourceLocation.tryParse(e.substring(1));
+                if (rl != null && bioma.is(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BIOME, rl)))
+                    return true;
+            } else {
+                ResourceLocation rl = ResourceLocation.tryParse(e);
+                if (rl != null && bioma.unwrapKey().map(k -> k.location().equals(rl)).orElse(false))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     static boolean conPiramide(Player p) {
         return PIRAMIDE.equals(ForgeRegistries.ITEMS.getKey(p.getMainHandItem().getItem()))
                 || PIRAMIDE.equals(ForgeRegistries.ITEMS.getKey(p.getOffhandItem().getItem()));
@@ -173,23 +191,21 @@ public final class SistemaAgua {
             return;
         Level nivel = p.level();
         BlockPos pos = p.blockPosition();
-        boolean desierto = nivel.getBiome(pos).is(Tags.Biomes.IS_DESERT);
+        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> bioma = nivel.getBiome(pos);
         double minutos = ConfigAgua.MINUTOS_FUERA.get();
-        boolean sofoca = false;
-        if (desierto) {
-            float f = sofocacion(p);
-            boolean cielo = nivel.canSeeSky(pos.above());
+        if (es(bioma, ConfigAgua.CALIENTES.get())) {
+            float f = sofocacion(p);                             // la armadura: de noche no pesa y a la sombra, la mitad
             if (!nivel.isDay())
                 f = Math.min(f, 1.0f);
-            else if (!cielo)
+            else if (!nivel.canSeeSky(pos.above()))
                 f = 1.0f + (f - 1.0f) * 0.5f;
             if (conPiramide(p))
                 f = 1.0f + (f - 1.0f) * 0.5f;
-            minutos = Math.max(ConfigAgua.MINUTOS_MINIMO.get(), ConfigAgua.MINUTOS_DESIERTO.get() / f);
-            sofoca = f > 1.05f;
-        }
-        if (sofoca)
+            minutos = Math.max(ConfigAgua.MINUTOS_MINIMO.get(), ConfigAgua.MINUTOS_DESIERTO.get() / Math.max(f, 0.5f));
             p.addEffect(new MobEffectInstance(EfectosObjetos.SOFOCACION.get(), 60, 0, false, false, true));
+        } else if (es(bioma, ConfigAgua.FRESCOS.get())) {
+            minutos = ConfigAgua.MINUTOS_FRESCO.get();
+        }
         float agua = Agua.agua(p) - (float) (Agua.MAX / (minutos * 60.0));
         if (nivel.isRainingAt(pos.above()))
             agua += 0.25f;

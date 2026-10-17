@@ -147,13 +147,14 @@ public class PuaCayendo extends Entity implements GeoEntity {
             this.discard();
             return;
         }
+        EfectosCrackatos.dejarResto(sl, x, y, z, c);
         AABB zona = new AABB(x - RADIO, y - 1, z - RADIO, x + RADIO, y + 2.5, z + RADIO);
         for (LivingEntity e : sl.getEntitiesOfClass(LivingEntity.class, zona, PuaCayendo::alcanzable)) {
             Vec3 afuera = new Vec3(e.getX() - x, 0, e.getZ() - z);
             if (afuera.length() > RADIO + 0.4)
                 continue;
             com.mipack.Golpes.pegar(e, dueno, DANO, 100);
-            EfectosCrackatos.clavar(e);                       // se queda una esquirla hasta que Crackatos muera
+            EfectosCrackatos.clavar(e);                       // una esquirla mas (10 s)
             Vec3 dir = afuera.lengthSqr() > 1e-4 ? afuera.normalize() : Vec3.ZERO;
             CrackatosEntity.lanzar(e, dir.scale(0.5), 0.5);
         }

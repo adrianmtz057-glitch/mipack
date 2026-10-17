@@ -453,7 +453,7 @@ def textos():
           "entity.mipack.titan_escarcha": "Escarcha, the Glacier Mammoth",
           "entity.mipack.guerrero_calavera": "Skull Warrior", "entity.mipack.acaro_amatista": "Amethyst Mite",
           "item.mipack.macuahuitl": "Macuahuitl", "effect.mipack.esquirlas": "Amethyst Shards",
-          "gui.mipack.zafarse": "Break free! Click when the cursor is on the gold (3 times)",
+          "gui.mipack.zafarse": "Break free! Press SPACE when the cursor is on the gold (3 times). Click to hit him",
           "death.attack.mipack.golpe_jefe": "%1$s was crushed", "death.attack.mipack.golpe_jefe.player": "%1$s was crushed by %2$s",
           "death.attack.mipack.forcejeo": "%1$s struggled too hard", "death.attack.mipack.forcejeo.player": "%1$s struggled too hard in the grip of %2$s",
           "death.attack.mipack.esquirlas": "%1$s was pierced by amethyst shards",
@@ -483,7 +483,7 @@ def textos():
           "entity.mipack.titan_escarcha": "Escarcha, el mamut del glaciar",
           "entity.mipack.guerrero_calavera": "Guerrero calavera", "entity.mipack.acaro_amatista": "Ácaro de amatista",
           "item.mipack.macuahuitl": "Macuahuitl", "effect.mipack.esquirlas": "Esquirlas de amatista",
-          "gui.mipack.zafarse": "¡Zafate! Haz clic cuando el cursor esté en lo dorado (3 veces)",
+          "gui.mipack.zafarse": "¡Zafate! Presiona ESPACIO cuando el cursor esté en lo dorado (3 veces). Clic para pegarle",
           "death.attack.mipack.golpe_jefe": "%1$s fue aplastado", "death.attack.mipack.golpe_jefe.player": "%1$s fue aplastado por %2$s",
           "death.attack.mipack.forcejeo": "%1$s forcejeó de más", "death.attack.mipack.forcejeo.player": "%1$s forcejeó de más en la mano de %2$s",
           "death.attack.mipack.esquirlas": "%1$s quedó lleno de esquirlas de amatista",
@@ -500,6 +500,9 @@ def textos():
     es_o, en_o = objetos_mod.textos()
     es.update(es_o)
     en.update(en_o)
+    pruebas = json.load(open(os.path.join(os.path.dirname(__file__), "textos_pruebas.json"), encoding="utf-8"))
+    es.update(pruebas["es"])                                 # huevos de las invocaciones y pociones de prueba
+    en.update(pruebas["en"])
     for idioma, d in (("en_us", en), ("es_mx", es), ("es_es", es)):
         _escribir_json(os.path.join(RAIZ, "lang", f"{idioma}.json"), d, compacto=False)
     for huevo in ("crackatos_spawn_egg", "khaset_spawn_egg", "bruma_spawn_egg"):

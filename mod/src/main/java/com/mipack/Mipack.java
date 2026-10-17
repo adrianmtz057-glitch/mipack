@@ -118,6 +118,12 @@ public class Mipack {
             () -> new ForgeSpawnEggItem(KHASET, 0x981C36, 0x22AA9C, new Item.Properties()));
     public static final RegistryObject<Item> HUEVO_BRUMA = OBJETOS.register("bruma_spawn_egg",
             () -> new ForgeSpawnEggItem(BRUMA, 0x0E0F11, 0x9A9384, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_ACARO = OBJETOS.register("acaro_amatista_spawn_egg",
+            () -> new ForgeSpawnEggItem(ACARO, 0x3B2154, 0xC9A0FF, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_XIUHCOATL = OBJETOS.register("xiuhcoatl_spawn_egg",
+            () -> new ForgeSpawnEggItem(XIUHCOATL, 0x1E8A7A, 0xF2A33A, new Item.Properties()));
+    public static final RegistryObject<Item> HUEVO_GUERRERO = OBJETOS.register("guerrero_calavera_spawn_egg",
+            () -> new ForgeSpawnEggItem(GUERRERO, 0xE8E2D0, 0x2A1C14, new Item.Properties()));
     public static final RegistryObject<Item> CRISTAL_ITEM = OBJETOS.register("cristal_sacrificio",
             () -> new CristalSacrificio.Objeto(new Item.Properties().stacksTo(1)));
 
@@ -133,6 +139,13 @@ public class Mipack {
                         out.accept(HUEVO_CRACKATOS.get());
                         out.accept(HUEVO_KHASET.get());
                         out.accept(HUEVO_BRUMA.get());
+                        out.accept(HUEVO_ACARO.get());
+                        out.accept(HUEVO_XIUHCOATL.get());
+                        out.accept(HUEVO_GUERRERO.get());
+                        out.accept(net.minecraft.world.item.Items.VEX_SPAWN_EGG);   // las almas en pena de la Bruma
+                        for (var p : com.mipack.objetos.ObjetosMipack.POCIONES_PRUEBA)
+                            out.accept(net.minecraft.world.item.alchemy.PotionUtils.setPotion(
+                                    new ItemStack(net.minecraft.world.item.Items.POTION), p.get()));
                         out.accept(CRISTAL_ITEM.get());
                         out.accept(MACUAHUITL.get());
                     })

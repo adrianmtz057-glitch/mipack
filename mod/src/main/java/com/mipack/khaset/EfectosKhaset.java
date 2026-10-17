@@ -64,11 +64,12 @@ public final class EfectosKhaset {
         return quien == null ? new DamageSource(h) : new DamageSource(h, quien);
     }
 
-    /** Sube el desangrado 'niveles' (hasta III: ahi se cae y vuelve a II). Dura 8 s desde el ultimo corte. */
+    /** Sube el desangrado 'niveles' (I, II, III); un corte mas estando en III te tumba y vuelve a II: aguanta varios
+     *  golpes antes de quedar sin poder moverse. Dura 8 s desde el ultimo corte. */
     public static void cortar(LivingEntity e, int niveles) {
         MobEffectInstance antes = e.getEffect(DESANGRADO.get());
         int nivel = (antes == null ? -1 : antes.getAmplifier()) + niveles;
-        if (nivel >= 2) {
+        if (nivel >= 3) {
             derribar(e, 60);
             nivel = 1;
         }

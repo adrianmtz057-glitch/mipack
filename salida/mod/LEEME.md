@@ -30,7 +30,7 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 **Cornada:** si te quedas pegado a él, levanta los cuernos y te avienta para arriba. **Pisa:** bajo sus patas te hace daño.
 
 **Sacudida (cada 2 o 3 estampidas):** salen púas volando del lomo y caen **muchísimas** del cielo por toda la arena, con su círculo morado (2.5 bloques de radio). Caen en tandas durante unos 3 segundos.
-- **Esquirlas de amatista (efecto nuevo):** cada púa que te pega te deja una esquirla clavada. Te quitan vida poco a poco, más rápido por cada nivel (hasta V). **No se quitan con leche ni con el tiempo: solo cuando Crackatos muere.**
+- **Esquirlas de amatista (efecto nuevo):** cada púa que te pega te deja una esquirla clavada. Te quitan vida poco a poco, más rápido por cada nivel (hasta V). No se quitan con leche; duran **10 segundos** desde la última púa (o hasta que Crackatos muere). **Donde caen las púas queda brillo morado en el piso hasta que Crackatos muere.**
 
 **Alzarse y azotar:** se para en dos patas y azota. Sale una **ola** que recorre toda la arena. **Brinca justo cuando te llegue.** Si hay 3 o más juntos cerca de él, lo hace más seguido.
 
@@ -84,7 +84,7 @@ Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con
 
 **Frenesí:** entre menos vida le queda, **más rápido ataca** (hasta casi el doble) y menos descansa entre ataques. La fase 2 es como la 1, pero más frenética. **Avanza mientras tira tajos y barridos**, y reparte el foco igual que Crackatos.
 
-**Heridas (la leche no las quita):** desangrado I a III (en el III te caes), derribado, aturdido y desorientado.
+**Heridas (la leche no las quita):** desangrado I a III, derribado, aturdido y desorientado. **Aguantas varios cortes:** I, II, III, y hasta el cuarto corte te caes.
 
 **Ataques:**
 - **Tajos:** combo de 3 golpes que te desangran y te prenden fuego. Si sigues cerca, remata con el corte de piernas.
@@ -92,15 +92,15 @@ Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con
 - **Salto del jaguar:** hasta **26 bloques**. Sale un círculo naranja de 7 bloques donde va a caer. Al caer sale **una onda de fuego por el piso**: **brínca** cuando te llegue. En la fase 2 a veces salta dos veces seguidas.
 - **Dardos de átlatl:** en abanico (3, luego 5, luego 7) y en la fase 2 también uno a cada quien que esté lejos. Las nubes de veneno corto son grandes (4.5 bloques).
 - **Guardia del jaguar:** si le pegan mucho de frente, cruza los brazos. Para golpes **y flechas**, y si le pegas de frente te regresa un contraataque. Pégale por la espalda.
-- **Silbato de la muerte:** grita (**ya tiene su sonido**). Aturde y desorienta a todos en 32 bloques que lo vean. **Escóndete detrás de una columna.** Lo usa mucho más seguido y más si te estás alejando.
-- **Xiuhcóatl:** invoca **de 2 a 6 serpientes de fuego** (más con más jugadores), más rápidas que tú corriendo. A sus serpientes ya no les hace daño su propio veneno.
+- **Silbato de la muerte:** grita (**ya tiene su sonido**). Aturde y desorienta a todos en 32 bloques que lo vean. **Escóndete detrás de una columna.** Ahora tiene **espera larga** (30 a 40 segundos entre uno y otro).
+- **Xiuhcóatl:** desde el principio y a cualquier distancia, invoca **de 2 a 6 serpientes de fuego** (más con más jugadores), más rápidas que tú corriendo. A sus serpientes ya no les hace daño su propio veneno.
 - **Para que no se le gane de lejos:** las flechas le hacen 60 %, y si te alejas salta sobre ti o te avienta dardos.
 
 **Captura y sacrificio:**
-- Agarra **hasta a dos desde el principio** (derribados o con desangrado II) y los lleva al cristal.
+- Agarra **hasta a dos desde el principio**, con **espera larga** entre agarrones (17 a 25 segundos) (derribados o con desangrado II) y los lleva al cristal.
 - **Con las manos llenas sigue peleando:** si te acercas, **pisa** y sale una onda de fuego. Mientras sacrifica, **revientan erupciones de fuego** bajo los que estén cerca (círculo rojo: sal de ahí).
 - Mientras carga recibe **doble daño**. Si el grupo le baja **el 5 % de su vida**, suelta.
-- **Zafarte tú solo (barra nueva):** cuando te agarra sale una barra abajo de la pantalla con un cursor que va y viene. **Haz clic (el botón de pegar) cuando el cursor esté en lo dorado.** Con 3 aciertos te suelta. **Cada fallo te quita la mitad de la vida que tengas** (si tienes 10 corazones pierdes 5, si tienes 4 pierdes 2; en normal ⅓ y en easy ¼).
+- **Zafarte tú solo (barra nueva):** cuando te agarra sale una barra abajo de la pantalla con un cursor que va y viene. **Pica ESPACIO (brincar) cuando el cursor esté en lo dorado.** Mientras te tiene agarrado **puedes comer y pegarle** (clic izquierdo le pega a Khaset). Con 3 aciertos te suelta. **Cada fallo te quita la mitad de la vida que tengas** (si tienes 10 corazones pierdes 5, si tienes 4 pierdes 2; en normal ⅓ y en easy ¼).
 - **El tótem funciona:** si te sacrifica y tienes tótem, te salva y te suelta.
 - Cada sacrificio sube el calor **un 5 %** y él se cura un poco.
 
@@ -108,7 +108,8 @@ Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con
 
 **Fases:**
 - **Fase 2, la corona rota (50 %):** se le rompen el yelmo y el penacho y sigue igual pero más rápido; los dardos son astillas de obsidiana que queman.
-- **Fase 3, el Quinto Sol (20 %):** el calor sube al doble, sacrifica ahí mismo donde captura y **salen del piso guerreros calavera** con penacho y **macuahuitl** de obsidiana (cortan y desangran). Salen más cada 20 segundos. Se deshacen cuando Khaset muere. A veces sueltan su macuahuitl.
+- **Fase 3, el Quinto Sol (20 %):** el calor sube al doble y sacrifica ahí mismo donde captura.
+- **Guerreros calavera (desde la fase 2):** **salen del piso guerreros calavera** con penacho y **macuahuitl** de obsidiana (cortan y desangran). Salen más cada 20 segundos. Se deshacen cuando Khaset muere. A veces sueltan su macuahuitl.
 
 **Golpes:** atraviesan la armadura (Protección sí cuenta) y tiran el escudo.
 
@@ -234,7 +235,9 @@ Cada una tiene **forma propia** (no son recolores) y se hace con la forma de sie
 
 ## El agua y el frío
 - **Barra de agua** arriba de la comida (10 gotas). Siempre baja: **fuera del desierto dura 60 minutos**.
-- **En el desierto** dura **35 minutos** sin armadura. La armadura **sofoca** y la acorta, pieza por pieza: el diamante completo la deja a la mitad y la netherita a un tercio, pero **nunca menos de 15 minutos**. Mientras te sofoca, ves el efecto **Sofocación**. De noche no sofoca y a la sombra sofoca la mitad. La armadura del desierto no sofoca.
+- **Biomas calientes** (desierto, badlands/cañón y los que pongas en la config: volcán, salinas...): ahí la **Sofocación sale siempre**. El agua dura **35 minutos** sin armadura. La armadura **sofoca** y la acorta, pieza por pieza: el diamante completo la deja a la mitad y la netherita a un tercio, pero **nunca menos de 15 minutos**. Mientras te sofoca, ves el efecto **Sofocación**. De noche no sofoca y a la sombra sofoca la mitad. La armadura del desierto no sofoca.
+- **Biomas frescos** (montañas, bosque de flores, pradera, cerezos y los que pongas): **sin sofocación** y el agua dura **90 minutos**.
+- Como el mapa aún se está haciendo, las listas van en `config/mipack-common.toml`: `biomas_calientes` y `biomas_frescos` (ids como `"minecraft:desert"` o etiquetas con `#`, como `"#minecraft:is_badlands"`).
 - **Dónde tomar agua:**
   - la cantimplora;
   - botellas de agua (un buen trago);
@@ -245,6 +248,10 @@ Cada una tiene **forma propia** (no son recolores) y se hace con la forma de sie
 - Los **jugadores nuevos** tienen 10 minutos sin sed. En creativo no hay sed.
 - **Frío:** donde nieva, lejos de una fogata, fuego o lava, la comida se va más rápido (efecto **Frío**). La armadura de pelaje lo quita, pieza por pieza.
 - Todo se ajusta en `config/mipack-common.toml`: si hay sed, los minutos de cada caso, el mínimo, cuánto dura el desmayo, la gracia de los nuevos y si hay frío.
+
+## Para probar todo (creativo, pestaña Mipack)
+- **Huevos de todo:** Crackatos, Khaset, La Bruma, ácaro de amatista, Xiuhcóatl, guerrero calavera y el vex (los que invoca La Bruma).
+- **Pociones de prueba** (20 segundos, normales, arrojadizas y persistentes): desangrado, derribado, aturdido, desorientado, esquirlas, sofocación y frío.
 
 ## El cielo y los efectos
 El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`). Para quitar solo las ondas de calor del desierto y dejar lo demás: `calor = false`.

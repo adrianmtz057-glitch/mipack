@@ -20,7 +20,7 @@ import java.util.function.Supplier;
  * aturdido, desorientado y el nivel de desangrado. Con eso se dibujan las poses y las gotas en todos los clientes.
  */
 public final class RedKhaset {
-    private static final String VERSION = "2";
+    private static final String VERSION = "3";
     public static final SimpleChannel CANAL = NetworkRegistry.newSimpleChannel(new ResourceLocation(Mipack.MODID, "khaset"),
             () -> VERSION, VERSION::equals, VERSION::equals);
 
@@ -34,6 +34,8 @@ public final class RedKhaset {
                 .encoder(Barra::escribir).decoder(Barra::leer).consumerMainThread(Barra::recibir).add();
         CANAL.messageBuilder(Clic.class, 2, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(Clic::escribir).decoder(Clic::leer).consumerMainThread(Clic::recibir).add();
+        CANAL.messageBuilder(PegarMano.class, 3, NetworkDirection.PLAY_TO_SERVER)
+                .encoder(PegarMano::escribir).decoder(PegarMano::leer).consumerMainThread(PegarMano::recibir).add();
     }
 
     /**
@@ -86,6 +88,25 @@ public final class RedKhaset {
             var jugador = ctx.get().getSender();
             if (jugador != null && jugador.getVehicle() instanceof KhasetEntity k)
                 k.clic(jugador, cursor);
+        }
+    }
+
+    /** El agarrado le pega a Khaset (desde la mano no se le puede apuntar): pega como un golpe normal, con su carga. */
+    public record PegarMano() {
+        void escribir(FriendlyByteBuf b) {
+        }
+
+        static PegarMano leer(FriendlyByteBuf b) {
+            return new PegarMano();
+        }
+
+        void recibir(Supplier<NetworkEvent.Context> ctx) {
+            var jugador = ctx.get().getSender();
+            if (jugador != null && jugador.getVehicle() instanceof KhasetEntity k && !EfectosKhaset.sinControl(jugador)) {
+                jugador.attack(k);
+                jugador.resetAttackStrengthTicker();
+                jugador.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+            }
         }
     }
 

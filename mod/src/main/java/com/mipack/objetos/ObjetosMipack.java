@@ -135,6 +135,24 @@ public final class ObjetosMipack {
     public static final RegistryObject<Potion> POCION_BRANQUIAS_LARGA = POCIONES.register("branquias_larga",
             () -> new Potion("branquias", new MobEffectInstance(EfectosObjetos.BRANQUIAS.get(), 9600)));
 
+    /** Pociones para probar cada efecto del mod (solo en el creativo: no se preparan). */
+    public static final List<RegistryObject<Potion>> POCIONES_PRUEBA = new ArrayList<>();
+
+    static {
+        prueba("desangrado", () -> com.mipack.khaset.EfectosKhaset.DESANGRADO.get(), 2);
+        prueba("derribado", () -> com.mipack.khaset.EfectosKhaset.DERRIBADO.get(), 0);
+        prueba("aturdido", () -> com.mipack.khaset.EfectosKhaset.ATURDIDO.get(), 0);
+        prueba("desorientado", () -> com.mipack.khaset.EfectosKhaset.DESORIENTADO.get(), 0);
+        prueba("esquirlas", () -> com.mipack.entidad.EfectosCrackatos.ESQUIRLAS.get(), 2);
+        prueba("sofocacion", () -> EfectosObjetos.SOFOCACION.get(), 0);
+        prueba("frio", () -> EfectosObjetos.FRIO.get(), 0);
+    }
+
+    private static void prueba(String nombre, Supplier<net.minecraft.world.effect.MobEffect> efecto, int nivel) {
+        POCIONES_PRUEBA.add(POCIONES.register("prueba_" + nombre,
+                () -> new Potion("prueba_" + nombre, new MobEffectInstance(efecto.get(), 400, nivel))));
+    }
+
     public static final RegistryObject<CreativeModeTab> PESTANA = PESTANAS.register("objetos",
             () -> CreativeModeTab.builder()
                     .title(Component.translatable("itemGroup.mipack.objetos"))

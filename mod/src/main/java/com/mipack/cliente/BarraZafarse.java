@@ -17,8 +17,8 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * La barra para zafarse de la mano de Khaset: abajo de la pantalla, un cursor que va y viene y una zona dorada. Clic
- * (el boton de pegar) cuando el cursor esta en lo dorado: a los 3 aciertos te suelta. Cada fallo te quita la mitad de
+ * La barra para zafarse de la mano de Khaset: abajo de la pantalla, un cursor que va y viene y una zona dorada. Espacio
+ * (la tecla de brincar) cuando el cursor esta en lo dorado: a los 3 aciertos te suelta. Cada fallo te quita la mitad de
  * la vida que tengas. El servidor decide (RedKhaset.Barra / Clic); aqui solo se dibuja y se manda el clic.
  */
 @Mod.EventBusSubscriber(modid = Mipack.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
@@ -75,18 +75,28 @@ public final class BarraZafarse implements IGuiOverlay {
         g.drawCenteredString(mc.font, txt, ancho / 2, y0 - 14, col);
     }
 
-    /** Agarrado: el boton de pegar es el clic de la barra (no pega) y no se usan objetos. */
+    /**
+     * Agarrado: la barra se juega con la tecla de brincar (espacio); pegar le pega a Khaset (la mano no deja apuntarle)
+     * y usar objetos funciona normal (se puede comer).
+     */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void clic(InputEvent.InteractionKeyMappingTriggered evento) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
-        if (!agarrado(p))
+        if (!agarrado(p) || !evento.isAttack())
             return;
-        if (evento.isAttack())
+        RedKhaset.CANAL.sendToServer(new RedKhaset.PegarMano());
+        evento.setCanceled(true);
+        evento.setSwingHand(true);
+    }
+
+    @SubscribeEvent
+    public static void tecla(net.minecraftforge.event.TickEvent.ClientTickEvent evento) {
+        Minecraft mc = Minecraft.getInstance();
+        LocalPlayer p = mc.player;
+        if (evento.phase != net.minecraftforge.event.TickEvent.Phase.END || !agarrado(p))
+            return;
+        while (mc.options.keyJump.consumeClick())
             RedKhaset.CANAL.sendToServer(new RedKhaset.Clic(barra.cursor(p.level().getGameTime() + mc.getFrameTime())));
-        if (evento.isAttack() || evento.isUseItem()) {
-            evento.setCanceled(true);
-            evento.setSwingHand(false);
-        }
     }
 }
