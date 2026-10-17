@@ -4,6 +4,8 @@ import com.mipack.Amenaza;
 import com.mipack.Dificultad;
 import com.mipack.Golpes;
 import com.mipack.Mipack;
+import com.mipack.arena.Arena;
+import com.mipack.arena.ConfigArena;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -74,7 +76,7 @@ import java.util.UUID;
  * <li>Fase 2 (mitad de vida): ruge, sus cristales brillan, se rodea de bruma de amatista, salen acaros de amatista
  *     de la bruma, embiste mas rapido y en la estampida va soltando puas.</li>
  * </ul>
- * Sus golpes atraviesan la armadura (Proteccion si cuenta) y tiran el escudo. Vida: 1500 mas 900 por jugador.
+ * Sus golpes atraviesan la armadura (Proteccion si cuenta) y tiran el escudo. Vida: la de config/mipack-arena.toml, llena con 30 jugadores (Arena.vida).
  * Los tiempos (en ticks) son los de sus animaciones (taller/personajes/crackatos_anim.py).
  */
 public class CrackatosEntity extends Monster implements GeoEntity {
@@ -85,7 +87,7 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     private static final int T_ZAFARSE = 16, T_CABEZAZO = 14, T_SACUDIDA = 44, T_SALEN_PUAS = 32, T_ALZARSE = 52;
     private static final int T_AZOTE = 31, T_MUERTE = 50;
     // vida: base mas lo que suma cada jugador que entra a la pelea
-    private static final float VIDA_BASE = 1500f, VIDA_POR_JUGADOR = 900f;
+    private static final float VIDA_BASE = 1500f;
 
     /**
      * Lo que cambia con la dificultad (/crackatos difficult; la vida y el dano los multiplica Dificultad.Nivel): hasta
@@ -162,6 +164,9 @@ public class CrackatosEntity extends Monster implements GeoEntity {
     private boolean cornada;                       // el cabezazo es la cornada de cerca (no el remate de una embestida)
     private boolean rugioAlEmpezar, rugioFase2;
     private int maxJugadores;
+    // la arena: cada cuanto va al bloque central y si va (o si lo que sigue es su ataque de centro)
+    private int enfriarCentro = 500, yendoCentro = -1;
+    private boolean ataqueCentro;
     private final Set<UUID> golpeados = new HashSet<>();
     private final EnumSet<Estado> visitados = EnumSet.noneOf(Estado.class);
     private final List<UUID> acaros = new ArrayList<>();
@@ -271,6 +276,8 @@ public class CrackatosEntity extends Monster implements GeoEntity {
             this.enfriarAcaros--;
         if (this.enfriarLluvia > 0)
             this.enfriarLluvia--;
+        if (this.enfriarCentro > 0)
+            this.enfriarCentro--;
         if (this.tickCount % 20 == 0) {
             participantes();
             this.amenaza.olvidar();
@@ -348,7 +355,11 @@ public class CrackatosEntity extends Monster implements GeoEntity {
                     this.playSound(SoundEvents.AMETHYST_BLOCK_RESONATE, 4.0f, 0.5f);
                 if (ticksEnEstado == T_SALEN_PUAS)
                     lanzarPuas();
-                if (ticksEnEstado >= T_SACUDIDA) {
+                if (ticksEnEstado >= T_SACUDIDA && ataqueCentro) {
+                    ataqueCentro = false;
+                    alzadasPendientes = 0;
+                    alzarse();                    // de centro: tras las puas, el azote con la ola
+                } else if (ticksEnEstado >= T_SACUDIDA) {
                     embestidas = 0;
                     embestidasAntesDeSacudir = 2 + this.random.nextInt(2);
                     if (segundaFase())
@@ -378,14 +389,10 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         this.barra.setProgress(this.getHealth() / this.getMaxHealth());
     }
 
-    /** Quien entra a la pelea suma vida (nunca baja): 1500 mas 900 por jugador, por lo que diga la dificultad. */
+    /** Quien entra a la pelea suma vida (nunca baja): Arena.vida, por lo que diga la dificultad. */
     private void participantes() {
-        int n = 0;
-        for (Player p : this.level().players())
-            if (valido(p) && p.distanceToSqr(this) < RADIO_PELEA * RADIO_PELEA)
-                n++;
-        this.maxJugadores = Math.max(this.maxJugadores, n);
-        float antes = this.getMaxHealth(), ahora = (VIDA_BASE + VIDA_POR_JUGADOR * this.maxJugadores) * nivel().vida;
+        this.maxJugadores = Math.max(this.maxJugadores, Arena.jugadores(this, RADIO_PELEA));
+        float antes = this.getMaxHealth(), ahora = Arena.vida(ConfigArena.VIDA_CRACKATOS.get(), this.maxJugadores) * nivel().vida;
         if (Math.abs(ahora - antes) > 0.5f) {                   // entro alguien o cambio la dificultad: la misma parte de vida
             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(ahora);
             this.setHealth(this.getHealth() * ahora / antes);
@@ -406,6 +413,22 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         if (ticksEnEstado < 14)
             return;
         double cerca = this.getBbWidth() * 0.5 + 3.5;
+        if (Arena.centro(this) != null) {                 // con arena: la lluvia de puas y el azote son de centro
+            if (yendoCentro >= 0 || (enfriarCentro == 0 && (embestidas >= embestidasAntesDeSacudir || alzadasPendientes > 0))) {
+                alCentro();
+                return;
+            }
+            if (sinEmbestir > MAX_SIN_EMBESTIR) {
+                cambiar(Estado.RASCAR);
+            } else if (dist < cerca && enfriarCornada == 0) {
+                this.cornada = true;
+                this.enfriarCornada = ENFRIAR_CORNADA;
+                cambiar(Estado.CABEZAZO);
+            } else if (dist > cerca + 2 && (ticksEnEstado > 40 || this.random.nextInt(30) == 0) || ticksEnEstado > 120) {
+                cambiar(Estado.RASCAR);
+            }
+            return;
+        }
         if (embestidas >= embestidasAntesDeSacudir) {
             cambiar(Estado.SACUDIDA);
         } else if (alzadasPendientes > 0 && ticksEnEstado > 24) {
@@ -425,6 +448,34 @@ public class CrackatosEntity extends Monster implements GeoEntity {
         } else if (dist > cerca + 2 && (ticksEnEstado > 40 || this.random.nextInt(30) == 0) || ticksEnEstado > 120) {
             cambiar(Estado.RASCAR);
         }
+    }
+
+    /** Camina al bloque central; ya ahi, si nadie lo tapa, la lluvia de puas (el doble) y luego el azote. */
+    private void alCentro() {
+        BlockPos c = Arena.centro(this);
+        Vec3 e = Arena.encima(c);
+        yendoCentro++;
+        if (yendoCentro > 240) {                          // atorado en el camino: brinca al centro
+            polvo(this.position(), 40);
+            this.teleportTo(e.x, e.y, e.z);
+            polvo(e, 60);
+        }
+        if (!Arena.enCentro(this)) {
+            this.getMoveControl().setWantedPosition(e.x, e.y, e.z, 1.3);
+            return;
+        }
+        yendoCentro = -1;
+        embestidas = 0;
+        embestidasAntesDeSacudir = 2 + this.random.nextInt(2);
+        if (!Arena.intentarCentro(this)) {                // lo taparon: se aturde y recibe el doble
+            enfriarCentro = 500;
+            this.playSound(SoundEvents.RAVAGER_STUNNED, 4.0f, 0.5f);
+            cambiar(Estado.ATORADO);
+            return;
+        }
+        enfriarCentro = 900;
+        ataqueCentro = true;
+        cambiar(Estado.SACUDIDA);
     }
 
     private void alzarse() {
@@ -539,7 +590,7 @@ public class CrackatosEntity extends Monster implements GeoEntity {
             }
         }
         // se estrello: los cuernos se atoran en la pared (se ve por la cabeza, que va mas adelante que la caja)
-        boolean cabeza = cabezaEnPared(), frenado = avance < velocidad * 0.35;
+        boolean cabeza = cabezaEnPared() || Arena.fuera(this), frenado = avance < velocidad * 0.35;
         if ((cabeza || frenado) && ticksEnEstado > 3) {
             if (Mipack.PRUEBA)
                 Mipack.LOGGER.info("[Crackatos] choca despues de {} bloques (cabeza {}, frenado {}) en {}",
@@ -600,12 +651,12 @@ public class CrackatosEntity extends Monster implements GeoEntity {
             for (int i = 0; i < 3; i++)
                 blancos.add(deEsteLado(e.position().add((this.random.nextDouble() - 0.5) * 10, 0, (this.random.nextDouble() - 0.5) * 10)));
         }
-        int extra = (fase2() ? 40 : 26) + 3 * todos.size();
+        int extra = ((fase2() ? 40 : 26) + 3 * todos.size()) * (ataqueCentro ? 2 : 1);
         for (int i = 0; i < extra; i++) {
             double ang = this.random.nextDouble() * Math.PI * 2, r = (3 + this.random.nextDouble() * 16) * K;
             blancos.add(deEsteLado(this.position().add(Math.cos(ang) * r, 0, Math.sin(ang) * r)));
         }
-        for (int i = 0; i < Math.min(130, blancos.size()); i++)
+        for (int i = 0; i < Math.min(ataqueCentro ? 240 : 130, blancos.size()); i++)
             sl.addFreshEntity(PuaCayendo.cayendo(sl, this, piso(blancos.get(i)), 18 + this.random.nextInt(50)));
     }
 

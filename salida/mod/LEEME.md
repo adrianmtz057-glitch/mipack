@@ -38,7 +38,24 @@ Pon los dos `.jar` (GeckoLib y mipack) en la carpeta `mods` de tu instancia. En 
 
 **Golpes:** atraviesan la armadura (los encantamientos de Protección sí cuentan, así que la netherita con Protección IV aguanta pero ya no es inmortal) y **te tiran el escudo** como un hacha. Las flechas le hacen 75 %.
 
-**Vida:** 1500, más 900 por cada jugador que entra a la pelea. Armadura 14. Al morir suelta mucha experiencia, se le caen las esquirlas a todos y se deshacen sus ácaros.
+**Vida:** pensada para 30 jugadores (28,000) y baja con menos (ver la arena). Armadura 14. Al morir suelta mucha experiencia, se le caen las esquirlas a todos y se deshacen sus ácaros.
+
+## La arena de los jefes (bloque "Centro de la arena")
+Pon el bloque **Centro de la arena** (pestaña Mipack) en medio de tu arena. El jefe que salga a menos de 72 bloques la toma.
+- **No sale de la arena** (radio de 48 bloques). Si no queda nadie vivo adentro por **3 minutos**, se cura entero y regresa al centro.
+- **Ataques de centro:** Crackatos solo hace la lluvia de púas (ahora el doble) y el azote con la ola parado en el bloque. Khaset solo toca el silbato ahí. Los de La Bruma (ejército y clones) vienen en la siguiente versión.
+- **Tapar el centro:** si alguien está parado en el bloque cuando el jefe llega, **el ataque no sale**. Crackatos además se aturde (recibe el doble). Pero al que tapa le pega **muy fuerte** (12 corazones), salvo que traiga la **armadura de tanque completa** (2 corazones; la armadura viene después).
+- **Reglas adentro mientras hay jefe:**
+  - sin PvP;
+  - no se ponen ni se rompen bloques;
+  - no sirven las perlas ni los coros.
+
+  En creativo no aplican.
+- **Los de lejos o arriba:** quien le pega desde más de 32 bloques, desde fuera de la arena o desde 14 bloques arriba del centro hace **la cuarta parte** de daño. Además le cae un rayo de castigo que duele, lo alenta y lo deja brillando.
+- **Furia:** a los 15 minutos de pelea el jefe se enfurece. Pega 40 % más, pero también recibe 30 % más.
+- **Vida para el grupo:** toda la vida con 30 jugadores. Con menos baja casi en proporción: solo es cerca del 5 %, con 5 unos 18 % y con 15 la mitad. Luego la multiplica la dificultad (normal 80 %, easy 60 %).
+- **PlayerRevive:** es compatible. Los derribos de Khaset solo te inmovilizan y lo de quedar tirado lo maneja el mod.
+- Todo se ajusta en `config/mipack-arena.toml`: radio, minutos para reiniciar, minutos para la furia, distancia y altura de castigo, jugadores plenos y vida de cada jefe.
 
 ## Dificultad de los jefes (solo operadores)
 Cada jefe tiene su nivel: **easy**, **normal** o **hardcore**. Empieza en **normal** y se guarda con el mundo.
@@ -80,7 +97,7 @@ Ahora, aunque te agarre junto al altar, Khaset **se queda parado en el altar con
 
 **Tamaño:** unos 11 bloques de alto.
 
-**Vida:** 2000, más 1200 por cada jugador que entra a la pelea (en 48 bloques). Con 10 jugadores son 14,000.
+**Vida:** pensada para 30 jugadores (36,000) y baja con menos (ver la arena).
 
 **Frenesí:** entre menos vida le queda, **más rápido ataca** (hasta casi el doble) y menos descansa entre ataques. La fase 2 es como la 1, pero más frenética. **Avanza mientras tira tajos y barridos**, y reparte el foco igual que Crackatos.
 
@@ -125,7 +142,7 @@ Un espectro enorme y flaco, hecho de jirones de tela negra, que flota encorvado 
 
 **Tamaño:** unos 6 bloques de alto. Flota: no pisa el piso y no recibe daño de caída.
 
-**Vida:** 1200, más 700 por cada jugador que entra a la pelea (en 64 bloques). Armadura 4.
+**Vida:** pensada para 30 jugadores (22,000) y baja con menos (ver la arena). Armadura 4.
 
 **La bruma:**
 - A su alrededor todo se oscurece: a los que estén cerca les da **Oscuridad**. Su barra de jefe **oscurece el cielo y trae niebla**.

@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "mipack:pedazo_piramide"
+    "mipack:pedazo_piramide",
+    "mipack:centro_arena"
   ]
 }

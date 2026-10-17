@@ -110,6 +110,11 @@ public final class ObjetosMipack {
     public static final RegistryObject<Item> PEDAZO_PIRAMIDE = objeto("pedazo_piramide",
             () -> new Piramide.Objeto(PIRAMIDE.get(), new Item.Properties().stacksTo(1)));
 
+    public static final RegistryObject<Block> CENTRO_ARENA = BLOQUES.register("centro_arena",
+            () -> new com.mipack.arena.BloqueCentro(BlockBehaviour.Properties.copy(Blocks.REINFORCED_DEEPSLATE).lightLevel(s -> 7)));
+    public static final RegistryObject<Item> CENTRO_ARENA_ITEM = objeto("centro_arena",
+            () -> new net.minecraft.world.item.BlockItem(CENTRO_ARENA.get(), new Item.Properties()));
+
     // ------------------------------------------------------------------ armaduras
     public static final List<RegistryObject<Item>> ARMADURAS = new ArrayList<>();
 

@@ -173,5 +173,13 @@
   "item.minecraft.potion.effect.prueba_frio": "Poción de prueba: Frío",
   "item.minecraft.splash_potion.effect.prueba_frio": "Poción arrojadiza de prueba: Frío",
   "item.minecraft.lingering_potion.effect.prueba_frio": "Poción persistente de prueba: Frío",
-  "item.minecraft.tipped_arrow.effect.prueba_frio": "Flecha de prueba: Frío"
+  "item.minecraft.tipped_arrow.effect.prueba_frio": "Flecha de prueba: Frío",
+  "block.mipack.centro_arena": "Centro de la arena",
+  "item.mipack.centro_arena.desc": "Ponlo en medio de la arena: el jefe que salga cerca la toma",
+  "arena.mipack.bloqueo": "¡%s tapó el centro! %s no pudo atacar (y le dolió)",
+  "arena.mipack.bloqueo_tanque": "¡%s aguantó en el centro! %s no pudo atacar",
+  "arena.mipack.furia": "%s se enfurece: pega más fuerte, pero también recibe más daño",
+  "arena.mipack.lejos": "La arena castiga a los que pegan de lejos o desde arriba",
+  "arena.mipack.bloques": "En la arena no se ponen ni se rompen bloques",
+  "arena.mipack.perlas": "En la arena no sirven las perlas"
 }

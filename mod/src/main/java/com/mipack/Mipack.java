@@ -167,6 +167,7 @@ public class Mipack {
         bus.addListener(this::atributos);
         ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, MipackConfig.CLIENTE);
         ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, com.mipack.agua.ConfigAgua.SPEC);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, com.mipack.arena.ConfigArena.SPEC, "mipack-arena.toml");
         // los modelos de mipack pueden traer mallas (GeckoLib solo dibuja cubos): ver geo/FabricaMallas
         GeckoLibUtil.addCustomBakedModelFactory(MODID, new FabricaMallas());
         MinecraftForge.EVENT_BUS.addListener(this::alEntrar);

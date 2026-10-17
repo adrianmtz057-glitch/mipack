@@ -4,6 +4,8 @@ import com.mipack.Amenaza;
 import com.mipack.Dificultad;
 import com.mipack.Golpes;
 import com.mipack.Mipack;
+import com.mipack.arena.Arena;
+import com.mipack.arena.ConfigArena;
 import com.mipack.SonidosMipack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -118,7 +120,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
 
     public static final float ESCALA = PosesKhaset.escala();
     // vida: base mas lo que suma cada jugador que entra a la pelea
-    private static final float VIDA_BASE = 2000f, VIDA_POR_JUGADOR = 1200f;
+    private static final float VIDA_BASE = 2000f;
     private static final double RADIO_PELEA = 48.0;
     // dano (atraviesa la armadura)
     private static final float DANO_TAJO = 11f, DANO_BARRIDO = 12f, DANO_SALTO = 18f, DANO_CONTRA = 14f;
@@ -190,6 +192,7 @@ public class KhasetEntity extends Monster implements GeoEntity {
     private float avance, avanceAntes;
     private int fase = 1;
     private BlockPos casa;
+    private int yendoCentro = -1;                 // con arena: va al bloque central a tocar el silbato
     private int maxJugadores;
     private final EnumMap<Estado, Integer> enfriar = new EnumMap<>(Estado.class);
     private final Set<UUID> golpeados = new HashSet<>();
@@ -549,14 +552,10 @@ public class KhasetEntity extends Monster implements GeoEntity {
         }
     }
 
-    /** Quien entra a la pelea suma vida (nunca baja): 2000 mas 1200 por jugador, por lo que diga la dificultad. */
+    /** Quien entra a la pelea suma vida (nunca baja): Arena.vida, por lo que diga la dificultad. */
     private void participantes() {
-        int n = 0;
-        for (Player p : this.level().players())
-            if (valido(p) && p.distanceToSqr(this) < RADIO_PELEA * RADIO_PELEA)
-                n++;
-        this.maxJugadores = Math.max(this.maxJugadores, n);
-        float antes = this.getMaxHealth(), ahora = (VIDA_BASE + VIDA_POR_JUGADOR * this.maxJugadores) * nivel().vida;
+        this.maxJugadores = Math.max(this.maxJugadores, Arena.jugadores(this, RADIO_PELEA));
+        float antes = this.getMaxHealth(), ahora = Arena.vida(ConfigArena.VIDA_KHASET.get(), this.maxJugadores) * nivel().vida;
         if (Math.abs(ahora - antes) > 0.5f) {                   // entro alguien o cambio la dificultad: la misma parte de vida
             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(ahora);
             this.setHealth(this.getHealth() * ahora / antes);
@@ -599,6 +598,10 @@ public class KhasetEntity extends Monster implements GeoEntity {
             irA(this.presaElegida.position(), 1.7);
             return;
         }
+        if (this.yendoCentro >= 0) {
+            alCentro();
+            return;
+        }
         if (d > 14 && this.ticksEnEstado > 10) {
             cambiar(Estado.CORRER);
             return;
@@ -609,12 +612,39 @@ public class KhasetEntity extends Monster implements GeoEntity {
             quedarse(objetivo.position(), GIRO_CAMINAR);
     }
 
+    /** Va al bloque central; ya ahi, si nadie lo tapa, toca el silbato. Si lo tapan se tambalea y espera. */
+    private void alCentro() {
+        Vec3 e = Arena.encima(Arena.centro(this));
+        this.yendoCentro++;
+        if (this.yendoCentro > 200) {                    // no llega: salta al centro
+            if (this.level() instanceof ServerLevel sl)
+                sl.sendParticles(ParticleTypes.LARGE_SMOKE, this.getX(), this.getY() + 2, this.getZ(), 30, 1, 2, 1, 0.05);
+            this.teleportTo(e.x, e.y, e.z);
+        }
+        if (!Arena.enCentro(this)) {
+            irA(e, 1.8);
+            return;
+        }
+        this.yendoCentro = -1;
+        if (Arena.intentarCentro(this)) {
+            cambiar(Estado.SILBATO);
+        } else {
+            enfriarA(Estado.SILBATO, 500);
+            this.playSound(SoundEvents.RAVAGER_STUNNED, 3.0f, 0.8f);
+            trasAtaque(null, 0);
+        }
+    }
+
     private void correr(LivingEntity objetivo) {
         if (objetivo == null || this.ticksEnEstado > 120) {
             cambiar(Estado.CAMINAR);
             return;
         }
         LivingEntity hacia = this.presaElegida != null ? this.presaElegida : objetivo;
+        if (this.yendoCentro >= 0 && this.presaElegida == null) {
+            cambiar(Estado.CAMINAR);
+            return;
+        }
         irA(hacia.position(), 2.6);
         double d = this.distanceTo(hacia);
         this.lejosTicks = d > 16 ? this.lejosTicks + 1 : Math.max(0, this.lejosTicks - 2);
@@ -652,7 +682,10 @@ public class KhasetEntity extends Monster implements GeoEntity {
         List<Estado> op = new ArrayList<>();
         List<Integer> peso = new ArrayList<>();
         boolean lejos = this.lejosTicks > 50;                    // se le estan alejando: no se deja
-        if (listo(Estado.SILBATO) && d < 28) {
+        if (listo(Estado.SILBATO) && Arena.centro(this) != null) {
+            if (this.yendoCentro < 0 && this.random.nextInt(3) == 0)
+                this.yendoCentro = 0;                        // el silbato es de centro: alla va
+        } else if (listo(Estado.SILBATO) && d < 28) {
             op.add(Estado.SILBATO);
             peso.add((this.fase == 3 ? 5 : 3) + (lejos ? 3 : 0));
         }

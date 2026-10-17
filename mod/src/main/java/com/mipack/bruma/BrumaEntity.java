@@ -91,7 +91,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
     // duraciones de las animaciones (ticks) y sus momentos
     private static final int T_ZARPAZO = 20, GOLPE_ZARPAZO = 10, T_AGARRAR = 16, MANO_CIERRA = 10, T_GRITO = 40, SALE_GRITO = 14;
     private static final int T_DISOLVERSE = 14, T_APARECER = 14, MAX_VIAJE = 40, T_JIRONES = 24, T_FASE2 = 48, T_MUERTE = 60;
-    private static final float VIDA_BASE = 1200f, VIDA_POR_JUGADOR = 700f;
+    private static final float VIDA_BASE = 1200f;
     private static final float DANO_ZARPAZO = 14f, DANO_JIRONES = 10f, DANO_GRITO = 8f, DANO_DRENAR = 3f;
     private static final double RADIO_PELEA = 64.0, VISTA = 80.0;
     private static final double ALCANCE = 5.5, RADIO_JIRONES = 6.5, RADIO_GRITO = 14.0, RADIO_GRITO_2 = 20.0;
@@ -320,14 +320,10 @@ public class BrumaEntity extends Monster implements GeoEntity {
         }
     }
 
-    /** Quien entra a la pelea suma vida (nunca baja): 1200 mas 700 por jugador, por lo que diga la dificultad. */
+    /** Quien entra a la pelea suma vida (nunca baja): Arena.vida, por lo que diga la dificultad. */
     private void participantes() {
-        int n = 0;
-        for (Player p : this.level().players())
-            if (valido(p) && p.distanceToSqr(this) < RADIO_PELEA * RADIO_PELEA)
-                n++;
-        this.maxJugadores = Math.max(this.maxJugadores, n);
-        float antes = this.getMaxHealth(), ahora = (VIDA_BASE + VIDA_POR_JUGADOR * this.maxJugadores) * nivel().vida;
+        this.maxJugadores = Math.max(this.maxJugadores, com.mipack.arena.Arena.jugadores(this, RADIO_PELEA));
+        float antes = this.getMaxHealth(), ahora = com.mipack.arena.Arena.vida(com.mipack.arena.ConfigArena.VIDA_BRUMA.get(), this.maxJugadores) * nivel().vida;
         if (Math.abs(ahora - antes) > 0.5f) {
             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(ahora);
             this.setHealth(this.getHealth() * ahora / antes);

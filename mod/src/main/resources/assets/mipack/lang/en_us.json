@@ -173,5 +173,13 @@
   "item.minecraft.potion.effect.prueba_frio": "Test Potion: Cold",
   "item.minecraft.splash_potion.effect.prueba_frio": "Test Splash Potion: Cold",
   "item.minecraft.lingering_potion.effect.prueba_frio": "Test Lingering Potion: Cold",
-  "item.minecraft.tipped_arrow.effect.prueba_frio": "Test Arrow: Cold"
+  "item.minecraft.tipped_arrow.effect.prueba_frio": "Test Arrow: Cold",
+  "block.mipack.centro_arena": "Arena center",
+  "item.mipack.centro_arena.desc": "Place it in the middle of the arena: the boss that spawns nearby claims it",
+  "arena.mipack.bloqueo": "%s blocked the center! %s couldn't attack (and it hurt)",
+  "arena.mipack.bloqueo_tanque": "%s held the center! %s couldn't attack",
+  "arena.mipack.furia": "%s is enraged: hits harder, but also takes more damage",
+  "arena.mipack.lejos": "The arena punishes those who hit from afar or from above",
+  "arena.mipack.bloques": "No placing or breaking blocks in the arena",
+  "arena.mipack.perlas": "Ender pearls don't work in the arena"
 }
