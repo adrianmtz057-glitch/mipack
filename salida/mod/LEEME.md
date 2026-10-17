@@ -303,6 +303,28 @@ Cada una tiene **forma propia** (no son recolores) y se hace con la forma de sie
 - **Frío:** donde nieva, lejos de una fogata, fuego o lava, la comida se va más rápido (efecto **Frío**). La armadura de pelaje lo quita, pieza por pieza.
 - Todo se ajusta en `config/mipack-common.toml`: si hay sed, los minutos de cada caso, el mínimo, cuánto dura el desmayo, la gracia de los nuevos y si hay frío.
 
+## Los 36 animales de Velkia
+Ya vienen en el mod con su modelo, sus animaciones (caminar, correr, atacar y las de ambiente: pastar, beber, acicalarse, sentarse...) y lo que sueltan. **Todavía no aparecen solos en el mundo:** salen con su huevo (pestaña Mipack) o con `/summon mipack:<nombre>`.
+- **Conducta:**
+  - **Pasivos** (huyen): pato, liebre, escarabajo sagrado, fenec, dromedario, gato, buitre, ibis, lagarto de roca, cuervo, flamenco, lagartija blanca, marmota.
+  - **Neutrales** (si le pegas a uno se te van encima los de su especie): toro, búfalo, hipopótamo, cabra, babuino, cangrejo, águila.
+  - **Hostiles:** chacal, lobo de fuego, escorpión, ballenato, cocodrilo, serpiente, ramita, halcón, salamandra, escarabajo de brasa, murciélago, garrapata y las crías de titanes (Varkhum, Moruvahn, Iskarum).
+  - **El cervatillo** nunca ataca y no se le puede hacer daño.
+- **Las aves y el murciélago vuelan:** se espantan y alzan el vuelo. Después de un rato bajan y caminan. El flamenco solo se espanta si corres (agachado te le acercas) y el ibis, si hay hostiles cerca.
+- **Manchados de mura:** dale **mura** (clic derecho con el material) a cualquier animal y se mancha. Se ve oscuro con venas que brillan y caza jugadores. Si muerde a otro animal, se lo puede pegar. Al cervatillo no le pasa nada.
+- **Mecánicas:**
+  - cervatillo: sigue a quien lleva hojas, deja semillas de musgo y hace crecer los cultivos cercanos;
+  - pato y marmota: avisan con su sonido si hay hostiles; el pato pone huevos;
+  - **dromedario: se monta** (clic derecho con la mano vacía) y corre más en la arena;
+  - escorpión: alenta; murciélago: marchita; garrapata: da hambre; serpiente: envenena; lobo de fuego: quema;
+  - cocodrilo: te jala; toro, búfalo, Iskarum y cabra: te avientan;
+  - halcón: te tira lo que traes en la mano; babuino: te roba comida;
+  - salamandra: escupe brasas; escarabajo de brasa: revienta al morir;
+  - escarabajo sagrado: suelta algo al azar; lagarto de roca: suelta la cola;
+  - lagartija blanca: no se ve quieta; ramita: no se mueve hasta que pasas cerca;
+  - hipopótamo: se enoja en el agua; Moruvahn: se cura en el agua;
+  - fenec: recoge cosas del piso; buitre: da vueltas sobre quien tiene poca vida; cuervo: te sigue volando.
+
 ## Para probar todo (creativo, pestaña Mipack)
 - **Huevos de todo:** Crackatos, Khaset, La Bruma, ácaro de amatista, Xiuhcóatl, guerrero calavera, el vex (los que invoca La Bruma), soldado, arquero, soldado grande y clon de La Bruma.
 - **Pociones de prueba** (20 segundos, normales, arrojadizas y persistentes): desangrado, derribado, aturdido, desorientado, esquirlas, sofocación y frío.

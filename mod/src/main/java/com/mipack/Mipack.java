@@ -172,6 +172,8 @@ public class Mipack {
                         out.accept(HUEVO_ARQUERO.get());
                         out.accept(HUEVO_GRANDE.get());
                         out.accept(HUEVO_CLON.get());
+                        for (var h : com.mipack.bichos.Bichos.HUEVOS.values())
+                            out.accept(h.get());
                         out.accept(net.minecraft.world.item.Items.VEX_SPAWN_EGG);   // las almas en pena de la Bruma
                         for (var p : com.mipack.objetos.ObjetosMipack.POCIONES_PRUEBA)
                             out.accept(net.minecraft.world.item.alchemy.PotionUtils.setPotion(
@@ -185,6 +187,7 @@ public class Mipack {
         Golpes.subirTopeDeVida();
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         Titanes.registrar(ENTIDADES);
+        com.mipack.bichos.Bichos.registrar(ENTIDADES, OBJETOS);
         ENTIDADES.register(bus);
         OBJETOS.register(bus);
         PESTANAS.register(bus);
@@ -218,6 +221,7 @@ public class Mipack {
         event.put(CLON_BRUMA.get(), com.mipack.bruma.ClonBruma.atributos().build());
         event.put(POSEIDO.get(), com.mipack.bruma.Poseido.atributos().build());
         Titanes.atributos(event);
+        com.mipack.bichos.Bichos.atributos(event);
     }
 
     private void preparar(FMLCommonSetupEvent event) {

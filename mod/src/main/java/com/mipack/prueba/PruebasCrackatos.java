@@ -69,6 +69,11 @@ public class PruebasCrackatos {
                 p.husks[i] = x;
             }
             Estado ahora = jefe.getEstado();
+            if (ahora == Estado.ACECHAR && !jefe.visitados().contains(Estado.CABEZAZO) && h.getTick() > 3000
+                    && jefe.getTarget() instanceof Husk pegado) {        // alguien que se le queda pegado (para la cornada)
+                Vec3 frente = jefe.position().add(jefe.getLookAngle().multiply(1, 0, 1).normalize().scale(jefe.getBbWidth() * 0.5 + 1.5));
+                pegado.teleportTo(frente.x, jefe.getY(), frente.z);
+            }
             if (ahora == Estado.EMBESTIR && p.antes != Estado.EMBESTIR) {
                 p.embestidas++;
                 p.pegoEstaEmbestida = false;
