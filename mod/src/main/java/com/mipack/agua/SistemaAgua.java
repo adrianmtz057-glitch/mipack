@@ -142,8 +142,9 @@ public final class SistemaAgua {
 
     @SubscribeEvent
     public static void tick(TickEvent.PlayerTickEvent e) {
-        if (e.phase != TickEvent.Phase.END || !(e.player instanceof ServerPlayer p))
+        if (e.phase != TickEvent.Phase.END || e.player.level().isClientSide)
             return;
+        Player p = e.player;
         CompoundTag d = p.getPersistentData();
         int desmayo = d.getInt(DESMAYO);
         if (desmayo > 0) {
@@ -200,7 +201,7 @@ public final class SistemaAgua {
         avisar(p);
     }
 
-    private static void frio(ServerPlayer p) {
+    private static void frio(Player p) {
         Level nivel = p.level();
         BlockPos pos = p.blockPosition();
         if (!nivel.getBiome(pos).value().coldEnoughToSnow(pos) || p.isInWater() || cercaDelFuego(nivel, pos))
@@ -224,7 +225,7 @@ public final class SistemaAgua {
 
     // ------------------------------------------------------------------ el desmayo
 
-    static void desmayar(ServerPlayer p) {
+    static void desmayar(Player p) {
         int ticks = ConfigAgua.SEGUNDOS_DESMAYO.get() * 20;
         p.getPersistentData().putInt(DESMAYO, ticks);
         p.getPersistentData().putInt(DESMAYO_TOTAL, ticks);
@@ -236,7 +237,7 @@ public final class SistemaAgua {
         avisar(p);
     }
 
-    static void despertar(ServerPlayer p) {
+    static void despertar(Player p) {
         AttributeInstance v = p.getAttribute(Attributes.MOVEMENT_SPEED);
         if (v != null)
             v.removeModifier(QUIETO);

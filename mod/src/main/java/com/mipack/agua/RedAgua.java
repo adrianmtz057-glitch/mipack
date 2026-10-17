@@ -31,7 +31,11 @@ public final class RedAgua {
     }
 
     public static void enviar(ServerPlayer p, Estado e) {
-        CANAL.send(PacketDistributor.PLAYER.with(() -> p), e);
+        try {
+            CANAL.send(PacketDistributor.PLAYER.with(() -> p), e);
+        } catch (NullPointerException sinConexion) {
+            // un jugador sin conexion de verdad (los de las pruebas): no hay a quien avisarle
+        }
     }
 
     /** agua: 0 a 20; desmayo: ticks que le quedan (y total: cuanto duraba); activa: si hay sed (no en creativo). */

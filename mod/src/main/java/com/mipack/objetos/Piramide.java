@@ -148,6 +148,11 @@ public final class Piramide {
         }
     }
 
+    /** Si un lugar queda dentro de la zona de algun pedazo de piramide colocado. */
+    public static boolean protegido(ServerLevel nivel, BlockPos pos) {
+        return Zonas.de(nivel).cerca(pos);
+    }
+
     @SubscribeEvent
     public static void aparecer(MobSpawnEvent.FinalizeSpawn e) {
         if (e.getSpawnType() != MobSpawnType.NATURAL || !(e.getEntity() instanceof Enemy))
