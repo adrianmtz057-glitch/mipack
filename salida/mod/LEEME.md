@@ -247,7 +247,7 @@ Cada una tiene **forma propia** (no son recolores) y se hace con la forma de sie
 - Todo se ajusta en `config/mipack-common.toml`: si hay sed, los minutos de cada caso, el mínimo, cuánto dura el desmayo, la gracia de los nuevos y si hay frío.
 
 ## El cielo y los efectos
-El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).
+El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`). Para quitar solo las ondas de calor del desierto y dejar lo demás: `calor = false`.
 
 ## Fotos
 En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera). De cerca: `acaro_amatista_*` y `guerrero_calavera_*`. La Bruma: `bruma_*` (de cerca, la garra, de lado, el grito, el zarpazo, en forma de niebla, la fase 2 de noche y su muerte). Los objetos: `objetos_*` (las cinco armaduras puestas, los escudos y armas en la mano, la antorcha de grasa bajo el agua, el pedazo de pirámide, la barra de agua con la sofocación y el desmayo con el chat).

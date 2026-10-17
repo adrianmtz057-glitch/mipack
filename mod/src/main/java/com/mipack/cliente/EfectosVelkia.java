@@ -157,7 +157,7 @@ public final class EfectosVelkia {
         fin.safeGetUniform("Neblina").set(p.neblina.x, p.neblina.y, p.neblina.z);
         fin.safeGetUniform("NeblinaFuerza").set(p.neblinaFuerza);
         fin.safeGetUniform("Lejos").set(mc.gameRenderer.getDepthFar());
-        fin.safeGetUniform("Calor").set(p.calor);
+        fin.safeGetUniform("Calor").set(MipackConfig.CALOR.get() ? p.calor : 0f);
         fin.safeGetUniform("Tiempo").set((nivel.getGameTime() % 24000L + parcial) / 20f);
         fin.safeGetUniform("Vineta").set(p.vineta);
         fin.safeGetUniform("Aspecto").set((float) w / h);
