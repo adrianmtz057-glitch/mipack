@@ -22,15 +22,19 @@ def _rot_matriz(rx, ry, rz):
 def _caras_mundo(modelo, uvs):
     import numpy as np
     out = []
+    giros = getattr(modelo, "giros", None)
     for c in modelo.cubos:
         R = _rot_matriz(*c.rot) if c.rot else None
         o = np.array(c.origen, dtype=float)
+        G, gt = (np.array(m, dtype=float) for m in modelo.a_mundo(c.hueso)) if giros else (None, None)
         for cara in c.caras:
             tl, tr, bl = (np.array(p, dtype=float) for p in esquinas(c.desde, c.hasta, cara))
             br = tr + bl - tl
             P = np.stack([tl, tr, br, bl])
             if R is not None:
                 P = (P - o) @ R.T + o
+            if G is not None:                        # los giros de su grupo y de los padres
+                P = P @ G.T + gt
             u1, v1, u2, v2 = uvs[id(c)][cara]
             UV = np.array([[u1, v1], [u2, v1], [u2, v2], [u1, v2]], dtype=float)
             out.append((P, UV))

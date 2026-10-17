@@ -98,6 +98,9 @@ def exportar_geo(modelo, uvs, lienzo, identificador):
         b = {"name": nombre[ruta], "pivot": [_r(-piv[0]), _r(piv[1]), _r(piv[2])], "cubes": []}
         if "/" in ruta:
             b["parent"] = nombre[ruta.rsplit("/", 1)[0]]
+        g = getattr(modelo, "giros", {}).get(ruta)
+        if g and any(abs(v) > 1e-9 for v in g):
+            b["rotation"] = [_r(-g[0], 3), _r(-g[1], 3), _r(g[2], 3)]
         huesos[ruta] = b
     for c in modelo.cubos:
         (x1, y1, z1), (x2, y2, z2) = c.desde, c.hasta
@@ -285,12 +288,13 @@ def caras_para_vista(quads):
 
 def comprobar(modelo, uvs, geo, tolerancia=1e-3):
     """Compara cara por cara (posicion de cada esquina y su UV) el modelo del kit contra la reconstruccion de
-    GeckoLib en reposo. Devuelve el error maximo de posicion (px) y de UV (texeles)."""
+    GeckoLib en reposo (con los giros de los grupos). Devuelve el error maximo de posicion (px) y de UV (texeles)."""
     from .luz import rot_matriz
     kit = {}
     for c in modelo.cubos:
         R = rot_matriz(*c.rot) if c.rot else None
         o = c.origen
+        G, gt = modelo.a_mundo(c.hueso) if getattr(modelo, "giros", None) else (None, None)
         for cara in c.caras:
             mapa = _uv_del_kit(c.desde, c.hasta, cara, uvs[id(c)][cara])
             for pos, uv in mapa.items():
@@ -298,6 +302,9 @@ def comprobar(modelo, uvs, geo, tolerancia=1e-3):
                 if R is not None:
                     q = _aplicar(R, tuple(pos[i] - o[i] for i in range(3)))
                     p = tuple(q[i] + o[i] for i in range(3))
+                if G is not None:
+                    q = _aplicar(G, p)
+                    p = tuple(q[i] + gt[i] for i in range(3))
                 kit.setdefault((round(uv[0], 3), round(uv[1], 3)), []).append(p)
     peor_pos = 0.0
     sin_pareja = 0

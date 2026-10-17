@@ -121,6 +121,7 @@ class Modelo:
         self.cubos: list[Cubo] = []
         self.mallas: list[Malla] = []
         self.pivotes = dict(HUESOS)
+        self.giros = {}          # giro de un grupo (rx, ry, rz) en grados alrededor de su pivote; los hijos lo heredan
         self.luz = True          # luz horneada (taller/luz.py): volumen con sombras y cantos de luz
         self.luz_desde = None    # de donde viene la luz horneada (None: luz.LUZ; luz.LUZ_SIMETRICA: pareja)
         self.luz_por = "hueso"   # entre que piezas hay sombra: "hueso" (el de player) o "grupo" (cada grupo anidado)
@@ -174,6 +175,25 @@ class Modelo:
             vs, cs = (vertices, caras) if lado == 1 else geo.espejo_x((vertices, caras))
             pint = pintor if lado == 1 or not isinstance(pintor, (list, tuple)) else list(pintor)
             self.malla(h, f"{nombre}_{'der' if lado == 1 else 'izq'}", vs, cs, pint, lado=lado, dens=dens, luz=luz)
+
+    def a_mundo(self, ruta):
+        """(R, t) de un grupo con sus giros y los de sus padres: p_mundo = R p + t, con p en coordenadas de reposo
+        (como guarda Blockbench los cubos y los pivotes). Sin giros es la identidad. La luz horneada no los
+        conoce: un modelo con grupos girados va con luz=False."""
+        R, t = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)), (0.0, 0.0, 0.0)
+        partes = ruta.split("/")
+        for k in range(len(partes)):
+            r = "/".join(partes[:k + 1])
+            g = self.giros.get(r)
+            if not g or not any(abs(v) > 1e-9 for v in g):
+                continue
+            piv = self.pivotes.get(r, self.pivotes.get(partes[0], (0, 0, 0)))
+            G = rot_matriz(*g)
+            gp = _aplicar(G, piv)
+            RG = tuple(tuple(sum(R[i][m] * G[m][j] for m in range(3)) for j in range(3)) for i in range(3))
+            rt = _aplicar(R, tuple(piv[i] - gp[i] for i in range(3)))
+            R, t = RG, tuple(rt[i] + t[i] for i in range(3))
+        return R, t
 
     def huesos_usados(self):
         return {e.hueso.split("/")[0] for e in list(self.cubos) + list(self.mallas)}
@@ -479,6 +499,8 @@ class Modelo:
             g = {"name": partes[-1], "origin": list(piv), "color": 0,
                  "uuid": str(uuid.uuid4()), "export": True, "mirror_uv": False, "isOpen": len(partes) == 1,
                  "locked": False, "visibility": True, "autouv": 0, "children": []}
+            if any(abs(v) > 1e-9 for v in self.giros.get(ruta, ())):
+                g["rotation"] = [round(v, 3) for v in self.giros[ruta]]
             (raiz if len(partes) == 1 else grupo("/".join(partes[:-1]))["children"]).append(g)
             grupos[ruta] = g
             return g
