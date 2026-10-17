@@ -193,7 +193,7 @@ Criaturas enormes que no pelean ni reciben daño: viven su agenda (caminan, come
 El mod también trae el cielo de Velkia (desierto de día, estrellas y auroras de noche) y un shader ligero (brillo suave, rayos de sol, tono de la hora). Se apagan en `config/mipack-client.toml` (`cielo = false`, `efectos = false`).
 
 ## Fotos
-En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera). De cerca: `acaro_amatista_*` y `guerrero_calavera_*`.
+En `fotos_en_el_juego/` hay capturas del juego de verdad (Forge 1.20.1 con el mod), tomadas solas durante peleas de prueba contra husks. Las de la versión 2: `crackatos_v2_*` (tamaño, estampida, fase 2 con los cristales encendidos) y `khaset_v2_*` (el altar nuevo, la barra para zafarse, acostado en el altar, el tótem, los guerreros calavera). De cerca: `acaro_amatista_*` y `guerrero_calavera_*`. La Bruma: `bruma_*` (de cerca, la garra, de lado, el grito, el zarpazo, en forma de niebla, la fase 2 de noche y su muerte).
 
 ## Si algo sale mal
 - **"Missing mod geckolib":** te falta GeckoLib, o es de otra versión de Minecraft o de otro cargador (tiene que ser Forge 1.20.1).

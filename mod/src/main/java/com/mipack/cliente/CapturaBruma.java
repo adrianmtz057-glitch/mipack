@@ -125,7 +125,6 @@ public final class CapturaBruma {
                 if (b == null)
                     return;
                 if (v >= VISTAS.length) {
-                    comando(server, "time set 18000");
                     comando(server, "data merge entity @e[type=mipack:bruma,limit=1] {NoAI:0b}");
                     for (int i = 0; i < 2; i++)
                         comando(server, String.format("summon minecraft:husk %d %d %d {PersistenceRequired:1b,Health:600f,"
@@ -141,13 +140,17 @@ public final class CapturaBruma {
                     foto(mc, "vista_" + v, b);
             }
             case PELEA, FASE2 -> {
-                if (b != null) {                                // la camara le da vueltas despacio
+                if (b != null) {                                // la camara le da vueltas despacio, de cerca y adentro de la arena
                     double ang = Math.toRadians(30 + ticks * 0.6);
-                    mirar(mc, b.position().add(-Math.sin(ang) * 17, 7, Math.cos(ang) * 17), b.position().add(0, 2.5, 0));
+                    Vec3 cam = b.position().add(-Math.sin(ang) * 12, 5, Math.cos(ang) * 12);
+                    cam = new Vec3(Mth.clamp(cam.x, centro.getX() - 25, centro.getX() + 25), cam.y,
+                            Mth.clamp(cam.z, centro.getZ() - 25, centro.getZ() + 25));
+                    mirar(mc, cam, b.position().add(0, 3, 0));
                 }
                 if (enPaso % PELEA_CADA == 0) {
                     foto(mc, String.format("%s_%03d", paso == Paso.PELEA ? "pelea" : "fase2", ++fotos), b);
                     if (paso == Paso.PELEA && fotos >= FOTOS_PELEA) {
+                        comando(server, "time set 18000");      // la fase 2, de noche
                         if (bs != null)
                             server.execute(() -> bs.setHealth(bs.getMaxHealth() * 0.45f));
                         a(Paso.FASE2);
@@ -157,17 +160,21 @@ public final class CapturaBruma {
                 }
             }
             case LUZ -> {
-                if (enPaso == 1 && bs != null)                 // junto al pilar de piedra luminosa
-                    server.execute(() -> bs.teleportTo(centro.getX() + 16.5, centro.getY(), centro.getZ() - 15.5));
-                if (b != null)
-                    mirar(mc, b.position().add(-9, 5, 9), b.position().add(0, 2.5, 0));
-                if (enPaso == 12)
-                    foto(mc, "luz_corporea", b);
-                if (enPaso == 14 && bs != null)
+                if (enPaso == 1)
+                    comando(server, "time set 6000");
+                if (bs != null && enPaso < 40 && (bs.getEstado() == BrumaEntity.Estado.VIAJAR || bs.getEstado() == BrumaEntity.Estado.DISOLVERSE))
+                    enPaso = 2;                                 // que acabe de viajar
+                if (bs != null && enPaso >= 3 && enPaso <= 20)    // junto al pilar de piedra luminosa
+                    server.execute(() -> bs.teleportTo(centro.getX() + 16.5, centro.getY(), centro.getZ() - 14.5));
+                if (bs != null && enPaso >= 23 && enPaso <= 40)
                     server.execute(() -> bs.teleportTo(centro.getX() - 10.5, centro.getY(), centro.getZ() + 10.5));
-                if (enPaso == 30)
+                if (b != null)
+                    mirar(mc, b.position().add(-8, 4.5, 8), b.position().add(0, 3, 0));
+                if (enPaso == 20)
+                    foto(mc, "luz_corporea", b);
+                if (enPaso == 40)
                     foto(mc, "lejos_niebla", b);
-                if (enPaso == 32) {
+                if (enPaso == 42) {
                     if (bs != null)
                         server.execute(bs::kill);
                     a(Paso.MUERTE);
@@ -175,7 +182,7 @@ public final class CapturaBruma {
             }
             case MUERTE -> {
                 if (b != null)
-                    mirar(mc, b.position().add(-10, 5, 10), b.position().add(0, 2.5, 0));
+                    mirar(mc, b.position().add(-8, 4.5, 8), b.position().add(0, 3, 0));
                 if (enPaso % 6 == 0 && fotos < FOTOS_MUERTE)
                     foto(mc, String.format("muerte_%02d", ++fotos), b);
                 if (enPaso > 80) {

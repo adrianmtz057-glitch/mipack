@@ -129,8 +129,8 @@ public class BrumaEntity extends Monster implements GeoEntity {
     private static final RawAnimation A_FASE2 = RawAnimation.begin().thenPlay("animation.bruma.fase2");
     private static final RawAnimation A_MUERTE = RawAnimation.begin().thenPlayAndHold("animation.bruma.muerte");
 
-    private static final DustParticleOptions NEGRA = new DustParticleOptions(new Vector3f(0.03f, 0.03f, 0.035f), 3.5f);
-    private static final DustParticleOptions GRIS = new DustParticleOptions(new Vector3f(0.16f, 0.17f, 0.19f), 2.5f);
+    private static final DustParticleOptions NEGRA = new DustParticleOptions(new Vector3f(0.05f, 0.05f, 0.06f), 1.6f);
+    private static final DustParticleOptions GRIS = new DustParticleOptions(new Vector3f(0.18f, 0.19f, 0.21f), 1.2f);
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     private final ServerBossEvent barra = (ServerBossEvent) new ServerBossEvent(this.getDisplayName(), BossEvent.BossBarColor.WHITE,
@@ -609,7 +609,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
         Vec3 v = largo < 1e-3 ? Vec3.ZERO : d.scale(Math.min(1.6, largo) / largo);
         this.setDeltaMovement(v);
         if (this.level() instanceof ServerLevel sl) {
-            sl.sendParticles(NEGRA, this.getX(), this.getY() + 2.5, this.getZ(), 14, 0.8, 1.6, 0.8, 0.0);
+            sl.sendParticles(NEGRA, this.getX(), this.getY() + 2.5, this.getZ(), 6, 0.8, 1.6, 0.8, 0.0);
             sl.sendParticles(ParticleTypes.SCULK_SOUL, this.getX(), this.getY() + 2.5, this.getZ(), 2, 0.6, 1.2, 0.6, 0.02);
         }
         if (largo < 1.2 || this.ticksEnEstado > MAX_VIAJE) {
@@ -666,7 +666,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
             this.entityData.set(FASE2, true);
             this.playSound(SoundEvents.ELDER_GUARDIAN_CURSE, 4.0f, 0.4f);
             this.playSound(SoundEvents.WITHER_SPAWN, 2.0f, 1.4f);
-            sl.sendParticles(NEGRA, this.getX(), this.getY() + 3, this.getZ(), 200, 6, 3, 6, 0.0);
+            sl.sendParticles(NEGRA, this.getX(), this.getY() + 3, this.getZ(), 80, 6, 3, 6, 0.0);
             for (Player p : this.level().players())
                 if (p.distanceToSqr(this) < 64 * 64)
                     p.displayClientMessage(Component.translatable("bruma.mipack.fase2"), true);
@@ -789,6 +789,18 @@ public class BrumaEntity extends Monster implements GeoEntity {
         return this.getPassengers().isEmpty() && pasajero instanceof LivingEntity;
     }
 
+    /** Si la presa se sale del juego, el juego se llevaria a La Bruma guardada con ella (como un caballo): no. */
+    @Override
+    public boolean hasExactlyOnePlayerPassenger() {
+        return false;
+    }
+
+    /** La presa va colgando, no sentada. */
+    @Override
+    public boolean shouldRiderSit() {
+        return false;
+    }
+
     @Override
     public double getPassengersRidingOffset() {
         return 0.0;
@@ -813,7 +825,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
     public void tick() {
         super.tick();
         if (this.level().isClientSide && getEstado() != Estado.MUERTE && !escondida()) {
-            int n = fase2() ? 10 : 5;
+            int n = fase2() ? 4 : 2;                                 // poquitas y chicas: que no tapen el modelo
             double r = fase2() ? 4.0 : 2.5;
             for (int i = 0; i < n; i++) {
                 double a = this.random.nextDouble() * Math.PI * 2, d = r * (0.3 + this.random.nextDouble());
@@ -824,7 +836,7 @@ public class BrumaEntity extends Monster implements GeoEntity {
             if (!corporea() && this.random.nextInt(4) == 0)
                 this.level().addParticle(ParticleTypes.SCULK_SOUL, this.getX() + (this.random.nextDouble() - 0.5) * 2,
                         this.getY() + this.random.nextDouble() * 4, this.getZ() + (this.random.nextDouble() - 0.5) * 2, 0, 0.02, 0);
-            if (this.random.nextInt(2) == 0)                       // la niebla que se arrastra abajo
+            if (this.random.nextInt(3) == 0)                       // la niebla que se arrastra abajo
                 this.level().addParticle(ParticleTypes.LARGE_SMOKE, this.getX() + (this.random.nextDouble() - 0.5) * r * 2,
                         this.getY() - 0.3, this.getZ() + (this.random.nextDouble() - 0.5) * r * 2, 0, 0.0, 0);
         }
@@ -882,10 +894,10 @@ public class BrumaEntity extends Monster implements GeoEntity {
         this.deathTime++;
         this.setDeltaMovement(this.getDeltaMovement().scale(0.5).add(0, -0.01, 0));
         if (this.level() instanceof ServerLevel sl && this.deathTime % 3 == 0)
-            sl.sendParticles(NEGRA, this.getX(), this.getY() + 2, this.getZ(), 30, 2.0, 2.0, 2.0, 0.0);
+            sl.sendParticles(NEGRA, this.getX(), this.getY() + 2, this.getZ(), 10, 2.0, 2.0, 2.0, 0.0);
         if (this.deathTime >= T_MUERTE && !this.level().isClientSide()) {
             if (this.level() instanceof ServerLevel sl) {
-                sl.sendParticles(NEGRA, this.getX(), this.getY() + 2, this.getZ(), 160, 3.0, 2.5, 3.0, 0.0);
+                sl.sendParticles(NEGRA, this.getX(), this.getY() + 2, this.getZ(), 60, 3.0, 2.5, 3.0, 0.0);
                 sl.sendParticles(ParticleTypes.SCULK_SOUL, this.getX(), this.getY() + 2, this.getZ(), 40, 2.0, 2.0, 2.0, 0.05);
             }
             this.level().broadcastEntityEvent(this, (byte) 60);
